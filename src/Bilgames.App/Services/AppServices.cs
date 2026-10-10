@@ -53,6 +53,27 @@ public static class AppServices
         Jobs = new GenerationCoordinator(Store, Engine, Encoder, Power, () => Settings);
         Updates = new UpdateService();
         Jobs.ResumeInterrupted();
+        // Books whose first chapter was analysed but the app closed before the rest was.
+        foreach (var b in Store.LoadAll().Where(b => b.AnalyzingRest)) _ = AnalyzeRestAsync(b.Id);
+    }
+
+    /// <summary>Raised on the UI thread when a book finished being analysed in the background.</summary>
+    public static event Action<string>? AnalysisFinished;
+
+    /// <summary>
+    /// Finds speakers in the rest of a book whose first chapter is done (listening can already have
+    /// started), then lets generation carry on into the newly analysed chapters.
+    /// </summary>
+    public static async Task AnalyzeRestAsync(string bookId)
+    {
+        try
+        {
+            var book = await Task.Run(() => Books.Analyze(bookId));
+            if (book.Generation.StartedUtc is not null && book.Generation.State is not Bilgames.Core.Model.JobState.Paused)
+                Jobs.StartOrContinue(bookId);
+        }
+        catch (Exception ex) { Log("Analysing the rest of the book failed: " + ex); }
+        RunOnUI(() => AnalysisFinished?.Invoke(bookId));
     }
 
     public static void SaveSettings() => Store.SaveSettings(Settings);

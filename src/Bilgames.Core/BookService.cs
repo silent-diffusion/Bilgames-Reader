@@ -35,9 +35,13 @@ public sealed class BookService
     // edit lock: an edit can never save over another with a copy it loaded before that one finished.
 
     /// <summary>Finds speakers across the book. Earlier corrections and voice choices are kept.</summary>
-    public BookRecord Analyze(string bookId, IProgress<double>? progress = null, CancellationToken ct = default)
+    /// <param name="firstChapterOnly">
+    /// Analyse just the first chapter, so listening can start at once; the book is marked
+    /// <see cref="BookRecord.AnalyzingRest"/> and a later full call finishes it.
+    /// </param>
+    public BookRecord Analyze(string bookId, IProgress<double>? progress = null, CancellationToken ct = default, bool firstChapterOnly = false)
     {
-        lock (_store.EditLock(bookId)) return AnalyzeUnlocked(bookId, progress, ct);
+        lock (_store.EditLock(bookId)) return AnalyzeUnlocked(bookId, progress, ct, firstChapterOnly);
     }
 
     public void SetVoice(string bookId, string memberId, string voiceId)
@@ -88,17 +92,22 @@ public sealed class BookService
 
     public LibraryStore Store => _store;
 
-    private static bool Analyzable(BookRecord b, ChapterInfo c) => c.Kind == SectionKind.Body || b.Options.Includes(c.Kind);
+    /// <summary>Whether a chapter gets speaker analysis (the body, plus any other parts chosen to be read).</summary>
+    public static bool Analyzable(BookRecord b, ChapterInfo c) => c.Kind == SectionKind.Body || b.Options.Includes(c.Kind);
 
     /// <summary>Finds speakers across the book. Earlier corrections and voice choices are kept.</summary>
-    private BookRecord AnalyzeUnlocked(string bookId, IProgress<double>? progress, CancellationToken ct)
+    private BookRecord AnalyzeUnlocked(string bookId, IProgress<double>? progress, CancellationToken ct, bool firstChapterOnly = false)
     {
         var book = _store.LoadBook(bookId) ?? throw new InvalidOperationException("Book not found.");
-        book.Analysis = AnalysisState.Running;
+        // Finishing the rest after the first chapter: the book stays usable (analysed) meanwhile.
+        bool finishing = book.AnalyzingRest && !firstChapterOnly;
+        if (!finishing) book.Analysis = AnalysisState.Running;
         _store.SaveBook(book);
         try
         {
-            var chapters = book.Chapters.Where(c => Analyzable(book, c)).Select(c => _store.LoadChapterText(bookId, c.Index)).ToList();
+            var analyzable = book.Chapters.Where(c => Analyzable(book, c)).ToList();
+            bool partial = firstChapterOnly && analyzable.Count > 1;
+            var chapters = (partial ? analyzable.Take(1) : analyzable).Select(c => _store.LoadChapterText(bookId, c.Index)).ToList();
             var oldCast = _store.LoadCast(bookId);
             var narratorVoice = oldCast.Members.FirstOrDefault(m => m.IsNarrator)?.VoiceId ?? VoiceCatalog.DefaultNarrator;
 
@@ -141,13 +150,14 @@ public sealed class BookService
             _store.SaveCast(bookId, result.Cast);
             book = _store.LoadBook(bookId) ?? book;
             book.Analysis = AnalysisState.Done;
+            book.AnalyzingRest = partial;
             Recount(book, result.Cast);
             return book;
         }
         catch
         {
             book = _store.LoadBook(bookId) ?? book;
-            book.Analysis = AnalysisState.NotStarted;
+            if (!finishing) book.Analysis = AnalysisState.NotStarted;
             _store.SaveBook(book);
             throw;
         }

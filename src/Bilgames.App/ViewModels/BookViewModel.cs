@@ -19,6 +19,8 @@ public sealed partial class BookViewModel : ObservableObject
         Cast = new CastViewModel(this);
         Review = new ReviewViewModel(this);
         Generate = new GenerateViewModel(this);
+        // The rest of a book finished analysing in the background: show its full cast and review queue.
+        AppServices.AnalysisFinished += id => _shell.BookChanged(id);
     }
 
     public ShellViewModel Shell => _shell;
@@ -234,7 +236,7 @@ public sealed partial class StructureViewModel : ObservableObject
         Footnotes = opts.Footnotes;
         UpdateStats();
         AnalyzeLabel = b.Analysis == AnalysisState.Done ? "Find speakers again" : "Find speakers";
-        AnalyzeHint = "Usually under a minute.";
+        AnalyzeHint = b.AnalyzingRest ? "First chapter done; finding speakers in the rest of the book…" : "Usually under a minute.";
         _refreshing = false;
     }
 
@@ -271,9 +273,16 @@ public sealed partial class StructureViewModel : ObservableObject
         try
         {
             var progress = new Progress<double>(p => AnalyzeProgress = p * 100);
-            await Task.Run(() => AppServices.Books.Analyze(id, progress));
+            // First time: the first chapter now, so listening can start; the rest follows in the background.
+            bool first = _book.Record?.Analysis != AnalysisState.Done;
+            var book = await Task.Run(() => AppServices.Books.Analyze(id, progress, firstChapterOnly: first));
             _book.Changed();
             _book.Tab = BookTab.Cast;
+            if (book.AnalyzingRest)
+            {
+                AnalyzeHint = "First chapter done; finding speakers in the rest of the book…";
+                _ = AppServices.AnalyzeRestAsync(id);
+            }
         }
         catch (Exception ex)
         {

@@ -71,6 +71,11 @@ public sealed class BookRecord
     public List<ChapterInfo> Chapters { get; set; } = new();
     public StructureOptions Options { get; set; } = new();
     public AnalysisState Analysis { get; set; }
+    /// <summary>
+    /// Speakers were found in the first chapter so listening could start, and the rest of the book is
+    /// still being analysed (or will be when the app next starts). Until then, only analysed chapters generate.
+    /// </summary>
+    public bool AnalyzingRest { get; set; }
     public QualityProfile Quality { get; set; } = QualityProfile.Balanced;
     public PlaybackPosition Position { get; set; } = new();
     public double PlaybackRate { get; set; } = 1.0;

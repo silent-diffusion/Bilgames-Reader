@@ -102,14 +102,45 @@ Any chapter can be played immediately: the player asks the job to generate that 
 plays it in small chunks as sentences land (`ChapterStream`), on the same timeline as the final file,
 then switches to the saved chapter at the same spot once it's finished.
 
+The first time speakers are found, only the first chapter is analysed up front so listening can
+start at once; the rest of the book follows in the background (`BookRecord.AnalyzingRest`), and
+generation waits for each chapter's analysis. A staged analysis ends identical to a one-pass one.
+
+### Keep finished audio
+
+Settings › Storage › *Keep finished audio*: **All chapters** (default), **Recent chapters** (the one
+being listened to, one before, three ahead) or **Until listened**. `AudioRetention` only ever removes
+finished chapter audio, never text, analysis, cast or notes; generation follows the listening window,
+removed chapters show as such and come back when reached, and an M4B export regenerates them first.
+
+### Saved data, backups and book files
+
+- The library carries a format version (`library.json`, `LibraryFormat`). An update that changes the
+  format backs up every edit first (`backups/pre-upgrade-*.zip`), then migrates each book. Format 2
+  (0.5.0) anchors the listening position and bookmarks to the text (line + fraction through it), so
+  re-timed audio (another quality, voice or device) still lands on the same words.
+- Fields written by a newer version survive a save, unknown enum values read as defaults, and a damaged
+  file is copied aside (`*.unreadable-*`) before defaults are used.
+- Settings › Backup saves the whole library to one zip (optionally with audio) and restores it. A
+  single book exports as a `.bilgames` file (book page › ⋯ › *Export book file…*); importing one, or
+  double-clicking it, adds or replaces that book, keeping its segment cache and still-matching audio.
+- Voices come from the engine (`ITtsEngine.Voices`); a saved voice another engine lacks is played by
+  the closest one it has (`VoiceResolver`). Voice IDs never change: they're part of every segment hash.
+
+### Appearance and accessibility
+
+Settings › Appearance: theme (same as Windows, dark or light; Windows contrast themes always use the
+system colours) and reading text size for all book text. Colours are shared brushes recoloured in
+place (`Controls/Palette.cs`), so switching needs no restart.
+
 Data lives in `%LOCALAPPDATA%\BilgamesReader`. Set `BILGAMES_DATA` to another folder to try things
 without touching your real library. Passing `.epub` paths on the command line imports them.
 
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.4.4            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.4.4 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.5.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.5.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies
@@ -123,4 +154,6 @@ Bump `<Version>` in `Directory.Build.props` along with the release so the About/
 ## Licenses
 
 Kokoro-82M model and voices: Apache-2.0. KokoroSharp: MIT. MisakiSharp: Apache-2.0. Manrope and
-Literata fonts: SIL Open Font License (see `src/Bilgames.App/Assets/Fonts`).
+Literata fonts: SIL Open Font License (see `src/Bilgames.App/Assets/Fonts`). Everything shipped is
+listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which the app links from Settings › Privacy.
+Uninstalling removes voice models, caches and logs but keeps the library folder.

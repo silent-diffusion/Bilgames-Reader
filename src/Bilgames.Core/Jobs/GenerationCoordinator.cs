@@ -319,8 +319,13 @@ public sealed class GenerationCoordinator : IDisposable
         var policy = _settings().KeepFinishedAudio;
         bool all;
         lock (_gate) all = policy == KeepAudio.All || _forceAll.Contains(bookId);
-        var keep = all ? null : _store.LoadBook(bookId) is { } b ? AudioRetention.Wanted(b, policy).ToHashSet() : null;
-        bool Pending(ChapterProgress c) => c.Status is not ChapterStatus.Ready && !attempted.Contains(c.Index)
+        var book = _store.LoadBook(bookId);
+        var keep = all || book is null ? null : AudioRetention.Wanted(book, policy).ToHashSet();
+        // Speakers are still being found in the rest of the book: wait for those chapters (their plan would change).
+        var waiting = book is { AnalyzingRest: true }
+            ? book.Chapters.Where(c => BookService.Analyzable(book, c) && _store.LoadAnalysis(bookId, c.Index) is null).Select(c => c.Index).ToHashSet()
+            : null;
+        bool Pending(ChapterProgress c) => c.Status is not ChapterStatus.Ready && !attempted.Contains(c.Index) && waiting?.Contains(c.Index) != true
                                            && (keep is null || keep.Contains(c.Index) || (_priority.TryGetValue(bookId, out var w) && w == c.Index));
         ChapterProgress? next = null;
         if (_priority.TryGetValue(bookId, out var wanted)) next = progress.Chapters.FirstOrDefault(c => c.Index == wanted && Pending(c));
@@ -353,9 +358,18 @@ public sealed class GenerationCoordinator : IDisposable
         var snapshot = Snapshot(book);
         var keep = AudioRetention.Wanted(book, policy).ToHashSet();
         if (!snapshot.Chapters.Any(c => keep.Contains(c.Index) && c.Status != ChapterStatus.Ready)) return;
+        StartOrContinue(bookId);
+    }
+
+    /// <summary>
+    /// Makes sure the book's remaining chapters get generated: starts it, or, when it's already
+    /// generating, runs another pass after this one (which picks up chapters that became ready to make).
+    /// </summary>
+    public void StartOrContinue(string bookId)
+    {
         lock (_gate)
         {
-            if (_currentBook == bookId) { _requeue = bookId; return; } // picks the new window up when this pass ends
+            if (_currentBook == bookId) { _requeue = bookId; return; }
             if (_queued.Contains(bookId)) return;
         }
         Start(bookId);
