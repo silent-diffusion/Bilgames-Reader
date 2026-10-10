@@ -13,7 +13,7 @@ public static class NameRules
         ["Mrs"] = Gender.Female, ["Mrs."] = Gender.Female, ["Miss"] = Gender.Female, ["Ms"] = Gender.Female, ["Ms."] = Gender.Female,
         ["Lady"] = Gender.Female, ["Aunt"] = Gender.Female, ["Mother"] = Gender.Female, ["Sister"] = Gender.Female, ["Queen"] = Gender.Female,
         ["Princess"] = Gender.Female, ["Duchess"] = Gender.Female, ["Countess"] = Gender.Female, ["Madam"] = Gender.Female, ["Madame"] = Gender.Female,
-        ["Mademoiselle"] = Gender.Female, ["Dame"] = Gender.Female, ["Widow"] = Gender.Female,
+        ["Mademoiselle"] = Gender.Female, ["Dame"] = Gender.Female, ["Widow"] = Gender.Female, ["M"] = Gender.Male, ["Mme"] = Gender.Female,
         ["Dr"] = Gender.Unknown, ["Dr."] = Gender.Unknown, ["Doctor"] = Gender.Unknown, ["Captain"] = Gender.Unknown, ["Colonel"] = Gender.Unknown,
         ["Major"] = Gender.Unknown, ["Lieutenant"] = Gender.Unknown, ["General"] = Gender.Unknown, ["Professor"] = Gender.Unknown,
         ["Sergeant"] = Gender.Unknown, ["Judge"] = Gender.Unknown, ["Reverend"] = Gender.Unknown, ["Rev."] = Gender.Unknown,

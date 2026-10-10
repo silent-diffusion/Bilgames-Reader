@@ -32,7 +32,11 @@ internal sealed partial class CharacterRegistry
     /// <summary>Clusters raw name forms into characters ("Darcy" + "Mr. Darcy", "Jane" + "Jane Bennet").</summary>
     public void Consolidate()
     {
-        var forms = _raw.OrderByDescending(kv => NameRules.Core(kv.Key).Split(' ').Length).ThenByDescending(kv => kv.Value.Count).ToList();
+        // Longest names first; titled forms ("Mr. Bingley", "Miss Bingley") before bare ones ("Bingley"), so a
+        // bare surname can't glue two differently titled people into one cluster.
+        var forms = _raw.OrderByDescending(kv => NameRules.Core(kv.Key).Split(' ').Length)
+            .ThenBy(kv => TitleOf(kv.Key) is null ? 1 : 0)
+            .ThenByDescending(kv => kv.Value.Count).ToList();
         foreach (var (form, (count, descriptor)) in forms)
         {
             var target = descriptor ? null : FindCluster(form);
@@ -62,8 +66,20 @@ internal sealed partial class CharacterRegistry
         if (core.Length == 0) return null;
 
         var matches = new List<Character>();
+        var formGender = NameRules.GuessFromName(form);
         foreach (var c in Characters.Where(c => !c.IsDescriptor))
         {
+            // The whole cluster must be compatible, not just the one form that matches: "Mr. Bingley" must
+            // not join {Miss Bingley, Bingley}, and "Mrs. Cratchit" must not join {Bob Cratchit}.
+            bool conflict = false;
+            foreach (var existing in c.Forms.Keys)
+            {
+                var eg = NameRules.GuessFromName(existing);
+                if (formGender != Gender.Unknown && eg != Gender.Unknown && formGender != eg) { conflict = true; break; }
+                var et = TitleOf(existing);
+                if (title is not null && et is not null && !TitlesCompatible(title, et)) { conflict = true; break; }
+            }
+            if (conflict) continue;
             foreach (var existing in c.Forms.Keys)
             {
                 var eTitle = TitleOf(existing);
@@ -74,8 +90,10 @@ internal sealed partial class CharacterRegistry
                 // Every word of the shorter core name appears in the longer one.
                 if (core.All(w => eCore.Contains(w, StringComparer.OrdinalIgnoreCase)))
                 {
-                    // "Bennet" alone must not swallow "Jane Bennet" when a title disambiguates nothing.
-                    if (title is null && core.Length == 1 && eCore.Length > 1 && !eCore[0].Equals(core[0], StringComparison.OrdinalIgnoreCase)) continue;
+                    // "Bennet" alone must not swallow "Jane Bennet" when a title disambiguates nothing — unless only
+                    // one character in the book carries that surname ("Holmes" → "Sherlock Holmes").
+                    if (title is null && core.Length == 1 && eCore.Length > 1 && !eCore[0].Equals(core[0], StringComparison.OrdinalIgnoreCase)
+                        && SurnameOwners(core[0]) != 1) continue;
                     matches.Add(c);
                     break;
                 }
@@ -83,6 +101,11 @@ internal sealed partial class CharacterRegistry
         }
         return matches.Count == 1 ? matches[0] : null;
     }
+
+    /// <summary>How many characters (so far) use this word in any of their name forms.</summary>
+    private int SurnameOwners(string word) =>
+        Characters.Count(c => !c.IsDescriptor && c.Forms.Keys.Any(f =>
+            NameRules.Core(f).Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(word, StringComparer.OrdinalIgnoreCase)));
 
     private static bool TitlesCompatible(string a, string b)
     {

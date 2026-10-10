@@ -31,10 +31,10 @@ public static partial class SpeechTags
     private const string Titles =
         "Mr|Mrs|Ms|Miss|Dr|Sir|Lady|Lord|Aunt|Uncle|Captain|Colonel|Major|General|Lieutenant|Sergeant|Father|Mother|Brother|Sister|" +
         "Professor|Judge|Doctor|Madame|Madam|Monsieur|Mademoiselle|Signor|Signora|Count|Countess|Duke|Duchess|King|Queen|Prince|Princess|" +
-        "Widow|Old|Young|Little|Cousin|Saint|St|Reverend|Rev";
+        "Widow|Old|Young|Little|Cousin|Saint|St|Reverend|Rev|M";
 
     // A proper name: optional title, then 1–3 capitalized words.
-    private const string Name = @"(?:(?:" + Titles + @")\.?\s+)?[A-Z][\w’'-]*(?:\s+(?:[A-Z][\w’'-]*|de|van|von|la|le)){0,2}";
+    private const string Name = @"(?:(?:" + Titles + @")\.?\s+){0,2}[A-Z][\w’'-]*(?:\s+(?:[A-Z][\w’'-]*|de|van|von|la|le)){0,2}";
     private const string Pronoun = @"(?:he|she|I|we|they|you|He|She|We|They|You)";
     // Determiner + up to three lowercase words; Classify trims it back to the head noun.
     private const string Desc = @"(?:the|his|her|my|our|their|an?|that|this|The|His|Her|My|Our|Their|A|An|That|This)\s+[a-z][a-z-]+(?:\s+[a-z][a-z-]+){0,2}";
@@ -72,13 +72,33 @@ public static partial class SpeechTags
         "Although", "Because", "Since", "Until", "While", "Whilst", "Yet", "Nor", "Like", "Than", "Also", "Too", "Quite", "Rather",
         "Really", "Certainly", "Of course", "Right", "Wait", "Stop", "Hurry", "Quick", "Ha", "Hm", "Hmm", "Hey", "Hi", "Ay", "Aye",
         "Bymeby", "Directly", "Afterwards", "Later", "Next", "First", "Last", "Lastly", "Anyway", "Anyways", "Thereupon", "Thereafter",
+        "Upon", "Into", "Onto", "From", "By", "Through", "Without", "Within", "Against", "Among", "Under", "Over", "Behind", "Beyond",
+        "About", "Down", "Up", "Out", "Off", "Sudden", "Away", "Along", "Around", "Round", "Across",
     };
 
     private static readonly HashSet<string> NonCharacterDescriptors = new(StringComparer.OrdinalIgnoreCase)
     {
         "other", "others", "first", "second", "third", "latter", "former", "voice", "voices", "one", "ones", "rest", "same", "two", "three",
         "crowd", "people", "men", "women", "children", "boys", "girls", "telescreen", "radio", "loudspeaker", "sign", "letter", "paper", "note",
+        "river", "wind", "sea", "hall", "line", "door", "bell", "clock", "conversation", "words", "word", "book", "story", "song",
+        "time", "times", "bills", "day", "night", "morning", "evening", "way",
     };
+
+    /// <summary>"the old" / "the dead": an adjective where the noun should be; the descriptor was cut off.</summary>
+    private static readonly HashSet<string> AdjectiveHeads = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "old", "young", "little", "dead", "poor", "dark", "pale", "new", "good", "bad", "great", "big", "small", "whole", "gay", "last",
+        "next", "elder", "younger", "eldest", "youngest", "projected", "imperturbable", "frightened", "hollow-cheeked", "same", "very",
+    };
+
+    private static readonly HashSet<string> Possessives = new(StringComparer.OrdinalIgnoreCase) { "his", "her", "my", "our", "their", "your" };
+
+    /// <summary>
+    /// "cried her mother", "said his wife": a speaker named only relative to someone else. Not the
+    /// narrator and not a character of its own; the analyzer resolves it from context or asks for review.
+    /// </summary>
+    public static bool IsRelative(TagHit tag) =>
+        tag.Kind == SubjectKind.Unknown && tag.Subject.Split(' ') is { Length: >= 2 } w && Possessives.Contains(w[0]) && !NonCharacterDescriptors.Contains(w[^1]);
 
     public static TagHit? FindAfter(string narration) => Match(narration, AfterVerbFirst(), before: false) ?? Match(narration, AfterSubjectFirst(), before: false);
 
@@ -121,12 +141,14 @@ public static partial class SpeechTags
             // "the major looking at the priest" → "the major"; "the other appreciatively" → "the other".
             int cut = 1;
             while (cut < words.Length && cut <= 3 && !EndsNounPhrase(words[cut])) cut++;
-            if (requireAdjacent && cut < words.Length && !words[cut].EndsWith("ly")) return null;
+            // "the duke he says": a resumptive pronoun between the subject and the verb (dialect).
+            bool resumptive = cut < words.Length && words[cut] is "he" or "she";
+            if (requireAdjacent && cut < words.Length && !words[cut].EndsWith("ly") && !resumptive) return null;
             words = words[..cut];
             if (words.Length < 2) return null;
             subj = string.Join(' ', words);
             var noun = words[^1];
-            if (NonCharacterDescriptors.Contains(noun) || VerbSet.Contains(noun)) return SubjectKind.Unknown;
+            if (NonCharacterDescriptors.Contains(noun) || VerbSet.Contains(noun) || AdjectiveHeads.Contains(noun)) return SubjectKind.Unknown;
             if (first.ToLowerInvariant() is "a" or "an") return SubjectKind.Unknown; // "a voice said": an unnamed one-off
             if (first.ToLowerInvariant() is not "the") return SubjectKind.Unknown;  // "his wife": relative to someone; resolved by context
             subj = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(string.Join(' ', words.Skip(1)));
@@ -147,6 +169,7 @@ public static partial class SpeechTags
         if (kept.Count == 1 && NameRules.IsTitle(kept[0])) return null;
         var core = kept.Where(k => !NameRules.IsTitle(k)).ToList();
         if (core.Count == 0 || NotNames.Contains(core[0].TrimEnd('.', ','))) return null;
+        if (core.All(k => k.TrimEnd('.', ',').Length < 2)) return null; // "M", "X": an initial, not a name
         subj = string.Join(' ', kept).TrimEnd(',', '.');
         if (subj.EndsWith("’s", StringComparison.Ordinal) || subj.EndsWith("'s", StringComparison.Ordinal)) return null; // possessive, not a speaker
         return SubjectKind.Name;
@@ -177,6 +200,8 @@ public static partial class SpeechTags
     {
         "to", "at", "and", "with", "in", "on", "of", "from", "as", "but", "for", "into", "over", "after", "before", "then", "who",
         "which", "that", "when", "while", "again", "too", "once", "now", "still", "back", "up", "down", "out", "softly", "quietly",
+        "he", "she", "it", "they", "i", "is", "was", "were", "are", "had", "has", "have", "did", "does", "do", "would", "could", "should",
+        "will", "never", "always", "just", "only", "so", "all", "then", "not", "also",
     };
 
     private static bool EndsNounPhrase(string w) =>

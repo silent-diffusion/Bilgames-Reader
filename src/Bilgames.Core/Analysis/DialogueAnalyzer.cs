@@ -89,8 +89,24 @@ public sealed class DialogueAnalyzer
         public HashSet<string> Addressees = new();
         public int RunId = -1, RunPos = -1;
         public List<SpeakerCandidate> Candidates = new();
+        /// <summary>Gender the tag itself demands ("said she", "cried her mother"); guesses must respect it.</summary>
+        public Gender Want = Gender.Unknown;
         public bool IsDialogue => Speech.Any(s => s);
     }
+
+    private Gender GenderOf(string id) =>
+        _registry.Characters.FirstOrDefault(c => c.Id == id)?.Gender ?? Gender.Unknown;
+
+    /// <summary>False when the speaker's known gender contradicts the paragraph's own tag.</summary>
+    private bool Fits(Para p, string? id) =>
+        p.Want == Gender.Unknown || id is null || id == CastMember.NarratorId || GenderOf(id) is var g && (g == Gender.Unknown || g == p.Want);
+
+    private static Gender TagGender(TagHit tag) => tag.Kind switch
+    {
+        SubjectKind.Pronoun => tag.Subject.Equals("she", StringComparison.OrdinalIgnoreCase) ? Gender.Female : Gender.Male,
+        _ when SpeechTags.IsRelative(tag) => SpeechTags.DescriptorGender(tag.Subject),
+        _ => Gender.Unknown,
+    };
 
     private ChapterAnalysis AnalyzeChapter(ChapterText chapter, ref int runSeed)
     {
@@ -163,10 +179,11 @@ public sealed class DialogueAnalyzer
                     p.Cue ??= SpeechTags.CueFor(leadIn.Verb, leadIn.Adverb);
                 }
                 if (lcands.Count > 0 && p.Candidates.Count == 0) p.Candidates = lcands;
+                if (p.Want == Gender.Unknown) p.Want = TagGender(leadIn);
             }
             leadIn = null;
             lastDialogue = p;
-            if (p.Speaker is null && prev is not null && prev.IsDialogue && prev.Split.EndsOpen && p.Split.StartsWithQuote && prev.Speaker is not null)
+            if (p.Speaker is null && prev is not null && prev.IsDialogue && prev.Split.EndsOpen && p.Split.StartsWithQuote && prev.Speaker is not null && Fits(p, prev.Speaker))
             {
                 p.Speaker = prev.Speaker; p.Conf = Math.Max(0.6, prev.Conf * 0.95); p.Source = AttributionSource.Continuation;
             }
@@ -259,6 +276,7 @@ public sealed class DialogueAnalyzer
             var (id, conf, cands) = ResolveTag(tag, recent, p, prev);
             if (cands.Count > 0 && p.Candidates.Count == 0) p.Candidates = cands;
             p.Tags.Add((si, tag, id, conf));
+            if (p.Want == Gender.Unknown) p.Want = TagGender(tag);
         }
 
         // The strongest tag speaks for the paragraph; quotes next to other tags are handled per span.
@@ -288,6 +306,9 @@ public sealed class DialogueAnalyzer
                 return c is null ? (null, 0, new()) : (c.Id, tag.Kind == SubjectKind.Name ? 0.95 : 0.88, new());
             case SubjectKind.Pronoun:
                 return ResolvePronoun(tag.Subject, recent, p, prev);
+            case SubjectKind.Unknown when SpeechTags.IsRelative(tag):
+                // "cried her mother": someone in the scene, not the narrator. Context (alternation) or review decides.
+                return (null, 0, new());
             default:
                 // "a voice said", "they said": an unnamed speaker. The narrator reads it; nothing to review.
                 return (CastMember.NarratorId, 0.85, new());
@@ -341,7 +362,7 @@ public sealed class DialogueAnalyzer
             var s = p.Split.Spans[i];
             if (s.IsQuote) continue;
             var mention = _registry.Mentions(s.Text).FirstOrDefault();
-            if (mention.Character is not null && mention.Index <= 4 && !p.Addressees.Contains(mention.Character.Id))
+            if (mention.Character is not null && mention.Index <= 4 && !p.Addressees.Contains(mention.Character.Id) && Fits(p, mention.Character.Id))
             {
                 p.Speaker = mention.Character.Id; p.Conf = 0.7; p.Source = AttributionSource.ActionBeat;
                 return;
@@ -396,7 +417,7 @@ public sealed class DialogueAnalyzer
                         conf = neighbour.Conf * 0.9;
                     }
                 }
-                if (guess is not null && conf > p.Conf && !p.Addressees.Contains(guess))
+                if (guess is not null && conf > p.Conf && !p.Addressees.Contains(guess) && Fits(p, guess))
                 {
                     p.Speaker = guess; p.Conf = conf; p.Source = AttributionSource.Alternation;
                     changed = changed || conf >= ConfidentThreshold;
@@ -421,9 +442,10 @@ public sealed class DialogueAnalyzer
             int r = 0;
             foreach (var id in recent.Take(4)) scores[id] = scores.GetValueOrDefault(id) + 0.12 / ++r;
             foreach (var a in p.Addressees) if (scores.ContainsKey(a)) scores[a] *= 0.15;
+            foreach (var id in scores.Keys.ToList()) if (!Fits(p, id)) scores[id] *= 0.1; // "said she" is not Mr. Bennet
             scores.Remove(CastMember.NarratorId);
             p.Candidates = Normalize(scores).Take(4).ToList();
-            if (p.Speaker is null && p.Candidates.Count > 0) { p.Speaker = p.Candidates[0].SpeakerId; p.Conf = 0.3 + 0.3 * p.Candidates[0].Score; }
+            if (p.Speaker is null && p.Candidates.Count > 0) { p.Speaker = p.Candidates[0].SpeakerId; p.Conf = Math.Min(ConfidentThreshold - 0.01, 0.3 + 0.3 * p.Candidates[0].Score); } // a guess, never confident
         }
     }
 
@@ -433,7 +455,7 @@ public sealed class DialogueAnalyzer
     /// one person out). Anchors on both sides that disagree mean the pattern broke somewhere between
     /// them, so those paragraphs are left for review.
     /// </summary>
-    private static void FillTwoParty(List<Para> run, string a, string b)
+    private void FillTwoParty(List<Para> run, string a, string b)
     {
         string Other(string s) => s == a ? b : a;
         var anchors = new (string Speaker, double Conf)?[run.Count];
@@ -450,7 +472,11 @@ public sealed class DialogueAnalyzer
         {
             var p = run[i];
             if (p.Speaker is not null && p.Conf >= ConfidentThreshold && p.Source != AttributionSource.Alternation) continue;
-            if (anchors[i] is { } self) { p.Speaker = self.Speaker; p.Conf = self.Conf; p.Source = AttributionSource.Alternation; continue; }
+            if (anchors[i] is { } self)
+            {
+                if (Fits(p, self.Speaker)) { p.Speaker = self.Speaker; p.Conf = self.Conf; p.Source = AttributionSource.Alternation; }
+                continue;
+            }
 
             int l = i - 1; while (l >= 0 && anchors[l] is null) l--;
             int r = i + 1; while (r < run.Count && anchors[r] is null) r++;
@@ -467,7 +493,7 @@ public sealed class DialogueAnalyzer
             else if (fromRight is not null) { guess = fromRight; conf = 0.78 - 0.03 * (r - i); }
             else continue;
 
-            if (p.Addressees.Contains(guess)) continue;
+            if (p.Addressees.Contains(guess) || !Fits(p, guess)) continue;
             // Explicit evidence (tags, pronouns, beats) was kept above; parity replaces only weaker guesses.
             p.Speaker = guess; p.Conf = conf; p.Source = AttributionSource.Alternation;
         }

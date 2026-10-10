@@ -186,21 +186,43 @@ public static partial class SynthesisPlanner
     public static string Apostrophes(string t)
     {
         if (t.IndexOfAny(ApostropheLike) < 0) return t;
-        t = InnerApostrophe().Replace(t, "'");      // Jim’s, don’t, o’clock
+        t = InnerApostrophe().Replace(t, "'");      // Jim’s, don’t, o’clock, man-o’-war
         t = PluralPossessive().Replace(t, "'");     // the boys’ house
-        t = LeadingElision().Replace(t, "'").Replace("'n’", "'n'"); // ’em, ’cause, rock ’n’ roll
-        return t;
+        t = LeadingElision().Replace(t, "'").Replace("'n’", "'n'"); // ’em, ’cause, “’Tis, ’kase, rock ’n’ roll
+        return TrailingElision(t);                  // goin’, o’ the, doan’
+    }
+
+    /// <summary>
+    /// A word-final ’ is a dropped letter ("nothin’", "o’ the") unless it closes a ‘single-quoted’
+    /// passage that is still open.
+    /// </summary>
+    private static string TrailingElision(string t)
+    {
+        if (t.IndexOf('’') < 0) return t;
+        var chars = t.ToCharArray();
+        bool open = false;
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] == '‘' && (i == 0 || !char.IsLetter(chars[i - 1]))) { open = true; continue; }
+            if (chars[i] != '’') continue;
+            bool wordEnd = i + 1 == chars.Length || !char.IsLetter(chars[i + 1]);
+            if (!wordEnd) continue;
+            if (open) { open = false; continue; } // closing quotation mark
+            if (i > 0 && char.IsLetter(chars[i - 1])) chars[i] = '\'';
+        }
+        return new string(chars);
     }
 
     private static readonly char[] ApostropheLike = { '’', '‘', '`', '´', 'ʼ', '′' };
 
-    [GeneratedRegex(@"(?<=\p{L})[’‘`´ʼ′](?=\p{L})")]
+    [GeneratedRegex(@"(?<=\p{L})[’‘`´ʼ′](?=\p{L}|-\p{L})")]
     private static partial Regex InnerApostrophe();
 
     [GeneratedRegex(@"(?<=\p{L}s)’(?=\s+\p{Ll})")]
     private static partial Regex PluralPossessive();
 
-    [GeneratedRegex(@"(?<=^|[\s(—])’(?=(?:em|n|cause|til|bout|round|tis|twas|twere|twill|ere|neath|gainst)\b)", RegexOptions.IgnoreCase)]
+    // An opening single quote is typeset ‘, so a ’ in front of a word is an elision (’em, ’Tis, ’kase, ’stead).
+    [GeneratedRegex(@"(?<=^|[\s(—“""‘])’(?=\p{L})")]
     private static partial Regex LeadingElision();
 
     /// <summary>Splits long text at sentence (then clause) boundaries into chunks the model handles well.</summary>
