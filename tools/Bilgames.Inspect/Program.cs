@@ -6,6 +6,7 @@ using Bilgames.Core.Model;
 Console.OutputEncoding = System.Text.Encoding.UTF8; // titles use “ ” · — and accented letters
 var path = args[0];
 var mode = args.Length > 1 ? args[1] : "structure";
+if (mode == "tokens") { Environment.ExitCode = TokensDump.Run(args[2..]); return; } // x tokens "text" [voice] [--out file.json]
 var book = mode is "m4b" or "engine" or "gpu" or "phonemes" ? new ImportedBook() : EpubImporter.Import(path);
 await Task.CompletedTask;
 Console.WriteLine($"{book.Title} — {book.Author} [{book.Language}] cover={(book.Cover?.Length ?? 0)} bytes");
