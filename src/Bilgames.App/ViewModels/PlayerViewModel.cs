@@ -708,23 +708,34 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     // ---------- voice preview ----------
 
+    private int _previewSeq;
+    private TaskCompletionSource? _previewDone;
+
+    /// <summary>
+    /// Speaks a sample through the preview player. The newest preview wins: starting another one
+    /// (e.g. clicking ▶ on the next voice) ends the current one instead of overlapping or cutting it off later.
+    /// </summary>
     public async Task PreviewAsync(string text, string voiceId, Bilgames.Core.Analysis.Delivery? delivery = null)
     {
+        int mine = ++_previewSeq;
         if (IsPlaying) _player.Pause();
         var d = delivery ?? Bilgames.Core.Analysis.Delivery.Neutral;
         text = SynthesisPlanner.ForSpeechText(text);
         var pcm = await Task.Run(() => AppServices.Engine.SynthesizeAsync(text, voiceId, d.Speed, QualityProfile.Balanced, CancellationToken.None));
+        if (mine != _previewSeq) return; // a newer preview started while this one was being made
         pcm = Loudness.Apply(pcm, d.GainDb);
         var path = Path.Combine(AppServices.Store.TempDir, $"preview-{Guid.NewGuid():N}.wav");
         Wav.Write(path, pcm, AppServices.Engine.SampleRate);
+        _previewDone?.TrySetResult();
         var done = new TaskCompletionSource();
+        _previewDone = done;
         void Ended(MediaPlayer s, object e) => done.TrySetResult();
         _preview.MediaEnded += Ended;
         _preview.Source = MediaSource.CreateFromUri(new Uri(path));
         _preview.Play();
         await Task.WhenAny(done.Task, Task.Delay(TimeSpan.FromSeconds(pcm.Length / 24000.0 + 2)));
         _preview.MediaEnded -= Ended;
-        _preview.Source = null;
+        if (mine == _previewSeq) _preview.Source = null;
         try { File.Delete(path); } catch { }
     }
 }

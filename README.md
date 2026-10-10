@@ -1,7 +1,7 @@
 ﻿# Bilgames Reader
 
 On-device EPUB â†’ audiobook app for Windows. Import a DRM-free EPUB, let it find who speaks each
-line, pick a voice per character, and generate a chapter-aware audiobook â€” entirely offline after a
+line, pick a voice per character, and generate a chapter-aware audiobook — entirely offline after a
 one-time voice model download. Product spec: [ReadMe.html](ReadMe.html); design handoff:
 [design/README.md](design/README.md).
 
@@ -28,14 +28,14 @@ src/Bilgames.App/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/BilgamesReader
 
 ### CPU and GPU
 
-Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings â€º Processing), the
+Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings › Processing), the
 engine uses the most capable DirectX 12 GPU whenever it has free video memory, falls back to the CPU
-segment-by-segment if memory runs short or the GPU errors, and checks again every 20 s to move back â€”
+segment-by-segment if memory runs short or the GPU errors, and checks again every 20 s to move back —
 generation never stops. DirectML can't run Kokoro's depthwise ConvTranspose layers, so the GPU copy of
 the model is rewritten on first use (`ModelPatcher`: zero-insertion upsample + grouped Conv,
 numerically equivalent) and uses full precision (half precision overflows on DirectML).
 
-When the GPU is preferred but too full, the Generate tab and Settings â€º Processing list the apps
+When the GPU is preferred but too full, the Generate tab and Settings › Processing list the apps
 holding its video memory (largest first), read from the same Windows performance counters Task
 Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
 
@@ -44,7 +44,16 @@ Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
 The Cast tab can **add** a character the analysis missed (they get an unused voice and colour) and
 **merge** names that are the same person. Merged names are kept as aliases and added speakers are
 kept as user-added, so finding speakers again re-applies both. Typing a new name in Review's
-"Someone elseâ€¦" or a line's "Reassignâ€¦" picker adds that speaker on the spot.
+"Someone else…" or a line's "Reassign…" picker adds that speaker on the spot.
+
+Voice pickers (a character's voice on the Cast tab, the default narrator in Settings) browse as **Gender ›
+Nationality** sub-menus, opening at the current voice's group; typing switches to one flat list where every
+word must match the start of a word ("male" finds male voices only, "brit fem" British female voices).
+Voices already given to someone in the book are marked **In use** with who has them, and each voice has
+a ▶ that reads a sample (the character's own line on the Cast tab) without choosing it.
+
+Review cards and a speaker's line list can **expand the context** around a line step by step, from a few
+sentences up to about a dozen paragraphs either side, and back.
 
 ### Tone
 
@@ -89,8 +98,8 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.4.2            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.4.2 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.4.3            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.4.3 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies

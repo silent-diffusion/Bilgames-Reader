@@ -47,6 +47,41 @@ public sealed partial class ReviewViewModel : ObservableObject
     public ObservableCollection<LegendEntry> Legend { get; } = new();
     public ObservableCollection<SpeakerOptionViewModel> Options { get; } = new();
 
+    // ---------- context ----------
+
+    private ChapterAnalysis? _analysis;
+    [ObservableProperty] private int _contextLevel;
+    [ObservableProperty] private bool _canMoreContext;
+    [ObservableProperty] private bool _canLessContext;
+
+    /// <summary>The passage around the line at the current expansion level, speakers colour-coded.</summary>
+    private void BuildContext()
+    {
+        Legend.Clear();
+        if (_current is not { } item || _analysis is null) { ContextParagraphs = null; CanMoreContext = CanLessContext = false; return; }
+        var blocks = ContextHelpers.Around(_analysis, item.Line.Id, ContextLevel, wide: true);
+        ContextParagraphs = ContextHelpers.Runs(blocks, _cast, item.Line.Id);
+        foreach (var e in ContextHelpers.Legend(blocks, _cast)) Legend.Add(e);
+        CanMoreContext = ContextHelpers.HasMore(_analysis, item.Line.Id, ContextLevel, wide: true);
+        CanLessContext = ContextLevel > 0;
+    }
+
+    [RelayCommand]
+    private void MoreContext()
+    {
+        if (!CanMoreContext) return;
+        ContextLevel++;
+        BuildContext();
+    }
+
+    [RelayCommand]
+    private void LessContext()
+    {
+        if (ContextLevel == 0) return;
+        ContextLevel--;
+        BuildContext();
+    }
+
     // ---------- tone ----------
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneLabel), nameof(ToneButtonName), nameof(ToneSource))] private string? _cue;
@@ -151,9 +186,9 @@ public sealed partial class ReviewViewModel : ObservableObject
 
         // A few paragraphs either side, as one continuous text with speakers colour-coded.
         _cast = cast;
-        var blocks = ContextHelpers.Trim(AppServices.Books.ContextFor(_book.BookId!, item.ChapterIndex, item.Line.Id, 4, 3), item.Line.Id, 520, 380);
-        ContextParagraphs = ContextHelpers.Runs(blocks, cast, item.Line.Id);
-        foreach (var e in ContextHelpers.Legend(blocks, cast)) Legend.Add(e);
+        _analysis = AppServices.Store.LoadAnalysis(_book.BookId!, item.ChapterIndex);
+        ContextLevel = 0;
+        BuildContext();
 
         IEnumerable<(string Id, string Conf)> choices;
         if (_fixMode || item.Line.Candidates.Count == 0)

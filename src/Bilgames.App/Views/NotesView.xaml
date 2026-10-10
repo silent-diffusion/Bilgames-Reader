@@ -96,7 +96,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock FontSize="11" FontWeight="Bold" CharacterSpacing="60" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" TextTrimming="CharacterEllipsis">
-                                                <Run Text="{x:Bind KindLabel}" /><Run Text=" Â· " /><Run Text="{x:Bind Caption}" />
+                                                <Run Text="{x:Bind KindLabel}" /><Run Text=" · " /><Run Text="{x:Bind Caption}" />
                                             </TextBlock>
                                             <TextBlock Grid.Column="1" Text="{x:Bind When}" Style="{StaticResource CaptionText}" />
                                         </Grid>

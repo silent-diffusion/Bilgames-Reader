@@ -73,8 +73,9 @@ public sealed partial class BookView : UserControl
     private void Voice_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not CastMemberViewModel member) return;
-        SearchPicker.Show(button, ContextHelpers.VoiceItems(member.VoiceId), "Search voices (e.g. British, male, Emma)",
-            v => Vm.Cast.SetVoice(member, v.Id));
+        Vm.Cast.Refresh();
+        SearchPicker.Show(button, ContextHelpers.VoiceItems(member.VoiceId, Vm.Cast.Sheet, member.Id), "Search voices (e.g. British, male, Emma)",
+            v => Vm.Cast.SetVoice(member, v.Id), preview: Vm.Cast.VoiceAuditioner(member));
     }
 
     /// <summary>Review: "Someone else…" — any speaker in the book, searchable.</summary>

@@ -28,6 +28,11 @@ public sealed partial class SettingsView : UserControl
 
     private void Back_Click(object sender, RoutedEventArgs e) => Shell.GoLibrary();
 
+    /// <summary>Default narrator: the same Gender › Nationality voice menus as the Cast tab.</summary>
+    private void Narrator_Click(object sender, RoutedEventArgs e) =>
+        SearchPicker.Show((FrameworkElement)sender, ContextHelpers.VoiceItems(Vm.DefaultNarrator?.Id), "Search voices (e.g. British, male, Emma)", p => Vm.SetDefaultNarrator(p.Id),
+            preview: async v => { if (await CastViewModel.EnsureModel()) await Shell.Player.PreviewAsync("The road wound north through the hills, and for a long while nobody spoke.", v.Id); });
+
     private void DownloadModel_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is ModelRowViewModel row) Vm.DownloadModelCommand.Execute(row);

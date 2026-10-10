@@ -106,8 +106,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         AppServices.SaveSettings();
     }
 
+    public string NarratorButtonName => $"Narrator voice for new books: {DefaultNarrator?.Label}. Change";
+
+    public void SetDefaultNarrator(string voiceId) => DefaultNarrator = Voices.FirstOrDefault(v => v.Id == voiceId) ?? DefaultNarrator;
+
     partial void OnDefaultNarratorChanged(VoiceOptionViewModel? value)
     {
+        OnPropertyChanged(nameof(NarratorButtonName));
         if (_loading || value is null) return;
         AppServices.Settings.DefaultNarratorVoice = value.Id;
         AppServices.SaveSettings();

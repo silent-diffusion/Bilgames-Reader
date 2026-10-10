@@ -125,15 +125,10 @@
                             <TextBlock Text="Narrator voice for new books" Style="{StaticResource BodyText}" />
                             <TextBlock Text="Each book's narrator can also be changed on its Cast tab." Style="{StaticResource CaptionText}" />
                         </StackPanel>
-                        <ComboBox Grid.Column="1" MinWidth="220" ItemsSource="{x:Bind Vm.Voices}" SelectedItem="{x:Bind Vm.DefaultNarrator, Mode=TwoWay}"
-                                  AutomationProperties.Name="Narrator voice for new books" VerticalAlignment="Center">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:VoiceOptionViewModel">
-                                    <TextBlock Text="{x:Bind Label}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                            
-                        </ComboBox>
+                        <Button Grid.Column="1" Style="{StaticResource SmallOutlineButton}" MinWidth="220" MinHeight="40" HorizontalContentAlignment="Left" VerticalAlignment="Center" Click="Narrator_Click"
+                                AutomationProperties.Name="{x:Bind Vm.NarratorButtonName, Mode=OneWay}">
+                            <TextBlock FontSize="13"><Run Text="{x:Bind Vm.DefaultNarrator.Label, Mode=OneWay}" /><Run Text="  ▾" /></TextBlock>
+                        </Button>
                     </Grid>
                 </StackPanel>
             </Border>

@@ -238,6 +238,22 @@ public sealed partial class CastViewModel : ObservableObject
         return go && await AppServices.Models.RequestDownloadAsync(model);
     }
 
+    /// <summary>
+    /// For the voice picker's ▶: a function that reads this character's own line in any voice, so
+    /// voices can be auditioned as they'd actually sound for them. The line is looked up once.
+    /// </summary>
+    public Func<Bilgames.App.Controls.PickerItem, Task> VoiceAuditioner(CastMemberViewModel member)
+    {
+        Task<string>? line = null;
+        return async voice =>
+        {
+            if (_book.BookId is not { } id) return;
+            if (!await EnsureModel()) return;
+            line ??= Task.Run(() => SampleLine(id, member));
+            await _book.Shell.Player.PreviewAsync(await line, voice.Id);
+        };
+    }
+
     /// <summary>A line this character actually says in the book, so the preview is in context.</summary>
     private static string SampleLine(string bookId, CastMemberViewModel member)
     {
@@ -265,11 +281,38 @@ public sealed partial class SpeakerLineItem : ObservableObject
     public string LineId { get; init; } = "";
     public string Text { get; init; } = "";
     public IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>> LineOnly { get; init; } = Array.Empty<IReadOnlyList<Bilgames.App.Controls.ContextRun>>();
-    public IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>> WithContext { get; init; } = Array.Empty<IReadOnlyList<Bilgames.App.Controls.ContextRun>>();
+    public IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>> WithContext { get; set; } = Array.Empty<IReadOnlyList<Bilgames.App.Controls.ContextRun>>();
 
     [ObservableProperty] private IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>>? _shown;
 
     public string ReassignName => $"Reassign this line: {Text}";
+
+    // ---------- expanding the context of this one line ----------
+
+    internal ChapterAnalysis? Analysis { get; init; }
+    internal CastSheet Cast { get; init; } = new();
+    private int _contextLevel;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowMore), nameof(ShowLess))] private bool _canMoreContext;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowLess))] private bool _canLessContext;
+    /// <summary>The list's "Context" switch is on (expansion only applies then).</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowMore), nameof(ShowLess))] private bool _showingContext = true;
+
+    public bool ShowMore => ShowingContext && CanMoreContext;
+    public bool ShowLess => ShowingContext && CanLessContext;
+
+    [RelayCommand] private void MoreContext() => SetContextLevel(_contextLevel + 1);
+    [RelayCommand] private void LessContext() => SetContextLevel(_contextLevel - 1);
+
+    private void SetContextLevel(int level)
+    {
+        if (Analysis is null) return;
+        _contextLevel = Math.Clamp(level, 0, ContextHelpers.MaxContextLevel);
+        WithContext = ContextHelpers.Runs(ContextHelpers.Around(Analysis, LineId, _contextLevel, wide: false), Cast, LineId);
+        CanMoreContext = ContextHelpers.HasMore(Analysis, LineId, _contextLevel, wide: false);
+        CanLessContext = _contextLevel > 0;
+        if (ShowingContext) Shown = WithContext;
+    }
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneLabel), nameof(ToneHint), nameof(ToneButtonName))] private string? _cue;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneHint))] private CueSource _cueFrom;
@@ -300,7 +343,7 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
 
     partial void OnShowContextChanged(bool value)
     {
-        foreach (var l in Lines) l.Shown = value ? l.WithContext : l.LineOnly;
+        foreach (var l in Lines) { l.Shown = value ? l.WithContext : l.LineOnly; l.ShowingContext = value; }
     }
 
     public async Task OpenAsync(CastMemberViewModel member)
@@ -329,7 +372,7 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
             foreach (var l in lines)
             {
                 if (!analyses.TryGetValue(l.ChapterIndex, out var a)) analyses[l.ChapterIndex] = a = AppServices.Store.LoadAnalysis(bookId, l.ChapterIndex);
-                var context = a is null ? new List<List<Line>>() : ContextHelpers.Trim(Bilgames.Core.BookService.ContextBlocks(a, l.Line.Id, 2, 2), l.Line.Id, 260, 200);
+                var context = a is null ? new List<List<Line>>() : ContextHelpers.Around(a, l.Line.Id, 0, wide: false);
                 list.Add(new SpeakerLineItem
                 {
                     ChapterIndex = l.ChapterIndex,
@@ -338,6 +381,9 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
                     Text = l.Line.Text,
                     LineOnly = ContextHelpers.Runs(new[] { new[] { l.Line } }, c, null),
                     WithContext = ContextHelpers.Runs(context, c, l.Line.Id),
+                    Analysis = a,
+                    Cast = c,
+                    CanMoreContext = a is not null && ContextHelpers.HasMore(a, l.Line.Id, 0, wide: false),
                     Cue = Bilgames.Core.Analysis.Tones.Normalize(l.Line.Cue),
                     CueFrom = l.Line.CueFrom,
                 });
@@ -348,6 +394,7 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
         foreach (var i in items)
         {
             i.Shown = ShowContext ? i.WithContext : i.LineOnly;
+            i.ShowingContext = ShowContext;
             Lines.Add(i);
         }
         Summary = $"{Lines.Count:N0} {(Lines.Count == 1 ? "line" : "lines")}. Pick “Reassign” on any line that belongs to someone else.";

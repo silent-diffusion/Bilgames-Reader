@@ -189,6 +189,16 @@
                                                 </StackPanel>
                                             </Grid>
                                             <c:LineContextView Paragraphs="{x:Bind Shown, Mode=OneWay}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button Style="{StaticResource LinkButton}" FontSize="12" Padding="0,2" Command="{x:Bind MoreContextCommand}" Visibility="{x:Bind c:Ui.Vis(ShowMore), Mode=OneWay}"
+                                                        AutomationProperties.Name="Show more of the text around this line">
+                                                    <TextBlock Text="+ More context" FontWeight="SemiBold" />
+                                                </Button>
+                                                <Button Style="{StaticResource LinkButton}" FontSize="12" Padding="0,2" Command="{x:Bind LessContextCommand}" Visibility="{x:Bind c:Ui.Vis(ShowLess), Mode=OneWay}"
+                                                        AutomationProperties.Name="Show less of the text around this line">
+                                                    <TextBlock Text="Less" FontWeight="SemiBold" />
+                                                </Button>
+                                            </StackPanel>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -334,6 +344,17 @@
                                 </ItemsControl>
                                 <!-- The passage around the line, one continuous text; the line in question is bold and highlighted. -->
                                 <c:LineContextView Paragraphs="{x:Bind Vm.Review.ContextParagraphs, Mode=OneWay}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,-4,0,0">
+                                    <Button Style="{StaticResource SmallOutlineButton}" Command="{x:Bind Vm.Review.MoreContextCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.Review.CanMoreContext), Mode=OneWay}"
+                                            AutomationProperties.Name="Show more of the surrounding text">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <c:StrokeIcon Data="M12 5v14M5 12h14" Width="12" Height="12" StrokeWidth="2.2" />
+                                            <TextBlock Text="More context" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource SmallOutlineButton}" Content="Less" Command="{x:Bind Vm.Review.LessContextCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.Review.CanLessContext), Mode=OneWay}"
+                                            AutomationProperties.Name="Show less of the surrounding text" />
+                                </StackPanel>
                                 <TextBlock Text="Who says the highlighted line?" Style="{StaticResource CaptionText}" />
                                 <ItemsRepeater ItemsSource="{x:Bind Vm.Review.Options}">
                                     <ItemsRepeater.Layout>

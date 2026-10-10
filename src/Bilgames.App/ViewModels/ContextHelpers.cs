@@ -39,6 +39,34 @@ public static class ContextHelpers
             .GroupBy(x => x.Block).Select(g => g.Select(x => x.Line!).ToList()).ToList();
     }
 
+    public const int MaxContextLevel = 3;
+
+    /// <summary>
+    /// The passage around a line at an expansion level: 0 is a few sentences either side (cut at
+    /// sentence boundaries), then whole paragraphs, growing with each level.
+    /// </summary>
+    /// <param name="wide">Review's larger card (true) or a speaker's line list (false).</param>
+    public static List<List<Line>> Around(ChapterAnalysis analysis, string lineId, int level, bool wide)
+    {
+        var (before, after) = (level, wide) switch
+        {
+            (<= 1, true) => (4, 3),
+            (2, true) => (8, 6),
+            (_, true) => (15, 12),
+            (<= 1, false) => (2, 2),
+            (2, false) => (5, 4),
+            _ => (10, 8),
+        };
+        var blocks = Bilgames.Core.BookService.ContextBlocks(analysis, lineId, before, after);
+        return level == 0 ? Trim(blocks, lineId, wide ? 520 : 260, wide ? 380 : 200) : blocks;
+    }
+
+    /// <summary>Whether the next level would actually show more (false at the chapter's edges).</summary>
+    public static bool HasMore(ChapterAnalysis analysis, string lineId, int level, bool wide) =>
+        level < MaxContextLevel && Chars(Around(analysis, lineId, level + 1, wide)) > Chars(Around(analysis, lineId, level, wide));
+
+    private static int Chars(List<List<Line>> blocks) => blocks.Sum(b => b.Sum(l => l.Text.Length));
+
     private static Line WithText(Line l, string text) => new()
     {
         Id = l.Id, BlockId = l.BlockId, Text = text, IsDialogue = l.IsDialogue, SpeakerId = l.SpeakerId,
@@ -130,15 +158,42 @@ public static class ContextHelpers
                 Keywords = string.Join(" ", m.Aliases),
             }).ToList();
 
-    public static List<PickerItem> VoiceItems(string? currentVoiceId) =>
-        VoiceCatalog.All.Select(v => new PickerItem
+    /// <summary>
+    /// Every voice, filed under Gender › Nationality for browsing, with voices already given to
+    /// someone else in this book marked "In use" (and who has them).
+    /// </summary>
+    /// <param name="forMemberId">The speaker being changed: their own voice is "Current", not "In use".</param>
+    public static List<PickerItem> VoiceItems(string? currentVoiceId, CastSheet? cast = null, string? forMemberId = null)
+    {
+        var users = (cast?.Members ?? new List<CastMember>())
+            .Where(m => m.Id != forMemberId && (m.IsNarrator || m.LineCount > 0 || m.UserAdded) && !string.IsNullOrEmpty(m.VoiceId))
+            .GroupBy(m => m.VoiceId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.LineCount).Select(m => m.IsNarrator ? "the narrator" : m.Name).ToList());
+        return VoiceCatalog.All.Select(v =>
         {
-            Id = v.Id,
-            Title = v.DisplayName,
-            Detail = $"{v.Description} · grade {v.Grade}",
-            IsCurrent = v.Id == currentVoiceId,
-            Keywords = v.Id,
+            users.TryGetValue(v.Id, out var who);
+            string? usedBy = who is null ? null
+                : (v.Id == currentVoiceId ? "Also used by " : "Used by ") + (who.Count <= 3 ? Join(who) : $"{string.Join(", ", who.Take(2))} and {who.Count - 2} others");
+            return new PickerItem
+            {
+                Id = v.Id,
+                Title = v.DisplayName,
+                Detail = $"{v.Description} · grade {v.Grade}",
+                IsCurrent = v.Id == currentVoiceId,
+                Keywords = v.Id,
+                Path = new[] { v.Gender == Gender.Female ? "Female" : "Male", v.Accent },
+                Badge = who is null ? null : "In use",
+                BadgeDetail = usedBy,
+            };
         }).ToList();
+    }
+
+    private static string Join(List<string> names) => names.Count switch
+    {
+        1 => names[0],
+        2 => $"{names[0]} and {names[1]}",
+        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+    };
 }
 
 public sealed class LegendEntry
