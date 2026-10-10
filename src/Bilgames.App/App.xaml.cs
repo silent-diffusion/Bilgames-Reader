@@ -22,6 +22,8 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         AppServices.Initialize();
+        Controls.Palette.Initialize(AppServices.Settings.Theme);
+        Controls.LineContextView.Scale = AppServices.Settings.ReadingTextScale;
         Window = new MainWindow();
         Window.Activate();
         Window.ImportOnStart(EpubArgs(Environment.GetCommandLineArgs().Skip(1)));

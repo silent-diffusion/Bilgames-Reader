@@ -6,19 +6,43 @@ namespace Bilgames.App.Controls;
 /// <summary>Small helpers usable from x:Bind function bindings.</summary>
 public static class Ui
 {
-    private static readonly Dictionary<string, SolidColorBrush> Cache = new();
+    // One shared brush per colour from the dark design; recoloured in place when the theme changes.
+    private static readonly Dictionary<string, SolidColorBrush> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, SolidColorBrush> TextCache = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>A brush for a colour from the (dark) design, shown in the current theme's equivalent.</summary>
     public static SolidColorBrush Brush(string? hex)
     {
         hex ??= "#000000";
         if (Cache.TryGetValue(hex, out var b)) return b;
+        b = new SolidColorBrush(ParseColor(Palette.Map(hex)));
+        Cache[hex] = b;
+        return b;
+    }
+
+    /// <summary>A speaker's colour used for text, kept readable in light and contrast themes.</summary>
+    public static SolidColorBrush TextBrush(string? hex)
+    {
+        hex ??= "#ECEEF1";
+        if (TextCache.TryGetValue(hex, out var b)) return b;
+        b = new SolidColorBrush(ParseColor(Palette.TextColor(hex)));
+        TextCache[hex] = b;
+        return b;
+    }
+
+    /// <summary>Called by <see cref="Palette"/> after a theme change.</summary>
+    internal static void ClearBrushCache()
+    {
+        foreach (var (hex, brush) in Cache) brush.Color = ParseColor(Palette.Map(hex));
+        foreach (var (hex, brush) in TextCache) brush.Color = ParseColor(Palette.TextColor(hex));
+    }
+
+    public static Windows.UI.Color ParseColor(string hex)
+    {
         var h = hex.TrimStart('#');
         byte a = 255;
         if (h.Length == 8) { a = Convert.ToByte(h[..2], 16); h = h[2..]; }
-        var color = Windows.UI.Color.FromArgb(a, Convert.ToByte(h[..2], 16), Convert.ToByte(h[2..4], 16), Convert.ToByte(h[4..6], 16));
-        b = new SolidColorBrush(color);
-        Cache[hex] = b;
-        return b;
+        return Windows.UI.Color.FromArgb(a, Convert.ToByte(h[..2], 16), Convert.ToByte(h[2..4], 16), Convert.ToByte(h[4..6], 16));
     }
 
     public static Visibility Vis(bool v) => v ? Visibility.Visible : Visibility.Collapsed;

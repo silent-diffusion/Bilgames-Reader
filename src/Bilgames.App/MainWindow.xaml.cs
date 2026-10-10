@@ -42,6 +42,7 @@ public sealed partial class MainWindow : Window
             Vm.Start();
             UpdateLayoutClass(Root.ActualWidth);
             ApplyLayout();
+            await ShowLibraryNotices();
             if (_pendingImports is { } pending) { _pendingImports = null; await ImportAll(pending); }
             await AutoCheckForUpdates();
         };
@@ -63,21 +64,34 @@ public sealed partial class MainWindow : Window
             p.PreferredMinimumHeight = 560;
         }
 
-        // Dark title bar matching the navigation background.
-        var tb = appWindow.TitleBar;
-        var nav = ColorHelper.FromArgb(255, 0x0B, 0x0E, 0x12);
-        var hover = ColorHelper.FromArgb(255, 0x1F, 0x24, 0x2D);
-        tb.BackgroundColor = nav;
-        tb.InactiveBackgroundColor = nav;
-        tb.ForegroundColor = ColorHelper.FromArgb(255, 0xEC, 0xEE, 0xF1);
-        tb.InactiveForegroundColor = ColorHelper.FromArgb(255, 0x9A, 0xA3, 0xAF);
-        tb.ButtonBackgroundColor = nav;
-        tb.ButtonInactiveBackgroundColor = nav;
-        tb.ButtonForegroundColor = ColorHelper.FromArgb(255, 0xEC, 0xEE, 0xF1);
-        tb.ButtonInactiveForegroundColor = ColorHelper.FromArgb(255, 0x6B, 0x74, 0x82);
-        tb.ButtonHoverBackgroundColor = hover;
-        tb.ButtonHoverForegroundColor = ColorHelper.FromArgb(255, 0xEC, 0xEE, 0xF1);
-        tb.ButtonPressedBackgroundColor = ColorHelper.FromArgb(255, 0x2A, 0x30, 0x3A);
+        ApplyTheme();
+        Palette.Changed += ApplyTheme;
+    }
+
+    /// <summary>Title bar matching the navigation column, and built-in controls in the same light/dark.</summary>
+    private void ApplyTheme()
+    {
+        if (Content is FrameworkElement root)
+        {
+            // Flip through the other theme first: WinUI only re-resolves built-in controls' theme
+            // colours (e.g. a switch's outline) on a real change, and the app-level theme masks it.
+            var target = Palette.ElementTheme;
+            root.RequestedTheme = target == ElementTheme.Light ? ElementTheme.Dark : ElementTheme.Light;
+            root.RequestedTheme = target;
+        }
+        var c = Palette.TitleBar;
+        var tb = AppWindow.TitleBar;
+        tb.BackgroundColor = c.Bg;
+        tb.InactiveBackgroundColor = c.Bg;
+        tb.ForegroundColor = c.Fg;
+        tb.InactiveForegroundColor = c.FgInactive;
+        tb.ButtonBackgroundColor = c.Bg;
+        tb.ButtonInactiveBackgroundColor = c.Bg;
+        tb.ButtonForegroundColor = c.Fg;
+        tb.ButtonInactiveForegroundColor = c.FgInactive;
+        tb.ButtonHoverBackgroundColor = c.Hover;
+        tb.ButtonHoverForegroundColor = c.Fg;
+        tb.ButtonPressedBackgroundColor = c.Pressed;
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -243,6 +257,19 @@ public sealed partial class MainWindow : Window
     private async Task ImportAll(List<string> paths)
     {
         foreach (var p in paths) await Vm.Library.ImportPathAsync(p);
+    }
+
+    /// <summary>Tells the user once about a library from a newer version, or saved files that couldn’t be read.</summary>
+    private static async Task ShowLibraryNotices()
+    {
+        if (AppServices.Format is { NewerThanApp: true })
+            await Dialogs.InfoAsync("Your library is from a newer version",
+                "It was last used by a newer version of Bilgames Reader. You can keep using it here; anything this version doesn’t know about is kept as it is. Updating the app is recommended.");
+        List<string> damaged;
+        lock (AppServices.UnreadableFiles) damaged = AppServices.UnreadableFiles.ToList();
+        if (damaged.Count > 0)
+            await Dialogs.InfoAsync("Some saved data couldn’t be read",
+                $"{damaged.Count} saved file{(damaged.Count == 1 ? "" : "s")} looked damaged, so defaults were used instead. A copy of each was kept beside it (named …unreadable-date), and the details are in the app log.");
     }
 
     private async Task AutoCheckForUpdates()

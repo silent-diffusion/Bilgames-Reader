@@ -11,7 +11,9 @@ public static class Program
     private static int Main(string[] args)
     {
         // Must run first: lets the installer/updater hook install, update and uninstall events.
-        VelopackApp.Build().Run();
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => Bilgames.Core.Storage.LibraryStore.CleanForUninstall(Bilgames.Core.Storage.LibraryStore.DefaultRoot))
+            .Run();
 
         WinRT.ComWrappersSupport.InitializeComWrappers();
 

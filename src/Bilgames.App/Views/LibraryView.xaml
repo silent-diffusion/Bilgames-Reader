@@ -14,9 +14,9 @@
         <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
         <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
         <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
-        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#9AA3AF" />
-        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#9AA3AF" />
-        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#9AA3AF" />
+        <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextMutedBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextMutedBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextMutedBrush" />
 
         <DataTemplate x:Key="RowTemplate" x:DataType="vm:BookItemViewModel">
             <Button Style="{StaticResource RowButton}" MinHeight="76" Padding="8,10" Click="Book_Click" Tag="{x:Bind}"
@@ -120,7 +120,7 @@
                     <StackPanel Spacing="10">
                         <TextBlock Text="Your library is empty" Style="{StaticResource SectionText}" />
                         <TextBlock Style="{StaticResource SecondaryText}" FontSize="14"
-                                   Text="Import a DRM-free EPUB and Bilgames Reader turns it into an audiobook with a voice for each character." />
+                                   Text="Import a DRM-free EPUB and Bilgames Reader turns it into an audiobook with a voice for each character. Everything happens on this PC; the first time you generate audio, it downloads a voice model once (about 156 MB)." />
                         <Button Style="{StaticResource AccentButton}" Content="Import EPUB" Command="{x:Bind Vm.ImportCommand}" Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>

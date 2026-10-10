@@ -73,6 +73,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _loading = true;
         var s = AppServices.Settings;
         AutoCheck = s.AutoCheckForUpdates;
+        ThemeIndex = (int)s.Theme;
+        TextSizeIndex = NearestScale(s.ReadingTextScale);
         KeepSegmentCache = s.KeepSegmentCache;
         PreferGpu = s.Processor == Bilgames.Core.Tts.ProcessorPreference.Gpu;
         DefaultNarrator = Voices.FirstOrDefault(v => v.Id == s.DefaultNarratorVoice) ?? Voices[0];
@@ -91,6 +93,32 @@ public sealed partial class SettingsViewModel : ObservableObject
         _loading = false;
         RefreshDevice();
     }
+
+    // ---------- appearance ----------
+
+    private static readonly double[] TextScales = { 0.9, 1.0, 1.2, 1.4, 1.7 };
+
+    [ObservableProperty] private int _themeIndex;
+    [ObservableProperty] private int _textSizeIndex = 1;
+
+    partial void OnThemeIndexChanged(int value)
+    {
+        if (_loading || value < 0) return;
+        AppServices.Settings.Theme = (Bilgames.Core.Model.AppTheme)value;
+        AppServices.SaveSettings();
+        Palette.Choose(AppServices.Settings.Theme);
+    }
+
+    partial void OnTextSizeIndexChanged(int value)
+    {
+        if (_loading || value < 0 || value >= TextScales.Length) return;
+        AppServices.Settings.ReadingTextScale = TextScales[value];
+        AppServices.SaveSettings();
+        LineContextView.Scale = TextScales[value];
+    }
+
+    private static int NearestScale(double scale) =>
+        Array.IndexOf(TextScales, TextScales.OrderBy(s => Math.Abs(s - scale)).First());
 
     partial void OnAutoCheckChanged(bool value)
     {
@@ -257,6 +285,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         });
         Refresh();
         _shell.Library.RefreshSummary();
+    }
+
+    [RelayCommand]
+    private void OpenLicences()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt");
+        if (File.Exists(path)) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
     }
 
     [RelayCommand]

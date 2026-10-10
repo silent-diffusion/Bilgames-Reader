@@ -1,0 +1,48 @@
+Bilgames Reader — third-party notices
+=====================================
+
+Bilgames Reader includes or downloads the components below. Each is used under the licence
+named; the full licence texts are at the links given (and, for the fonts, in the files shipped
+beside them in Assets\Fonts).
+
+Speech
+------
+Kokoro-82M voice model and voices (hexgrad)        Apache-2.0
+  https://huggingface.co/hexgrad/Kokoro-82M
+  The ONNX model files are downloaded on first use from the KokoroSharpBinaries releases
+  (https://github.com/Lyrcaxis/KokoroSharpBinaries); the English voice files ship with the app.
+KokoroSharp 0.8.4 / KokoroSharp.DirectML           MIT          https://github.com/Lyrcaxis/KokoroSharp
+MisakiSharp 2.1.1 (text to phonemes, with lexicons)  Apache-2.0
+ONNX Runtime 1.22 (Microsoft.ML.OnnxRuntime)        MIT          https://github.com/microsoft/onnxruntime
+DirectML (Microsoft.AI.DirectML)                    Microsoft DirectML license (redistributable)
+                                                                 https://www.nuget.org/packages/Microsoft.AI.DirectML
+OnnxSharp 0.3.2                                     MIT          https://github.com/nietras/OnnxSharp
+Google.Protobuf                                     BSD-3-Clause https://github.com/protocolbuffers/protobuf
+NumSharp 0.30.0                                     Apache-2.0   https://github.com/SciSharp/NumSharp
+NAudio                                              MIT          https://github.com/naudio/NAudio
+OpenTK (Audio.OpenAL, Core, Mathematics)            MIT          https://github.com/opentk/opentk
+System.Numerics.Tensors                             MIT          https://github.com/dotnet/runtime
+
+Graphics card detection
+-----------------------
+Vortice.DXGI / Vortice.DirectX / Vortice.Mathematics 3.8  MIT    https://github.com/amerkoleci/Vortice.Windows
+SharpGen.Runtime                                    MIT          https://github.com/SharpGenTools/SharpGenTools
+
+Books
+-----
+AngleSharp 1.8.4 (reading EPUB chapters)            MIT          https://github.com/AngleSharp/AngleSharp
+
+App
+---
+.NET 10 runtime                                     MIT          https://github.com/dotnet/runtime
+Windows App SDK 1.8 / WinUI 3                       MIT / Microsoft Windows App SDK license (redistributable)
+                                                                 https://github.com/microsoft/windowsappsdk
+CommunityToolkit.Mvvm 8.4                           MIT          https://github.com/CommunityToolkit/dotnet
+Velopack 1.2 (installer and updates)                MIT          https://github.com/velopack/velopack
+
+Fonts
+-----
+Manrope (Mikhail Sharanda)                          SIL Open Font License 1.1   Assets\Fonts\Manrope-OFL.txt
+Literata (TypeTogether)                             SIL Open Font License 1.1   Assets\Fonts\Literata-OFL.txt
+
+Audio encoding uses the AAC codec built into Windows (Media Foundation); no codec ships with the app.

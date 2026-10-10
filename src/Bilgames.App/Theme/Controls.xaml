@@ -12,7 +12,7 @@
               BorderBrush="{TemplateBinding BorderBrush}"
               BorderThickness="{TemplateBinding BorderThickness}"
               CornerRadius="{TemplateBinding CornerRadius}">
-            <Border x:Name="Overlay" Background="White" Opacity="0" CornerRadius="{TemplateBinding CornerRadius}" />
+            <Border x:Name="Overlay" Background="{StaticResource OverlayBrush}" Opacity="0" CornerRadius="{TemplateBinding CornerRadius}" />
             <ContentPresenter x:Name="Presenter"
                               Padding="{TemplateBinding Padding}"
                               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -159,7 +159,7 @@
     -->
     <ControlTemplate x:Key="SegmentTemplate" TargetType="ToggleButton">
         <Grid x:Name="Root" Background="Transparent" CornerRadius="9">
-            <Border x:Name="Overlay" Background="White" Opacity="0" CornerRadius="9" />
+            <Border x:Name="Overlay" Background="{StaticResource OverlayBrush}" Opacity="0" CornerRadius="9" />
             <ContentPresenter x:Name="Presenter"
                               Padding="{TemplateBinding Padding}"
                               HorizontalContentAlignment="Center"
@@ -182,28 +182,28 @@
                     </VisualState>
                     <VisualState x:Name="Checked">
                         <VisualState.Setters>
-                            <Setter Target="Root.Background" Value="#2A303A" />
-                            <Setter Target="Presenter.Foreground" Value="#ECEEF1" />
+                            <Setter Target="Root.Background" Value="{StaticResource LineStrongBrush}" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource TextBrush}" />
                             <Setter Target="Presenter.FontWeight" Value="Bold" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="CheckedPointerOver">
                         <VisualState.Setters>
-                            <Setter Target="Root.Background" Value="#2A303A" />
-                            <Setter Target="Presenter.Foreground" Value="#ECEEF1" />
+                            <Setter Target="Root.Background" Value="{StaticResource LineStrongBrush}" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource TextBrush}" />
                             <Setter Target="Presenter.FontWeight" Value="Bold" />
                             <Setter Target="Overlay.Opacity" Value="0.05" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="CheckedPressed">
                         <VisualState.Setters>
-                            <Setter Target="Root.Background" Value="#2A303A" />
-                            <Setter Target="Presenter.Foreground" Value="#ECEEF1" />
+                            <Setter Target="Root.Background" Value="{StaticResource LineStrongBrush}" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource TextBrush}" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="CheckedDisabled">
                         <VisualState.Setters>
-                            <Setter Target="Root.Background" Value="#2A303A" />
+                            <Setter Target="Root.Background" Value="{StaticResource LineStrongBrush}" />
                             <Setter Target="Root.Opacity" Value="0.45" />
                         </VisualState.Setters>
                     </VisualState>
@@ -228,7 +228,7 @@
     <ControlTemplate x:Key="NavTemplate" TargetType="ToggleButton">
         <Grid x:Name="Root" Background="Transparent" CornerRadius="12">
             <Border x:Name="Selected" Background="{TemplateBinding Background}" CornerRadius="12" Opacity="0" />
-            <Border x:Name="Overlay" Background="White" Opacity="0" CornerRadius="12" />
+            <Border x:Name="Overlay" Background="{StaticResource OverlayBrush}" Opacity="0" CornerRadius="12" />
             <ContentPresenter x:Name="Presenter"
                               Padding="{TemplateBinding Padding}"
                               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -247,20 +247,20 @@
                     <VisualState x:Name="Checked">
                         <VisualState.Setters>
                             <Setter Target="Selected.Opacity" Value="1" />
-                            <Setter Target="Presenter.Foreground" Value="#F0A848" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource AccentBrush}" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="CheckedPointerOver">
                         <VisualState.Setters>
                             <Setter Target="Selected.Opacity" Value="1" />
-                            <Setter Target="Presenter.Foreground" Value="#F0A848" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource AccentBrush}" />
                             <Setter Target="Overlay.Opacity" Value="0.05" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="CheckedPressed">
                         <VisualState.Setters>
                             <Setter Target="Selected.Opacity" Value="1" />
-                            <Setter Target="Presenter.Foreground" Value="#F0A848" />
+                            <Setter Target="Presenter.Foreground" Value="{StaticResource AccentBrush}" />
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>

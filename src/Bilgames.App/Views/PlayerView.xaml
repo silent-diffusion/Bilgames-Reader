@@ -8,16 +8,16 @@
 
     <UserControl.Resources>
         <!-- Scrubber: 6 px track, amber fill, light thumb. -->
-        <SolidColorBrush x:Key="SliderTrackFill" Color="#2A303A" />
-        <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#2A303A" />
-        <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#2A303A" />
-        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#F0A848" />
-        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#F7C47E" />
-        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#F0A848" />
-        <SolidColorBrush x:Key="SliderThumbBackground" Color="#ECEEF1" />
-        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="SliderInnerThumbBackground" Color="#ECEEF1" />
+        <StaticResource x:Key="SliderTrackFill" ResourceKey="LineStrongBrush" />
+        <StaticResource x:Key="SliderTrackFillPointerOver" ResourceKey="LineStrongBrush" />
+        <StaticResource x:Key="SliderTrackFillPressed" ResourceKey="LineStrongBrush" />
+        <StaticResource x:Key="SliderTrackValueFill" ResourceKey="AccentBrush" />
+        <StaticResource x:Key="SliderTrackValueFillPointerOver" ResourceKey="AccentHoverBrush" />
+        <StaticResource x:Key="SliderTrackValueFillPressed" ResourceKey="AccentBrush" />
+        <StaticResource x:Key="SliderThumbBackground" ResourceKey="SliderThumbBrush" />
+        <StaticResource x:Key="SliderThumbBackgroundPointerOver" ResourceKey="SliderThumbHoverBrush" />
+        <StaticResource x:Key="SliderThumbBackgroundPressed" ResourceKey="SliderThumbHoverBrush" />
+        <StaticResource x:Key="SliderInnerThumbBackground" ResourceKey="SliderThumbBrush" />
         <x:Double x:Key="SliderTrackThemeHeight">6</x:Double>
     </UserControl.Resources>
 
@@ -205,7 +205,8 @@
             </Grid>
 
             <!-- Scrubber -->
-            <StackPanel Grid.Row="4" Spacing="2" IsHitTestVisible="{x:Bind Vm.HasAudio, Mode=OneWay}">
+            <!-- Playback controls appear once there is a book to play. -->
+            <StackPanel Grid.Row="4" Spacing="2" IsHitTestVisible="{x:Bind Vm.HasAudio, Mode=OneWay}" Visibility="{x:Bind Vm.HasBook, Mode=OneWay}">
                 <Slider x:Name="Scrubber" Minimum="0" Maximum="{x:Bind Vm.Duration, Mode=OneWay}" Value="{x:Bind Vm.Position, Mode=OneWay}" StepFrequency="1"
                         IsThumbToolTipEnabled="False" AutomationProperties.Name="Playback position" Margin="0,-6,0,-6" />
                 <Grid>
@@ -215,7 +216,7 @@
             </StackPanel>
 
             <!-- Transport -->
-            <Grid Grid.Row="5">
+            <Grid Grid.Row="5" Visibility="{x:Bind Vm.HasBook, Mode=OneWay}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -240,7 +241,7 @@
             </Grid>
 
             <!-- Speed / sleep / export -->
-            <Grid Grid.Row="6" ColumnSpacing="8">
+            <Grid Grid.Row="6" ColumnSpacing="8" Visibility="{x:Bind Vm.HasBook, Mode=OneWay}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
                 </Grid.ColumnDefinitions>

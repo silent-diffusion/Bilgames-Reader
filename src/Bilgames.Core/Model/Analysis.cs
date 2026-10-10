@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Bilgames.Core.Model;
 
 public enum Gender
@@ -41,6 +44,9 @@ public enum CueSource
 /// <summary>One spoken unit: a stretch of narration or a quoted span, in reading order.</summary>
 public sealed class Line
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Id { get; set; } = "";
     public string BlockId { get; set; } = "";
     public string Text { get; set; } = "";
@@ -63,12 +69,18 @@ public sealed class Line
 
 public sealed class ChapterAnalysis
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public int ChapterIndex { get; set; }
     public List<Line> Lines { get; set; } = new();
 }
 
 public sealed class CastMember
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public const string NarratorId = "narrator";
 
     public string Id { get; set; } = "";
@@ -82,7 +94,7 @@ public sealed class CastMember
     /// <summary>Added by the user rather than found by analysis; kept (even with no lines) when the book is re-analyzed.</summary>
     public bool UserAdded { get; set; }
 
-    public bool IsNarrator => Id == NarratorId;
+    [JsonIgnore] public bool IsNarrator => Id == NarratorId;
 
     public string Initials
     {
@@ -109,10 +121,13 @@ public sealed class MergeSuggestion
 
 public sealed class CastSheet
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public List<CastMember> Members { get; set; } = new();
     public List<MergeSuggestion> Suggestions { get; set; } = new();
     public List<string> DismissedSuggestions { get; set; } = new();
 
     public CastMember? Find(string id) => Members.FirstOrDefault(m => m.Id == id);
-    public CastMember Narrator => Members.First(m => m.IsNarrator);
+    [JsonIgnore] public CastMember Narrator => Members.First(m => m.IsNarrator);
 }

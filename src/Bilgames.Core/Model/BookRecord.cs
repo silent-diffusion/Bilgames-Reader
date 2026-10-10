@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Bilgames.Core.Model;
 
 public enum QualityProfile
@@ -16,6 +19,9 @@ public enum AnalysisState
 
 public sealed class StructureOptions
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public bool IncludeFrontMatter { get; set; }
     public bool IncludePreface { get; set; }
     public bool IncludeBody { get; set; } = true;
@@ -34,6 +40,9 @@ public sealed class StructureOptions
 
 public sealed class PlaybackPosition
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public int ChapterIndex { get; set; } = -1;
     public double Seconds { get; set; }
     public DateTime UpdatedUtc { get; set; }
@@ -42,6 +51,9 @@ public sealed class PlaybackPosition
 /// <summary>Everything about a book except its text, analysis and audio. Persisted as book.json.</summary>
 public sealed class BookRecord
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Id { get; set; } = "";
     public string Title { get; set; } = "";
     public string Author { get; set; } = "";
@@ -63,9 +75,9 @@ public sealed class BookRecord
     public int UnsureCount { get; set; }
     public int VoiceCount { get; set; }
 
-    public int TotalWords => Chapters.Sum(c => c.WordCount);
+    [JsonIgnore] public int TotalWords => Chapters.Sum(c => c.WordCount);
 
-    public IEnumerable<ChapterInfo> IncludedChapters => Chapters.Where(c => Options.Includes(c.Kind));
+    [JsonIgnore] public IEnumerable<ChapterInfo> IncludedChapters => Chapters.Where(c => Options.Includes(c.Kind));
 
     /// <summary>Audiobook narration averages roughly 155 words per minute.</summary>
     public static TimeSpan EstimateDuration(int words) => TimeSpan.FromMinutes(words / 155.0);

@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Bilgames.Core.Model;
 
 /// <summary>Where each spoken piece of a chapter sits in its audio file. Drives the live transcript.</summary>
@@ -12,6 +15,9 @@ public sealed class SegmentTiming
 
 public sealed class ChapterAudio
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public int ChapterIndex { get; set; }
     /// <summary>Hash of the synthesis plan; when the plan changes, the chapter needs regenerating.</summary>
     public string PlanHash { get; set; } = "";
@@ -38,13 +44,27 @@ public sealed class GenerationState
     public DateTime? StartedUtc { get; set; }
 }
 
+public enum AppTheme
+{
+    System,
+    Dark,
+    Light,
+}
+
 public sealed class AppSettings
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string DefaultNarratorVoice { get; set; } = Tts.VoiceCatalog.DefaultNarrator;
     /// <summary>Off by default: the app never touches the network unless the user opts in.</summary>
     public bool AutoCheckForUpdates { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
     public bool KeepSegmentCache { get; set; } = true;
+    /// <summary>Light, dark, or follow Windows. Windows contrast themes always win.</summary>
+    public AppTheme Theme { get; set; } = AppTheme.System;
+    /// <summary>Size of book text in the player and context views, relative to the default.</summary>
+    public double ReadingTextScale { get; set; } = 1.0;
     public Tts.ProcessorPreference Processor { get; set; } = Tts.ProcessorPreference.Gpu;
     public string? LastSection { get; set; }
     public string? LastBookId { get; set; }

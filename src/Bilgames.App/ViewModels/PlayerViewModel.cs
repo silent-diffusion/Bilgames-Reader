@@ -164,6 +164,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         Author = _book.Author;
         CoverColor = _book.CoverColor;
         CoverPath = AppServices.Store.CoverPath(_book);
+        _coverRef = null;
+        _ = LoadCoverAsync(_book);
         _cast = AppServices.Store.LoadCast(bookId);
         LoadNotes();
         int idx = Array.FindIndex(Speeds, s => Math.Abs(s - _book.PlaybackRate) < 0.01);
@@ -289,7 +291,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         SetTimings(audio.Timings);
 
         var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(AppServices.Store.ChapterAudioPath(_book!.Id, audio))));
-        await ApplyDisplayProperties(item, index);
+        ApplyDisplayProperties(item, index);
         _pendingSeek = seconds;
         _autoplayOnOpen = play;
         _player.Source = item;
@@ -350,7 +352,9 @@ public sealed partial class PlayerViewModel : ObservableObject
         bool added = false;
         while (_stream.TryBuildNext() is { } chunk)
         {
-            _list.Items.Add(new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(chunk.WavPath))));
+            var part = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(chunk.WavPath)));
+            ApplyDisplayProperties(part, _chapter); // so Windows' media overlay names the book while it streams too
+            _list.Items.Add(part);
             _timings.AddRange(chunk.Timings);
             foreach (var t in chunk.Timings)
             {
@@ -388,19 +392,36 @@ public sealed partial class PlayerViewModel : ObservableObject
         HeaderLabel = $"NOW PLAYING · {info.Title.ToUpperInvariant()}";
     }
 
-    private async Task ApplyDisplayProperties(MediaPlaybackItem item, int index)
+    /// <summary>The cover for Windows' media overlay, loaded once per book.</summary>
+    private RandomAccessStreamReference? _coverRef;
+
+    private async Task LoadCoverAsync(BookRecord book)
     {
-        var info = _book!.Chapters[index];
+        if (AppServices.Store.CoverPath(book) is not { } cover || !File.Exists(cover)) return;
+        try
+        {
+            var reference = RandomAccessStreamReference.CreateFromFile(await StorageFile.GetFileFromPathAsync(cover));
+            if (_book?.Id != book.Id) return;
+            _coverRef = reference;
+            // Items already playing were labelled before the cover arrived.
+            if (_player.Source is MediaPlaybackItem single) ApplyDisplayProperties(single, _chapter);
+            else if (_list is not null) foreach (var part in _list.Items) ApplyDisplayProperties(part, _chapter);
+        }
+        catch { }
+    }
+
+    /// <summary>Title, book, author and cover shown by Windows' media overlay, lock screen and Bluetooth devices.</summary>
+    private void ApplyDisplayProperties(MediaPlaybackItem item, int index)
+    {
+        if (_book is null || index < 0 || index >= _book.Chapters.Count) return;
+        var info = _book.Chapters[index];
         var props = item.GetDisplayProperties();
         props.Type = MediaPlaybackType.Music;
         props.MusicProperties.Title = info.Title;
         props.MusicProperties.Artist = _book.Author;
         props.MusicProperties.AlbumTitle = _book.Title;
         props.MusicProperties.TrackNumber = (uint)Math.Max(1, _book.IncludedChapters.ToList().FindIndex(c => c.Index == index) + 1);
-        if (AppServices.Store.CoverPath(_book) is { } cover && File.Exists(cover))
-        {
-            try { props.Thumbnail = RandomAccessStreamReference.CreateFromFile(await StorageFile.GetFileFromPathAsync(cover)); } catch { }
-        }
+        if (_coverRef is not null) props.Thumbnail = _coverRef;
         item.ApplyDisplayProperties(props);
     }
 
@@ -664,6 +685,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     private void Step(int dir)
     {
         if (_book is null) return;
+        // Like other players: "previous" first goes back to the start of this chapter.
+        if (dir < 0 && Position > 5) { Seek(0); return; }
         var included = _book.IncludedChapters.Select(c => c.Index).ToList();
         int target = included.IndexOf(_chapter) + dir;
         if (target >= 0 && target < included.Count) _ = OpenChapterAsync(included[target], 0, IsPlaying || dir > 0);

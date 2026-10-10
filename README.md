@@ -1,6 +1,6 @@
 ﻿# Bilgames Reader
 
-On-device EPUB â†’ audiobook app for Windows. Import a DRM-free EPUB, let it find who speaks each
+On-device EPUB → audiobook app for Windows. Import a DRM-free EPUB, let it find who speaks each
 line, pick a voice per character, and generate a chapter-aware audiobook — entirely offline after a
 one-time voice model download. Product spec: [ReadMe.html](ReadMe.html); design handoff:
 [design/README.md](design/README.md).
@@ -18,12 +18,12 @@ one-time voice model download. Product spec: [ReadMe.html](ReadMe.html); design 
 
 ## Build and run
 
-Requires the .NET 8 SDK on Windows 10 1809 or later.
+Requires the .NET 10 SDK on Windows 10 1809 or later.
 
 ```powershell
 dotnet test tests/Bilgames.Core.Tests
 dotnet build src/Bilgames.App
-src/Bilgames.App/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/BilgamesReader.exe
+src/Bilgames.App/bin/x64/Debug/net10.0-windows10.0.19041.0/win-x64/BilgamesReader.exe
 ```
 
 ### CPU and GPU
@@ -106,7 +106,7 @@ without touching your real library. Passing `.epub` paths on the command line im
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies
-update from the GitHub Releases of `silent-diffusion/Bilgames-Reader`: Settings â†’ *Check for updates*
+update from the GitHub Releases of `silent-diffusion/Bilgames-Reader`: Settings → *Check for updates*
 (or the opt-in *check when the app starts*, off by default). The app only goes online when the user
 clicks something that needs it (checking for updates, installing one, downloading a voice model), and
 nothing from the user's books is ever sent.

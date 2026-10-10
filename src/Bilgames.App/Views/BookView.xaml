@@ -337,7 +337,7 @@
                                         <DataTemplate x:DataType="vm:LegendEntry">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Ellipse Width="10" Height="10" Fill="{x:Bind c:Ui.Brush(Color)}" VerticalAlignment="Center" />
-                                                <TextBlock Text="{x:Bind Name}" FontSize="12" FontWeight="SemiBold" Foreground="{x:Bind c:Ui.Brush(Color)}" />
+                                                <TextBlock Text="{x:Bind Name}" FontSize="12" FontWeight="SemiBold" Foreground="{x:Bind c:Ui.TextBrush(Color)}" />
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

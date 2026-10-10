@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Bilgames.Core.Model;
 
 /// <summary>Where a chapter sits in the book; drives the Structure checklist groups.</summary>
@@ -49,12 +52,15 @@ public sealed class ChapterText
     public List<Block> Blocks { get; set; } = new();
     public List<Footnote> Notes { get; set; } = new();
 
-    public int WordCount => Blocks.Where(b => b.Kind != BlockKind.SceneBreak).Sum(b => TextUtil.CountWords(b.Text));
+    [JsonIgnore] public int WordCount => Blocks.Where(b => b.Kind != BlockKind.SceneBreak).Sum(b => TextUtil.CountWords(b.Text));
 }
 
 /// <summary>Lightweight chapter summary kept in book.json.</summary>
 public sealed class ChapterInfo
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public int Index { get; set; }
     public string Title { get; set; } = "";
     public SectionKind Kind { get; set; }

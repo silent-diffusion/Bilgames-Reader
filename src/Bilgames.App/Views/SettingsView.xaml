@@ -112,6 +112,45 @@
                 </StackPanel>
             </Border>
 
+            <!-- Appearance -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Appearance" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Theme" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="When a Windows contrast theme is on, the app uses its colours instead." Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                        <ComboBox x:Name="ThemeBox" Grid.Column="1" MinWidth="180" VerticalAlignment="Center" SelectedIndex="{x:Bind Vm.ThemeIndex, Mode=TwoWay}" AutomationProperties.Name="Theme">
+                            <ComboBoxItem Content="Same as Windows" />
+                            <ComboBoxItem Content="Dark" />
+                            <ComboBoxItem Content="Light" />
+                        </ComboBox>
+                    </Grid>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Reading text size" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="Book text in the player, Review and a speaker's lines. Windows' own text size setting applies everywhere too." Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" MinWidth="180" VerticalAlignment="Center" SelectedIndex="{x:Bind Vm.TextSizeIndex, Mode=TwoWay}" AutomationProperties.Name="Reading text size">
+                            <ComboBoxItem Content="Smaller" />
+                            <ComboBoxItem Content="Default" />
+                            <ComboBoxItem Content="Large" />
+                            <ComboBoxItem Content="Larger" />
+                            <ComboBoxItem Content="Largest" />
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Narration -->
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="12">
@@ -130,6 +169,30 @@
                             <TextBlock FontSize="13"><Run Text="{x:Bind Vm.DefaultNarrator.Label, Mode=OneWay}" /><Run Text="  ▾" /></TextBlock>
                         </Button>
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Backup -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Backup" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
+                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="14" TextWrapping="Wrap"
+                               Text="Save your whole library to one file (books, speakers, reviews, voices, bookmarks, highlights, notes and where you were) and restore it on this or another PC. Voice models aren’t included; they download again." />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Visibility="{x:Bind Vm.BackupIdle, Mode=OneWay}">
+                        <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Back up library…" Command="{x:Bind Vm.BackUpCommand}" />
+                        <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Restore from backup…" Command="{x:Bind Vm.RestoreCommand}" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="12" Visibility="{x:Bind c:Ui.Vis(Vm.IsBackingUp), Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar Style="{StaticResource ThinProgress}" VerticalAlignment="Center" Maximum="100" Value="{x:Bind Vm.BackupProgress, Mode=OneWay}"
+                                     AutomationProperties.Name="{x:Bind Vm.BackupStatus, Mode=OneWay}" />
+                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" MinHeight="44" Content="Stop" Command="{x:Bind Vm.CancelBackupCommand}" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind Vm.BackupStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="Wrap"
+                               Visibility="{x:Bind c:Ui.VisText(Vm.BackupStatus), Mode=OneWay}" AutomationProperties.LiveSetting="Polite" />
                 </StackPanel>
             </Border>
 
@@ -163,6 +226,11 @@
                     <TextBlock Text="Privacy" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
                     <TextBlock Style="{StaticResource SecondaryText}" FontSize="14" LineHeight="21"
                                Text="Books, their text, speaker analysis, voice choices, generated audio and listening history stay on this device. The app only goes online when you click a Download or Check for updates button (or turn on automatic update checks). No analytics or crash reports are sent. Only import books you're entitled to use; DRM-protected EPUBs are refused." />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Third-party licences" Command="{x:Bind Vm.OpenLicencesCommand}" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource CaptionText}" TextWrapping="Wrap"
+                               Text="Uninstalling removes the voice models, caches and logs. Your library (books, edits, audio, notes and backups) stays in the data folder in case you reinstall; delete that folder to remove it too." />
                 </StackPanel>
             </Border>
         </StackPanel>

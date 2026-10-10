@@ -9,7 +9,7 @@
 .NOTES
   Output goes to ./artifacts/releases. Setup.exe installs per-user (no admin), adds a Start menu
   shortcut and an uninstall entry, and the app updates itself from GitHub Releases.
-  Requires: .NET 8 SDK. The Velopack CLI (vpk) is installed as a local dotnet tool on first run.
+  Requires: .NET 10 SDK. The Velopack CLI (vpk) is installed as a local dotnet tool on first run.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Version,

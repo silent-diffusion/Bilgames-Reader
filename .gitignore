@@ -13,3 +13,6 @@ test epubs/
 
 # Voice model files are downloaded by the app, not stored in the repo.
 *.onnx
+
+# Claude Code scratch worktrees
+.claude/worktrees/

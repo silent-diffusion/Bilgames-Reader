@@ -21,12 +21,31 @@ public static class AppServices
     public static AppSettings Settings { get; private set; } = new();
     public static DispatcherQueue UI { get; private set; } = null!;
 
+    /// <summary>This build’s version, e.g. "1.0.0".</summary>
+    public static string AppVersion { get; } = typeof(AppServices).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    /// <summary>What the start-up format check found (upgrade done, or a library from a newer version).</summary>
+    public static FormatCheck? Format { get; private set; }
+    /// <summary>Saved files found damaged this session (each was copied aside before anything else).</summary>
+    public static List<string> UnreadableFiles { get; } = new();
+
     public static void Initialize()
     {
         UI = DispatcherQueue.GetForCurrentThread();
         // BILGAMES_DATA lets developers point the app at a scratch library without touching real data.
         var root = Environment.GetEnvironmentVariable("BILGAMES_DATA") is { Length: > 0 } custom ? custom : LibraryStore.DefaultRoot;
         Store = new LibraryStore(root);
+        LibraryStore.Unreadable += (path, error) =>
+        {
+            Log($"Saved file couldn’t be read, kept a copy beside it: {path} ({error})");
+            lock (UnreadableFiles) UnreadableFiles.Add(path);
+        };
+        try
+        {
+            // Before anything reads the library: upgrade its format if needed (backing it up first).
+            Format = LibraryFormat.Prepare(Store, AppVersion);
+            if (Format.Upgraded) Log($"Library upgraded from format {Format.FoundVersion} to {Format.CurrentVersion}; backup at {Format.BackupPath}");
+        }
+        catch (Exception ex) { Log("Library format check failed: " + ex); }
         Settings = Store.LoadSettings();
         Books = new BookService(Store);
         Engine = new KokoroEngine(Store.ModelsDir, Path.Combine(AppContext.BaseDirectory, "voices"), () => Settings.Processor);
@@ -53,7 +72,14 @@ public static class AppServices
         {
             var dir = Path.Combine(Store?.Root ?? LibraryStore.DefaultRoot, "logs");
             Directory.CreateDirectory(dir);
-            lock (LogLock) File.AppendAllText(Path.Combine(dir, "app.log"), $"{DateTime.Now:s} {message}{Environment.NewLine}");
+            var path = Path.Combine(dir, "app.log");
+            lock (LogLock)
+            {
+                // Keep the log small: past 2 MB it becomes app.old.log and a fresh one starts.
+                if (new FileInfo(path) is { Exists: true, Length: > 2 * 1024 * 1024 })
+                    File.Move(path, Path.Combine(dir, "app.old.log"), overwrite: true);
+                File.AppendAllText(path, $"{DateTime.Now:s} {message}{Environment.NewLine}");
+            }
         }
         catch { }
     }

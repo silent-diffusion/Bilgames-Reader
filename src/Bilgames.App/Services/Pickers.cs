@@ -16,6 +16,15 @@ public static class Pickers
         return file?.Path;
     }
 
+    public static async Task<string?> PickOpenAsync(string extension)
+    {
+        var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, ViewMode = PickerViewMode.List };
+        picker.FileTypeFilter.Add(extension);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
+        var file = await picker.PickSingleFileAsync();
+        return file?.Path;
+    }
+
     /// <summary>Save picker offering several formats (the first is the default); starts in Documents.</summary>
     public static async Task<string?> PickSaveAsync(string suggestedName, params (string Label, string Extension)[] choices)
     {

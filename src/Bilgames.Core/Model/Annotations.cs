@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Bilgames.Core.Model;
 
 public enum HighlightColor
@@ -11,6 +14,9 @@ public enum HighlightColor
 /// <summary>A saved place in the book: chapter + time, with the line being read there.</summary>
 public sealed class Bookmark
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
     public int ChapterIndex { get; set; }
     public double Seconds { get; set; }
@@ -27,6 +33,9 @@ public sealed class Bookmark
 /// </summary>
 public sealed class Highlight
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
     public int ChapterIndex { get; set; }
     public string BlockId { get; set; } = "";
@@ -45,8 +54,11 @@ public sealed class Highlight
 /// <summary>Everything the reader has marked in a book (books/{id}/annotations.json).</summary>
 public sealed class AnnotationSet
 {
+    /// <summary>Fields written by a newer version of the app, kept so saving here doesn’t drop them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public List<Bookmark> Bookmarks { get; set; } = new();
     public List<Highlight> Highlights { get; set; } = new();
 
-    public bool IsEmpty => Bookmarks.Count == 0 && Highlights.Count == 0;
+    [JsonIgnore] public bool IsEmpty => Bookmarks.Count == 0 && Highlights.Count == 0;
 }

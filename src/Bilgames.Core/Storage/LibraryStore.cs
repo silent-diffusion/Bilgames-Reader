@@ -17,7 +17,9 @@ public enum DeleteMode
 /// <summary>
 /// Everything lives under one local folder (default %LOCALAPPDATA%\BilgamesReader):
 /// <code>
+/// library.json                format version (see LibraryFormat)
 /// settings.json
+/// backups/                     automatic backups taken before a format upgrade
 /// models/                      voice model files
 /// books/{id}/book.json         BookRecord
 /// books/{id}/source.epub       private copy of the imported file
@@ -36,7 +38,8 @@ public sealed class LibraryStore
     public static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = false,
-        Converters = { new JsonStringEnumConverter() },
+        // Lenient: a value added by a newer version reads as the default instead of failing the file.
+        Converters = { new LenientEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
@@ -46,6 +49,7 @@ public sealed class LibraryStore
     public string BooksDir => Path.Combine(Root, "books");
     public string ModelsDir => Path.Combine(Root, "models");
     public string TempDir => Path.Combine(Root, "tmp");
+    public string BackupsDir => Path.Combine(Root, "backups");
 
     public LibraryStore(string root)
     {
@@ -53,6 +57,21 @@ public sealed class LibraryStore
         Directory.CreateDirectory(BooksDir);
         Directory.CreateDirectory(ModelsDir);
         Directory.CreateDirectory(TempDir);
+    }
+
+    /// <summary>
+    /// Run by the uninstaller: removes what can be rebuilt or downloaded again (voice models, the
+    /// segment caches, temp files and logs) and keeps the library itself (books, edits, generated
+    /// audio, notes, backups, settings), so reinstalling picks up where the user left off.
+    /// </summary>
+    public static void CleanForUninstall(string root)
+    {
+        TryDeleteDir(Path.Combine(root, "models"));
+        TryDeleteDir(Path.Combine(root, "tmp"));
+        TryDeleteDir(Path.Combine(root, "logs"));
+        var books = Path.Combine(root, "books");
+        if (Directory.Exists(books))
+            foreach (var dir in Directory.EnumerateDirectories(books)) TryDeleteDir(Path.Combine(dir, "segments"));
     }
 
     public static string DefaultRoot =>
@@ -269,9 +288,30 @@ public sealed class LibraryStore
                 using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
                 return JsonSerializer.Deserialize<T>(s, Json);
             }
+            catch (JsonException ex)
+            {
+                Quarantine(path, ex);
+                return null;
+            }
             catch (IOException) when (attempt < 20) { Thread.Sleep(25 + attempt * 10); }
             catch (UnauthorizedAccessException) when (attempt < 20) { Thread.Sleep(25 + attempt * 10); }
         }
+    }
+
+    /// <summary>Raised (on any thread) when a saved file can’t be read; it has been copied aside first.</summary>
+    public static event Action<string, string>? Unreadable;
+
+    private static readonly HashSet<string> Quarantined = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Keeps a copy of a damaged file next to it ({name}.unreadable-{time}) before the app falls back
+    /// to defaults and, later, saves over it, so nothing is lost for good. Once per file per session.
+    /// </summary>
+    private static void Quarantine(string path, Exception ex)
+    {
+        lock (Quarantined) if (!Quarantined.Add(path)) return;
+        try { File.Copy(path, $"{path}.unreadable-{DateTime.Now:yyyyMMdd-HHmmss}", overwrite: false); } catch { }
+        Unreadable?.Invoke(path, ex.Message);
     }
 
     /// <summary>

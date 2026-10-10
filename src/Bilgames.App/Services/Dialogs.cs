@@ -51,7 +51,7 @@ public static class Dialogs
             PrimaryButtonText = primary,
             CloseButtonText = close,
             XamlRoot = Root,
-            RequestedTheme = ElementTheme.Dark,
+            RequestedTheme = Controls.Palette.ElementTheme,
             Background = (Brush)Application.Current.Resources["SurfaceBrush"],
         };
         dialog.DefaultButton = primary.Length > 0 ? ContentDialogButton.Primary : ContentDialogButton.Close;
@@ -89,7 +89,7 @@ public static class Dialogs
         Title = title,
         Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap, FontSize = 14, LineHeight = 21 },
         XamlRoot = Root,
-        RequestedTheme = ElementTheme.Dark,
+        RequestedTheme = Controls.Palette.ElementTheme,
         Background = (Brush)Application.Current.Resources["SurfaceBrush"],
     };
 

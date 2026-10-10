@@ -86,7 +86,9 @@ public sealed partial class LineContextView : UserControl
     {
         IsTabStop = false;
         _text.FontFamily = (FontFamily)Application.Current.Resources["BookFont"];
-        _text.FontSize = 16;
+        ApplySize();
+        Loaded += (_, _) => { ScaleChanged += ApplySize; ApplySize(); };
+        Unloaded += (_, _) => ScaleChanged -= ApplySize;
         _text.Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"];
         // Selectable text marks taps handled itself, so listen to handled ones too.
         _text.AddHandler(TappedEvent, new TappedEventHandler(OnTapped), true);
@@ -103,7 +105,26 @@ public sealed partial class LineContextView : UserControl
         set => SetValue(ParagraphsProperty, value);
     }
 
-    public double TextSize { get => _text.FontSize; set { _text.FontSize = value; _text.LineHeight = Math.Round(value * 1.55); } }
+    private double _textSize = 16;
+
+    /// <summary>Book text size at the default reading size; the reader's chosen scale is applied on top.</summary>
+    public double TextSize { get => _textSize; set { _textSize = value; ApplySize(); } }
+
+    private static double _scale = 1.0;
+    private static event Action? ScaleChanged;
+
+    /// <summary>Settings › Reading text size: scales book text everywhere it is shown.</summary>
+    public static double Scale
+    {
+        get => _scale;
+        set { _scale = Math.Clamp(value, 0.8, 2.0); ScaleChanged?.Invoke(); }
+    }
+
+    private void ApplySize()
+    {
+        _text.FontSize = Math.Round(_textSize * _scale, 1);
+        _text.LineHeight = Math.Round(_text.FontSize * 1.55);
+    }
 
     public static readonly DependencyProperty EmphasizedProperty = DependencyProperty.Register(
         nameof(Emphasized), typeof(bool), typeof(LineContextView),
@@ -161,7 +182,7 @@ public sealed partial class LineContextView : UserControl
             {
                 var line = lines[i];
                 var run = new Run { Text = (i > 0 ? " " : "") + line.Text };
-                if (line.Color is { } c) run.Foreground = Ui.Brush(c);
+                if (line.Color is { } c) run.Foreground = Ui.TextBrush(c);
                 if (line.IsTarget) run.FontWeight = FontWeights.Bold;
                 p.Inlines.Add(run);
                 _runs.Add((run, line, i > 0 ? 1 : 0));
