@@ -175,9 +175,34 @@ public static partial class SynthesisPlanner
     internal static string ForSpeech(string text)
     {
         var t = text.Replace("--", " — ").Replace("&", " and ").Replace('\n', ' ');
+        t = Apostrophes(t);
         t = MultiSpace().Replace(t, " ").Trim();
         return t;
     }
+
+    /// <summary>
+    /// Typeset apostrophes (’ and look-alikes) become plain ' so the speech model reads "Jim’s" as one
+    /// word ("Jimz") instead of "Jim" + "s". Quotation marks are left alone.
+    /// </summary>
+    public static string Apostrophes(string t)
+    {
+        if (t.IndexOfAny(ApostropheLike) < 0) return t;
+        t = InnerApostrophe().Replace(t, "'");      // Jim’s, don’t, o’clock
+        t = PluralPossessive().Replace(t, "'");     // the boys’ house
+        t = LeadingElision().Replace(t, "'").Replace("'n’", "'n'"); // ’em, ’cause, rock ’n’ roll
+        return t;
+    }
+
+    private static readonly char[] ApostropheLike = { '’', '‘', '`', '´', 'ʼ', '′' };
+
+    [GeneratedRegex(@"(?<=\p{L})[’‘`´ʼ′](?=\p{L})")]
+    private static partial Regex InnerApostrophe();
+
+    [GeneratedRegex(@"(?<=\p{L}s)’(?=\s+\p{Ll})")]
+    private static partial Regex PluralPossessive();
+
+    [GeneratedRegex(@"(?<=^|[\s(—])’(?=(?:em|n|cause|til|bout|round|tis|twas|twere|twill|ere|neath|gainst)\b)", RegexOptions.IgnoreCase)]
+    private static partial Regex LeadingElision();
 
     /// <summary>Splits long text at sentence (then clause) boundaries into chunks the model handles well.</summary>
     internal static List<string> Chunk(string text, int max)

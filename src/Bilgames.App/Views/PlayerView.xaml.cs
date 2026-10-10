@@ -64,11 +64,11 @@ public sealed partial class PlayerView : UserControl
     {
         TranscriptList.ElementPrepared += (_, e) =>
         {
-            if (e.Element is LineContextView v) { v.LineTapped -= OnLineTapped; v.LineTapped += OnLineTapped; }
+            if (e.Element is LineContextView v) { Unhook(v); Hook(v); }
         };
         TranscriptList.ElementClearing += (_, e) =>
         {
-            if (e.Element is LineContextView v) v.LineTapped -= OnLineTapped;
+            if (e.Element is LineContextView v) Unhook(v);
         };
         // Any reader-driven scrolling (wheel, touch, scrollbar, keys) pauses auto-follow.
         TranscriptScroller.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, _) => UserScrolled()), true);
@@ -98,6 +98,44 @@ public sealed partial class PlayerView : UserControl
     private void UserScrolled()
     {
         if (!_programmaticScroll) _lastUserScroll = DateTime.UtcNow;
+    }
+
+    private void Hook(LineContextView v)
+    {
+        v.LineTapped += OnLineTapped;
+        v.HighlightRequested += OnHighlight;
+        v.BookmarkRequested += OnBookmark;
+        v.RemoveHighlightRequested += OnRemoveHighlight;
+        v.EditNoteRequested += OnEditNote;
+    }
+
+    private void Unhook(LineContextView v)
+    {
+        v.LineTapped -= OnLineTapped;
+        v.HighlightRequested -= OnHighlight;
+        v.BookmarkRequested -= OnBookmark;
+        v.RemoveHighlightRequested -= OnRemoveHighlight;
+        v.EditNoteRequested -= OnEditNote;
+    }
+
+    private async void OnHighlight(TextSpanSelection span, Bilgames.Core.Model.HighlightColor color, bool withNote) => await Vm.AddHighlightAsync(span, color, withNote);
+    private void OnBookmark(ContextRun run) => Vm.BookmarkLine(run.LineId);
+    private void OnRemoveHighlight(string id) => Vm.RemoveHighlight(id);
+    private async void OnEditNote(string id) => await Vm.EditNoteAsync(id);
+
+    private void Note_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is NoteItem n) Vm.OpenNoteCommand.Execute(n);
+    }
+
+    private void NoteEdit_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is NoteItem n) Vm.EditNoteCommand.Execute(n);
+    }
+
+    private void NoteDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is NoteItem n) Vm.DeleteNoteCommand.Execute(n);
     }
 
     private void OnLineTapped(ContextRun run)

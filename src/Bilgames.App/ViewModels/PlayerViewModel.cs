@@ -30,7 +30,7 @@ public sealed class PlayerChapterViewModel
 public sealed partial class TranscriptParagraph : ObservableObject
 {
     public string BlockId { get; init; } = "";
-    public IReadOnlyList<IReadOnlyList<ContextRun>> Runs { get; init; } = Array.Empty<IReadOnlyList<ContextRun>>();
+    [ObservableProperty] private IReadOnlyList<IReadOnlyList<ContextRun>> _runs = Array.Empty<IReadOnlyList<ContextRun>>();
     [ObservableProperty] private bool _isCurrent;
     /// <summary>False while this paragraph hasn't been generated yet (streaming).</summary>
     [ObservableProperty] private bool _isAvailable = true;
@@ -162,6 +162,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         CoverColor = _book.CoverColor;
         CoverPath = AppServices.Store.CoverPath(_book);
         _cast = AppServices.Store.LoadCast(bookId);
+        LoadNotes();
         int idx = Array.FindIndex(Speeds, s => Math.Abs(s - _book.PlaybackRate) < 0.01);
         _restoringSpeed = true; // restoring the saved speed shouldn't write it back
         SpeedIndex = idx < 0 ? 1 : idx;
@@ -193,6 +194,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         _player.Source = null;
         _book = null;
         HasBook = false;
+        ShowNotes = false;
+        LoadNotes();
         Clear();
         _shell.RaiseLayout();
     }
@@ -463,7 +466,7 @@ public sealed partial class PlayerViewModel : ObservableObject
                 runs = new List<ContextRun> { new() { LineId = blockId + "l0", Text = b.Text } };
             else continue;
             _paragraphIndex[blockId] = Transcript.Count;
-            Transcript.Add(new TranscriptParagraph { BlockId = blockId, Runs = new[] { (IReadOnlyList<ContextRun>)runs } });
+            Transcript.Add(new TranscriptParagraph { BlockId = blockId, Runs = new[] { (IReadOnlyList<ContextRun>)WithMarks(index, runs) } });
         }
     }
 
@@ -489,6 +492,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private void OnTick()
     {
+        if (NoteStatus.Length > 0 && DateTime.UtcNow - _noteStatusAt > TimeSpan.FromSeconds(4)) NoteStatus = "";
         if (_stream is not null)
         {
             PumpStream();

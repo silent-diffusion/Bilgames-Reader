@@ -25,13 +25,18 @@ public sealed class PickerItem
 /// </summary>
 public static class SearchPicker
 {
-    public static void Show(FrameworkElement anchor, IReadOnlyList<PickerItem> items, string placeholder, Action<PickerItem> picked)
+    /// <param name="create">
+    /// Optional: offers "Add “typed text” as a new speaker" when the search doesn't name an existing item,
+    /// and is called with the typed name when that row is picked.
+    /// </param>
+    public static void Show(FrameworkElement anchor, IReadOnlyList<PickerItem> items, string placeholder, Action<PickerItem> picked, Action<string>? create = null)
     {
         var flyout = new Flyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
         var search = new TextBox { PlaceholderText = placeholder, Margin = new Thickness(0, 0, 0, 8) };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, placeholder);
         var list = new ListView { MaxHeight = 360, SelectionMode = ListViewSelectionMode.None, IsItemClickEnabled = true };
-        var empty = new TextBlock { Text = "No matches", Foreground = (Brush)Application.Current.Resources["TextMutedBrush"], Visibility = Visibility.Collapsed, Margin = new Thickness(4) };
+        var empty = new TextBlock { Text = create is null ? "No matches" : "No matches. Type a name to add a new speaker.", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextMutedBrush"], Visibility = Visibility.Collapsed, Margin = new Thickness(4) };
+        const string NewId = "\u0001new";
 
         void Fill()
         {
@@ -42,25 +47,30 @@ public static class SearchPicker
                          || i.Detail.Contains(q, StringComparison.OrdinalIgnoreCase)
                          || i.Keywords.Contains(q, StringComparison.OrdinalIgnoreCase)))
                 list.Items.Add(Row(item));
+            if (create is not null && q.Length > 0 && !items.Any(i => i.Title.Equals(q, StringComparison.OrdinalIgnoreCase)))
+            {
+                var row = Row(new PickerItem { Id = NewId, Title = $"Add “{q}” as a new speaker", Detail = "Gets their own voice; change it on the Cast tab", Color = "#2A303A", Initials = "+", Keywords = q });
+                list.Items.Add(row); // last, so Enter still picks the best existing match
+            }
             empty.Visibility = list.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        void Choose(PickerItem item)
+        {
+            flyout.Hide();
+            if (item.Id == NewId) create?.Invoke(item.Keywords);
+            else picked(item);
         }
 
         search.TextChanged += (_, _) => Fill();
         search.KeyDown += (_, e) =>
         {
             if (e.Key == Windows.System.VirtualKey.Enter && list.Items.Count > 0 && ((FrameworkElement)list.Items[0]).Tag is PickerItem first)
-            {
-                flyout.Hide();
-                picked(first);
-            }
+                Choose(first);
         };
         list.ItemClick += (_, e) =>
         {
-            if (((FrameworkElement)e.ClickedItem).Tag is PickerItem item)
-            {
-                flyout.Hide();
-                picked(item);
-            }
+            if (((FrameworkElement)e.ClickedItem).Tag is PickerItem item) Choose(item);
         };
         Fill();
         flyout.Content = new StackPanel { Width = 320, Children = { search, list, empty } };

@@ -2,7 +2,7 @@ using Vortice.DXGI;
 
 namespace Bilgames.Tts.Kokoro;
 
-public sealed record GpuInfo(int AdapterIndex, string Name, long DedicatedBytes);
+public sealed record GpuInfo(int AdapterIndex, string Name, long DedicatedBytes, long Luid);
 
 /// <summary>
 /// Finds the best DirectX 12 GPU and reports how much video memory this process may still use
@@ -33,7 +33,7 @@ public static class GpuMonitor
                         long mem = (long)(ulong)d.DedicatedVideoMemory;
                         // Below 2 GB of dedicated memory is an integrated GPU; Kokoro gains little there.
                         if (mem < 2L * 1024 * 1024 * 1024) continue;
-                        if (best is null || mem > best.DedicatedBytes) best = new GpuInfo((int)i, d.Description.Trim(), mem);
+                        if (best is null || mem > best.DedicatedBytes) best = new GpuInfo((int)i, d.Description.Trim(), mem, ((long)d.Luid.HighPart << 32) | (uint)d.Luid.LowPart);
                     }
                 }
                 _best = best;

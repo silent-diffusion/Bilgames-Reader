@@ -47,6 +47,7 @@ public sealed class BookService
             var narratorVoice = oldCast.Members.FirstOrDefault(m => m.IsNarrator)?.VoiceId ?? VoiceCatalog.DefaultNarrator;
 
             var result = DialogueAnalyzer.Analyze(chapters, narratorVoice, progress, ct);
+            var idMap = ReapplyCastEdits(oldCast, result);
 
             // Carry over voice choices (by character name) and reviewed lines (by line id).
             foreach (var m in result.Cast.Members)
@@ -66,8 +67,9 @@ public sealed class BookService
                     foreach (var l in a.Lines)
                     {
                         if (!reviewed.TryGetValue(l.Id, out var r) || r.Text != l.Text) continue;
-                        if (r.Source == AttributionSource.User && result.Cast.Find(r.SpeakerId) is null) continue;
-                        l.SpeakerId = r.SpeakerId; l.Unsure = r.Unsure; l.Reviewed = true; l.Source = r.Source; l.Confidence = r.Confidence;
+                        var speaker = idMap.GetValueOrDefault(r.SpeakerId, r.SpeakerId);
+                        if (r.Source == AttributionSource.User && result.Cast.Find(speaker) is null) continue;
+                        l.SpeakerId = speaker; l.Unsure = r.Unsure; l.Reviewed = true; l.Source = r.Source; l.Confidence = r.Confidence;
                     }
                 }
                 _store.SaveAnalysis(bookId, a);
@@ -88,6 +90,39 @@ public sealed class BookService
         }
     }
 
+    /// <summary>
+    /// Keeps the user's cast edits through a re-analysis: speakers they added come back, and names
+    /// they merged (stored as aliases) are merged again. Returns old id → new id for added speakers
+    /// the analysis has now found by itself.
+    /// </summary>
+    private static Dictionary<string, string> ReapplyCastEdits(CastSheet oldCast, AnalysisResult result)
+    {
+        var cast = result.Cast;
+        var idMap = new Dictionary<string, string>();
+        foreach (var added in oldCast.Members.Where(m => m.UserAdded))
+        {
+            var found = cast.Members.FirstOrDefault(m => !m.IsNarrator && m.Name.Equals(added.Name, StringComparison.OrdinalIgnoreCase));
+            if (found is not null) { idMap[added.Id] = found.Id; continue; }
+            if (cast.Find(added.Id) is not null) continue;
+            cast.Members.Add(new CastMember
+            {
+                Id = added.Id, Name = added.Name, Aliases = added.Aliases.ToList(), Gender = added.Gender,
+                VoiceId = added.VoiceId, Color = added.Color, UserAdded = true,
+            });
+        }
+        foreach (var old in oldCast.Members.Where(m => !m.IsNarrator && m.Aliases.Count > 0))
+        {
+            var into = cast.Members.FirstOrDefault(m => !m.IsNarrator && m.Name == old.Name);
+            if (into is null) continue;
+            foreach (var from in cast.Members.Where(m => m != into && !m.IsNarrator && old.Aliases.Contains(m.Name)).ToList())
+            {
+                foreach (var a in result.Chapters) Repoint(a, from.Id, into.Id);
+                Absorb(cast, from, into);
+            }
+        }
+        return idMap;
+    }
+
     public static string SuggestionKey(MergeSuggestion s) => s.FromId + ">" + s.IntoId;
 
     public void SetVoice(string bookId, string memberId, string voiceId)
@@ -101,39 +136,109 @@ public sealed class BookService
         if (book is not null) Recount(book, cast);
     }
 
+    /// <summary>
+    /// Folds one speaker into another: every line (and review candidate) moves over, the name becomes
+    /// an alias (so a later re-analysis merges them again), and the merged-away entry is removed.
+    /// </summary>
     public void Merge(string bookId, string fromId, string intoId)
     {
         var cast = _store.LoadCast(bookId);
         var from = cast.Find(fromId);
         var into = cast.Find(intoId);
-        if (from is null || into is null || from.IsNarrator) return;
+        if (from is null || into is null || from == into || from.IsNarrator) return;
+
+        ForEachAnalysis(bookId, a => Repoint(a, fromId, intoId));
+        Absorb(cast, from, into);
+        _store.SaveCast(bookId, cast);
+        var book = _store.LoadBook(bookId);
+        if (book is not null) Recount(book, cast);
+    }
+
+    /// <summary>Merges several speakers into one in a single pass.</summary>
+    public void MergeMany(string bookId, IReadOnlyCollection<string> fromIds, string intoId)
+    {
+        var cast = _store.LoadCast(bookId);
+        var into = cast.Find(intoId);
+        if (into is null) return;
+        var from = fromIds.Select(cast.Find).Where(m => m is not null && m != into && !m.IsNarrator).Select(m => m!).ToList();
+        if (from.Count == 0) return;
 
         ForEachAnalysis(bookId, a =>
         {
             bool changed = false;
-            foreach (var l in a.Lines)
-            {
-                if (l.SpeakerId == fromId) { l.SpeakerId = intoId; changed = true; }
-                foreach (var c in l.Candidates.Where(c => c.SpeakerId == fromId)) { c.SpeakerId = intoId; changed = true; }
-                // Collapse duplicate candidates created by the merge.
-                if (l.Candidates.GroupBy(c => c.SpeakerId).Any(g => g.Count() > 1))
-                {
-                    l.Candidates = l.Candidates.GroupBy(c => c.SpeakerId)
-                        .Select(g => new SpeakerCandidate { SpeakerId = g.Key, Score = g.Sum(x => x.Score) })
-                        .OrderByDescending(c => c.Score).ToList();
-                }
-            }
+            foreach (var f in from) changed |= Repoint(a, f.Id, intoId);
             return changed;
         });
-
-        into.Aliases.Add(from.Name);
-        into.Aliases.AddRange(from.Aliases);
-        into.Aliases = into.Aliases.Distinct().Where(a => a != into.Name).ToList();
-        cast.Members.Remove(from);
-        cast.Suggestions.RemoveAll(s => s.FromId == fromId || s.IntoId == fromId);
+        foreach (var f in from) Absorb(cast, f, into);
         _store.SaveCast(bookId, cast);
         var book = _store.LoadBook(bookId);
         if (book is not null) Recount(book, cast);
+    }
+
+    /// <summary>Moves a chapter's lines and candidates from one speaker to another. Returns whether anything changed.</summary>
+    internal static bool Repoint(ChapterAnalysis a, string fromId, string intoId)
+    {
+        bool changed = false;
+        foreach (var l in a.Lines)
+        {
+            if (l.SpeakerId == fromId) { l.SpeakerId = intoId; changed = true; }
+            foreach (var c in l.Candidates.Where(c => c.SpeakerId == fromId)) { c.SpeakerId = intoId; changed = true; }
+            // Collapse duplicate candidates created by the merge.
+            if (l.Candidates.GroupBy(c => c.SpeakerId).Any(g => g.Count() > 1))
+            {
+                l.Candidates = l.Candidates.GroupBy(c => c.SpeakerId)
+                    .Select(g => new SpeakerCandidate { SpeakerId = g.Key, Score = g.Sum(x => x.Score) })
+                    .OrderByDescending(c => c.Score).ToList();
+            }
+        }
+        return changed;
+    }
+
+    private static void Absorb(CastSheet cast, CastMember from, CastMember into)
+    {
+        if (!into.IsNarrator)
+        {
+            into.Aliases.Add(from.Name);
+            into.Aliases.AddRange(from.Aliases);
+            into.Aliases = into.Aliases.Distinct().Where(a => a != into.Name).ToList();
+            if (into.Gender == Gender.Unknown) into.Gender = from.Gender;
+        }
+        cast.Members.Remove(from);
+        cast.Suggestions.RemoveAll(s => s.FromId == from.Id || s.IntoId == from.Id);
+    }
+
+    /// <summary>
+    /// Adds a character the analysis missed. Returns the existing member if the name (or one of its
+    /// aliases) is already in the cast. New speakers get their own colour and an unused voice.
+    /// </summary>
+    public CastMember AddSpeaker(string bookId, string name, Gender gender = Gender.Unknown)
+    {
+        name = string.Join(' ', name.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (name.Length == 0) throw new ArgumentException("A speaker needs a name.", nameof(name));
+        var cast = _store.LoadCast(bookId);
+        if (cast.Members.Count == 0)
+        {
+            // Not analyzed yet: start the sheet with the narrator so the new speaker has company.
+            cast.Members.Add(new CastMember { Id = CastMember.NarratorId, Name = "Narrator", VoiceId = VoiceCatalog.DefaultNarrator, Color = VoiceCatalog.NarratorColor });
+        }
+        var existing = cast.Members.FirstOrDefault(m => !m.IsNarrator &&
+            (m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || m.Aliases.Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase))));
+        if (existing is not null) return existing;
+
+        int n = 1;
+        while (cast.Find("u" + n) is not null) n++;
+        var member = new CastMember
+        {
+            Id = "u" + n,
+            Name = name,
+            Gender = gender,
+            UserAdded = true,
+            Color = VoiceCatalog.NextColor(cast.Members.Where(m => !m.IsNarrator && (m.LineCount > 0 || m.UserAdded)).Select(m => m.Color)),
+            VoiceId = VoiceCatalog.PickFor(gender, cast.Members.Select(m => m.VoiceId)),
+        };
+        cast.Members.Add(member);
+        _store.SaveCast(bookId, cast);
+        return member;
     }
 
     public void KeepApart(string bookId, MergeSuggestion s)

@@ -151,13 +151,16 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <c:Avatar Size="40" Initials="{x:Bind Vm.Cast.Detail.Initials, Mode=OneWay}" Color="{x:Bind Vm.Cast.Detail.Color, Mode=OneWay}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                 <TextBlock Text="{x:Bind Vm.Cast.Detail.Name, Mode=OneWay}" FontSize="18" FontWeight="Bold" Style="{StaticResource BaseText}" AutomationProperties.HeadingLevel="Level2" />
                                 <TextBlock Text="{x:Bind Vm.Cast.Detail.Summary, Mode=OneWay}" Style="{StaticResource CaptionText}" />
                             </StackPanel>
-                            <ToggleSwitch Grid.Column="2" Header="Context" IsOn="{x:Bind Vm.Cast.Detail.ShowContext, Mode=TwoWay}" OnContent="Shown" OffContent="Hidden" MinWidth="0"
+                            <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" Content="Merge…" VerticalAlignment="Center" Click="DetailMerge_Click"
+                                    AutomationProperties.Name="Merge this speaker with others" ToolTipService.ToolTip="Same character under another name? Merge them" />
+                            <ToggleSwitch Grid.Column="3" Header="Context" IsOn="{x:Bind Vm.Cast.Detail.ShowContext, Mode=TwoWay}" OnContent="Shown" OffContent="Hidden" MinWidth="0"
                                           VerticalAlignment="Center" AutomationProperties.Name="Show surrounding text" />
                         </Grid>
                         <ProgressBar IsIndeterminate="True" Style="{StaticResource ThinProgress}" Visibility="{x:Bind c:Ui.Vis(Vm.Cast.Detail.IsLoading), Mode=OneWay}" AutomationProperties.Name="Loading lines" />
@@ -191,6 +194,21 @@
                     <TextBlock Text="{x:Bind Vm.Cast.Intro, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" />
                     <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Content="Find speakers" Command="{x:Bind Vm.Cast.FindSpeakersCommand}"
                             Visibility="{x:Bind c:Ui.NotVis(Vm.Cast.IsAnalyzed), Mode=OneWay}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Visibility="{x:Bind c:Ui.Vis(Vm.Cast.IsAnalyzed), Mode=OneWay}">
+                        <Button Style="{StaticResource GhostButton}" Click="AddSpeaker_Click" AutomationProperties.Name="Add speaker" ToolTipService.ToolTip="Add a character the search missed">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:StrokeIcon Data="M12 5v14M5 12h14" Width="16" Height="16" StrokeWidth="2.2" />
+                                <TextBlock Text="Add speaker" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostButton}" Click="MergeSpeakers_Click" AutomationProperties.Name="Merge speakers" ToolTipService.ToolTip="Combine names that are the same character">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:StrokeIcon Data="M6 4v5a6 6 0 0 0 6 6M18 4v5a6 6 0 0 1-6 6v5" Width="16" Height="16" StrokeWidth="2.2" />
+                                <TextBlock Text="Merge speakers" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind Vm.Cast.CastStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" Foreground="{StaticResource AccentBrush}" Visibility="{x:Bind c:Ui.VisText(Vm.Cast.CastStatus), Mode=OneWay}" />
 
                     <Border Background="{StaticResource WarningBgBrush}" BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="1" CornerRadius="14" Padding="14"
                             Visibility="{x:Bind c:Ui.Vis(Vm.Cast.ShowMerge), Mode=OneWay}">
@@ -222,8 +240,13 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <c:Avatar Size="40" Initials="{x:Bind Initials}" Color="{x:Bind Color}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="4" Style="{StaticResource IconButton}" Width="36" VerticalAlignment="Center" Click="MemberMore_Click" Tag="{x:Bind}"
+                                            Visibility="{x:Bind c:Ui.NotVis(IsNarrator)}" AutomationProperties.Name="{x:Bind MoreName}" ToolTipService.ToolTip="Merge, remove, show lines">
+                                        <c:StrokeIcon Data="M5 12h.01M12 12h.01M19 12h.01" Width="18" Height="18" StrokeWidth="3" />
+                                    </Button>
                                     <Button Grid.Column="1" Style="{StaticResource RowButton}" Padding="4,6" Click="Member_Click" Tag="{x:Bind}"
                                             IsEnabled="{x:Bind c:Ui.Not(IsNarrator)}" AutomationProperties.Name="{x:Bind LinesButtonName}" ToolTipService.ToolTip="Show this speaker's lines">
                                         <StackPanel Spacing="2">
@@ -388,6 +411,7 @@
                                 <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" />
                                 <TextBlock Text="{x:Bind Vm.Generate.DeviceLabel, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource BaseText}" />
                             </StackPanel>
+                            <c:GpuMemoryPanel Report="{x:Bind Vm.Generate.GpuMemory, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
 

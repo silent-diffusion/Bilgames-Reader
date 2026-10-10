@@ -5,7 +5,7 @@ using Bilgames.Core.Model;
 // Usage: Bilgames.Inspect <file.epub> [structure|text <chapter>]
 var path = args[0];
 var mode = args.Length > 1 ? args[1] : "structure";
-var book = mode is "m4b" or "engine" ? new ImportedBook() : EpubImporter.Import(path);
+var book = mode is "m4b" or "engine" or "gpu" or "phonemes" ? new ImportedBook() : EpubImporter.Import(path);
 await Task.CompletedTask;
 Console.WriteLine($"{book.Title} — {book.Author} [{book.Language}] cover={(book.Cover?.Length ?? 0)} bytes");
 if (mode == "structure")
@@ -84,6 +84,35 @@ else if (mode == "m4b")
     foreach (var c in Bilgames.Core.Audio.Mp4Metadata.ReadChapters(args[2])) Console.WriteLine($"{c.Start.TotalSeconds,8:F2}s  {c.Title}");
 }
 
+else if (mode == "phonemes")
+{
+    // phonemes <x> "text" : what the G2P makes of a text (apostrophes, numbers…)
+    var asm = typeof(KokoroSharp.Processing.Tokenizer).Assembly;
+    foreach (var m in typeof(KokoroSharp.Processing.Tokenizer).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+        Console.WriteLine("  " + m);
+    var phon = typeof(KokoroSharp.Processing.Tokenizer).GetMethod("Phonemize");
+    foreach (var t in args.Skip(2))
+    {
+        var r = phon?.GetParameters().Length switch
+        {
+            1 => phon.Invoke(null, new object[] { t }),
+            2 => phon.Invoke(null, new object[] { t, "en-us" }),
+            _ => phon?.Invoke(null, new object?[] { t, "en-us", true }),
+        };
+        Console.WriteLine($"{t}  →  {r}");
+    }
+}
+else if (mode == "gpu")
+{
+    // gpu <x> : which apps are using the GPU's memory
+    var gpu = Bilgames.Tts.Kokoro.GpuMonitor.Best;
+    Console.WriteLine($"GPU: {gpu?.Name ?? "none"}  free for this app: {(gpu is null ? 0 : Bilgames.Tts.Kokoro.GpuMonitor.AvailableBytes(gpu)) / 1048576:N0} MB");
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    if (gpu is not null)
+        foreach (var u in Bilgames.Tts.Kokoro.GpuMemoryUsage.Read(gpu, 20, 0))
+            Console.WriteLine($"{u.Bytes / 1048576,8:N0} MB  {u.Name}{(u.Processes > 1 ? $" ({u.Processes} processes)" : "")}");
+    Console.WriteLine($"({sw.ElapsedMilliseconds} ms)");
+}
 else if (mode == "engine")
 {
     // engine <x> <modelsDir> <count> : synthesize repeatedly, report device per segment

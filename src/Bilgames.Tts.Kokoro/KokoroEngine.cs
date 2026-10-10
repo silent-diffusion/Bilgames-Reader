@@ -100,6 +100,8 @@ public sealed class KokoroEngine : ITtsEngine, IDisposable
     public async Task<short[]> SynthesizeAsync(string text, string voiceId, float speed, QualityProfile profile, CancellationToken ct)
     {
         var voice = KokoroVoiceManager.GetVoice(voiceId) ?? KokoroVoiceManager.GetVoice(VoiceCatalog.DefaultNarrator);
+        // Plans arrive normalized already; previews and other callers may not.
+        text = Bilgames.Core.Planning.SynthesisPlanner.Apostrophes(text);
         var tokens = Tokenizer.Tokenize(text, KokoroLangCodeHelper.GetLangCode(voice), true);
         if (tokens.Length == 0) return Array.Empty<short>();
         var chunks = tokens.Length <= KokoroModel.maxTokens - 10
@@ -161,6 +163,7 @@ public sealed class KokoroEngine : ITtsEngine, IDisposable
         {
             if (_gpu is not null) DropGpu("");
             PendingDetail = "";
+            ClearGpuMemoryUsers();
             return null;
         }
         var gpu = Gpu;
@@ -174,7 +177,9 @@ public sealed class KokoroEngine : ITtsEngine, IDisposable
         if (available < _gpuNeeded)
         {
             _gpuRetryAt = DateTime.UtcNow + GpuRetryInterval;
-            PendingDetail = $"{gpu.Name} is short on memory ({available / 1048576:N0} MB free); using the CPU and checking again shortly.";
+            GpuFreeBytes = Math.Max(0, available);
+            PendingDetail = $"{gpu.Name} is short on memory ({GpuFreeBytes / 1048576:N0} MB free); using the CPU and checking again shortly.";
+            ScanGpuMemoryUsers(gpu);
             return null;
         }
 
@@ -188,6 +193,7 @@ public sealed class KokoroEngine : ITtsEngine, IDisposable
             options.AppendExecutionProvider_DML(gpu.AdapterIndex);
             _gpu = new KokoroModel(GpuModelPath, options);
             PendingDetail = "";
+            ClearGpuMemoryUsers();
             return _gpu;
         }
         catch (Exception ex)
@@ -201,6 +207,39 @@ public sealed class KokoroEngine : ITtsEngine, IDisposable
         {
             _gpuRun.Release();
         }
+    }
+
+    /// <summary>True while the GPU is preferred but too full, so work runs on the CPU.</summary>
+    public bool GpuMemoryShort { get; private set; }
+
+    /// <summary>Video memory this app could use when last checked (while <see cref="GpuMemoryShort"/>).</summary>
+    public long GpuFreeBytes { get; private set; }
+
+    /// <summary>The apps holding the GPU's memory when it was last found too full (largest first).</summary>
+    public IReadOnlyList<GpuMemoryUser> GpuMemoryUsers { get; private set; } = Array.Empty<GpuMemoryUser>();
+
+    private int _scanning;
+
+    /// <summary>Looks up who is using the GPU's memory in the background, then tells listeners.</summary>
+    private void ScanGpuMemoryUsers(GpuInfo gpu)
+    {
+        GpuMemoryShort = true;
+        if (Interlocked.Exchange(ref _scanning, 1) == 1) return;
+        _ = Task.Run(() =>
+        {
+            try { GpuMemoryUsers = GpuMemoryUsage.Read(gpu); }
+            catch { GpuMemoryUsers = Array.Empty<GpuMemoryUser>(); }
+            finally { Interlocked.Exchange(ref _scanning, 0); }
+            if (GpuMemoryShort) DeviceChanged?.Invoke();
+        });
+    }
+
+    private void ClearGpuMemoryUsers()
+    {
+        bool had = GpuMemoryShort;
+        GpuMemoryShort = false;
+        GpuMemoryUsers = Array.Empty<GpuMemoryUser>();
+        if (had) DeviceChanged?.Invoke();
     }
 
     private int _footprintSamples;

@@ -37,14 +37,21 @@
             <!-- Header -->
             <Grid MinHeight="44">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Button x:Name="CollapseButton" Style="{StaticResource IconButton}" Command="{x:Bind Vm.CollapseCommand}" AutomationProperties.Name="Close player" ToolTipService.ToolTip="Close player">
-                    <c:StrokeIcon Data="M6 9l6 6 6-6" StrokeWidth="2.2" />
-                </Button>
-                <TextBlock Grid.Column="1" Text="{x:Bind Vm.HeaderLabel, Mode=OneWay}" Style="{StaticResource EyebrowText}" FontWeight="ExtraBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <!-- Left: close (narrow layouts) + bookmarks; right: chapters. Expanded is 44 | title | 44. -->
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="CollapseButton" Style="{StaticResource IconButton}" Command="{x:Bind Vm.CollapseCommand}" AutomationProperties.Name="Close player" ToolTipService.ToolTip="Close player">
+                        <c:StrokeIcon Data="M6 9l6 6 6-6" StrokeWidth="2.2" />
+                    </Button>
+                    <Button Style="{StaticResource IconButton}" Command="{x:Bind Vm.ToggleNotesCommand}" IsEnabled="{x:Bind Vm.HasBook, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind Vm.NotesButtonName, Mode=OneWay}" ToolTipService.ToolTip="Bookmarks and highlights">
+                        <c:StrokeIcon Data="M6 3h12v18l-6-4-6 4z" StrokeWidth="2" Width="19" Height="19" Foreground="{x:Bind c:Ui.AccentWhen(Vm.ShowNotes), Mode=OneWay}" />
+                    </Button>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{x:Bind Vm.HeaderLabel, Mode=OneWay}" Style="{StaticResource EyebrowText}" FontWeight="ExtraBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0" />
                 <Button Grid.Column="2" Style="{StaticResource IconButton}" AutomationProperties.Name="Chapters" ToolTipService.ToolTip="Chapters" Click="Chapters_Click">
                     <c:StrokeIcon Data="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" StrokeWidth="2" Width="20" Height="20" />
                 </Button>
@@ -74,15 +81,25 @@
                     <c:Avatar Size="32" Initials="{x:Bind Vm.SpeakerInitials, Mode=OneWay}" Color="{x:Bind Vm.SpeakerColor, Mode=OneWay}" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="NOW SPEAKING" FontSize="11" FontWeight="Bold" CharacterSpacing="80" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
-                        <TextBlock Text="{x:Bind Vm.SpeakerLabel, Mode=OneWay}" FontSize="14" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                        <TextBlock Text="{x:Bind Vm.SpeakerLabel, Mode=OneWay}" FontSize="14" FontWeight="Bold" TextWrapping="Wrap" MaxLines="2" LineHeight="18" Style="{StaticResource BaseText}" />
                     </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" Content="Fix" Command="{x:Bind Vm.FixCommand}" AutomationProperties.Name="Wrong speaker? Fix it" ToolTipService.ToolTip="Wrong speaker? Fix it" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                        <Button Style="{StaticResource SmallOutlineButton}" Padding="0" Width="36" Command="{x:Bind Vm.HighlightCurrentCommand}"
+                                AutomationProperties.Name="Highlight what's being read" ToolTipService.ToolTip="Highlight what's being read (H)">
+                            <c:StrokeIcon Data="M9 11l-6 6v3h9l3-3M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" Width="16" Height="16" />
+                        </Button>
+                        <Button Style="{StaticResource SmallOutlineButton}" Padding="0" Width="36" Command="{x:Bind Vm.AddBookmarkCommand}"
+                                AutomationProperties.Name="Bookmark this moment" ToolTipService.ToolTip="Bookmark this moment (B)">
+                            <c:StrokeIcon Data="M6 3h12v18l-6-4-6 4z" Width="16" Height="16" />
+                        </Button>
+                        <Button Style="{StaticResource SmallOutlineButton}" Content="Fix" Command="{x:Bind Vm.FixCommand}" AutomationProperties.Name="Wrong speaker? Fix it" ToolTipService.ToolTip="Wrong speaker? Fix it" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
             <!-- Live transcript -->
             <!-- The whole chapter: scroll freely; tap a line to jump there. Follows the reading again after 5 s idle. -->
-            <Grid Grid.Row="3" RowSpacing="8" Visibility="{x:Bind c:Ui.Vis(Vm.HasAudio), Mode=OneWay}">
+            <Grid Grid.Row="3" RowSpacing="8" Visibility="{x:Bind c:Ui.Vis(Vm.ShowTranscript), Mode=OneWay}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -97,20 +114,95 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="vm:TranscriptParagraph">
-                                <c:LineContextView Paragraphs="{x:Bind Runs}" TextSize="17" Emphasized="{x:Bind IsCurrent, Mode=OneWay}"
+                                <c:LineContextView Paragraphs="{x:Bind Runs, Mode=OneWay}" TextSize="17" AllowAnnotations="True" Emphasized="{x:Bind IsCurrent, Mode=OneWay}"
                                                    Opacity="{x:Bind c:Ui.TranscriptOpacity(IsCurrent, IsAvailable), Mode=OneWay}" />
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
                 </ScrollViewer>
+                <!-- "Bookmarked…" / "Highlighted." toast: floats over the text so nothing jumps -->
+                <Border Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,10" Padding="12,6" CornerRadius="14"
+                        Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" IsHitTestVisible="False"
+                        Visibility="{x:Bind c:Ui.VisText(Vm.NoteStatus), Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Vm.NoteStatus, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}" Style="{StaticResource BaseText}"
+                               AutomationProperties.LiveSetting="Polite" />
+                </Border>
             </Grid>
 
             <!-- Nothing to play -->
-            <StackPanel Grid.Row="3" Spacing="12" VerticalAlignment="Center" Visibility="{x:Bind c:Ui.NotVis(Vm.HasAudio), Mode=OneWay}">
+            <StackPanel Grid.Row="3" Spacing="12" VerticalAlignment="Center" Visibility="{x:Bind c:Ui.Vis(Vm.ShowEmpty), Mode=OneWay}">
                 <TextBlock Text="{x:Bind Vm.EmptyText, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center" MaxWidth="300" />
                 <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Content="Start listening" Command="{x:Bind Vm.StartListeningCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.CanStart), Mode=OneWay}" />
                 <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Center" Content="Open Generate" Command="{x:Bind Vm.OpenGenerateCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.HasBook), Mode=OneWay}" />
             </StackPanel>
+
+            <!-- Bookmarks & highlights -->
+            <Grid Grid.Row="3" RowSpacing="10" Visibility="{x:Bind c:Ui.Vis(Vm.ShowNotes), Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Bookmarks &amp; highlights" FontSize="15" FontWeight="Bold" Style="{StaticResource BaseText}" AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock Text="{x:Bind Vm.NotesSummary, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                        <TextBlock Text="{x:Bind Vm.NoteStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" Foreground="{StaticResource SuccessBrush}"
+                                   Visibility="{x:Bind c:Ui.VisText(Vm.NoteStatus), Mode=OneWay}" AutomationProperties.LiveSetting="Polite" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource SmallOutlineButton}" Command="{x:Bind Vm.ExportNotesCommand}" IsEnabled="{x:Bind Vm.HasNotes, Mode=OneWay}"
+                            VerticalAlignment="Center" AutomationProperties.Name="Export bookmarks and highlights" ToolTipService.ToolTip="Save as Markdown, plain text or CSV">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:StrokeIcon Data="M12 3v12M7 10l5 5 5-5M5 21h14" Width="14" Height="14" />
+                            <TextBlock Text="Export" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <TextBlock Grid.Row="1" Style="{StaticResource SecondaryText}" FontSize="14" TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                           Visibility="{x:Bind c:Ui.NotVis(Vm.HasNotes), Mode=OneWay}"
+                           Text="Nothing marked yet. Press B (or the bookmark button) to mark the moment you're hearing, H to highlight it, or select text in the chapter to highlight a passage." />
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0" Visibility="{x:Bind c:Ui.Vis(Vm.HasNotes), Mode=OneWay}">
+                    <ItemsRepeater ItemsSource="{x:Bind Vm.Notes}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="8" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:NoteItem">
+                                <Grid Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="10" ColumnSpacing="10" Padding="0,0,6,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{x:Bind c:Ui.Brush(Swatch)}" CornerRadius="10,0,0,10" />
+                                    <Button Grid.Column="1" Style="{StaticResource RowButton}" Padding="0,10,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Click="Note_Click" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind OpenName}" ToolTipService.ToolTip="Play from here">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock FontSize="11" FontWeight="Bold" CharacterSpacing="60" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" TextTrimming="CharacterEllipsis">
+                                                <Run Text="{x:Bind KindLabel}" /><Run Text=" · " /><Run Text="{x:Bind Where}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{x:Bind Text}" FontFamily="{StaticResource BookFont}" FontSize="15" LineHeight="22" TextWrapping="Wrap" MaxLines="5" TextTrimming="WordEllipsis" Style="{StaticResource BaseText}" />
+                                            <TextBlock Text="{x:Bind Note}" FontSize="13" FontStyle="Italic" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource BaseText}"
+                                                       Visibility="{x:Bind c:Ui.Vis(HasNote)}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="0,6,0,0">
+                                        <Button Style="{StaticResource IconButton}" Width="36" Height="36" Click="NoteEdit_Click" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind EditName}" ToolTipService.ToolTip="{x:Bind EditName}">
+                                            <c:StrokeIcon Data="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" Width="15" Height="15" />
+                                        </Button>
+                                        <Button Style="{StaticResource IconButton}" Width="36" Height="36" Click="NoteDelete_Click" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind DeleteName}" ToolTipService.ToolTip="{x:Bind DeleteName}">
+                                            <c:StrokeIcon Data="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" Width="15" Height="15" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </Grid>
 
             <!-- Scrubber -->
             <StackPanel Grid.Row="4" Spacing="2" IsHitTestVisible="{x:Bind Vm.HasAudio, Mode=OneWay}">
@@ -180,7 +272,7 @@
                 </Button>
             </Grid>
 
-            <TextBlock x:Name="KeyHint" Grid.Row="7" Text="Space play/pause · ← → skip · [ ] speed" Style="{StaticResource CaptionText}" FontSize="11" HorizontalAlignment="Center" />
+            <TextBlock x:Name="KeyHint" Grid.Row="7" Text="Space play/pause · ← → skip · [ ] speed · B bookmark · H highlight" Style="{StaticResource CaptionText}" FontSize="11" HorizontalAlignment="Center" TextAlignment="Center" />
         </Grid>
     </Border>
 </UserControl>

@@ -76,6 +76,7 @@
                             <TextBlock Text="{x:Bind Vm.DeviceDetail, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.DeviceDetail), Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
+                    <c:GpuMemoryPanel Report="{x:Bind Vm.GpuMemory, Mode=OneWay}" />
                     <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" HorizontalAlignment="Left" Content="Download GPU model" Command="{x:Bind Vm.DownloadGpuModelCommand}"
                             Visibility="{x:Bind c:Ui.Vis(Vm.GpuNeedsModel), Mode=OneWay}" />
                 </StackPanel>

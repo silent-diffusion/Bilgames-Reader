@@ -25,6 +25,7 @@ public static class Ui
     public static Visibility NotVis(bool v) => v ? Visibility.Collapsed : Visibility.Visible;
     public static Visibility VisText(string? s) => string.IsNullOrEmpty(s) ? Visibility.Collapsed : Visibility.Visible;
     public static bool Not(bool v) => !v;
+    public static Microsoft.UI.Xaml.Media.Brush AccentWhen(bool on) => (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources[on ? "AccentBrush" : "TextBrush"];
     public static double Percent(double fraction) => Math.Round(fraction * 100, 1);
     public static string Upper(string? s) => (s ?? "").ToUpperInvariant();
 

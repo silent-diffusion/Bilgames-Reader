@@ -58,6 +58,24 @@ public static class VoiceCatalog
 
     public static string ColorFor(int characterIndex) => SpeakerColors[characterIndex % SpeakerColors.Length];
 
+    /// <summary>The speaker colour used least among <paramref name="usedColors"/> (for a newly added character).</summary>
+    public static string NextColor(IEnumerable<string> usedColors)
+    {
+        var counts = usedColors.GroupBy(c => c, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+        return SpeakerColors.OrderBy(c => counts.GetValueOrDefault(c)).First();
+    }
+
+    /// <summary>
+    /// A voice for a newly added character: the best voice of that gender (either, if unknown) that
+    /// nobody in the book uses yet; once all are taken, the least-used one.
+    /// </summary>
+    public static string PickFor(Gender gender, IEnumerable<string> usedVoices)
+    {
+        var counts = usedVoices.GroupBy(v => v).ToDictionary(g => g.Key, g => g.Count());
+        return All.Where(v => gender == Gender.Unknown || v.Gender == gender)
+            .OrderBy(v => counts.GetValueOrDefault(v.Id)).First().Id; // stable sort: best grade first among equals
+    }
+
     /// <summary>
     /// Gives each character a stable voice that differs from the narrator's. Main characters get
     /// the best voices of their gender; once a gender's voices run out, minor characters share.

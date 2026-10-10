@@ -66,6 +66,8 @@ public sealed class CastMember
     public string Color { get; set; } = "#C9CED6";
     public int LineCount { get; set; }
     public int ConfidentCount { get; set; }
+    /// <summary>Added by the user rather than found by analysis; kept (even with no lines) when the book is re-analyzed.</summary>
+    public bool UserAdded { get; set; }
 
     public bool IsNarrator => Id == NarratorId;
 

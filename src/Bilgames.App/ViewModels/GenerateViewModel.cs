@@ -39,7 +39,11 @@ public sealed partial class GenerateViewModel : ObservableObject
         Profiles.Add(new ProfileOptionViewModel { Profile = QualityProfile.Balanced, Name = "Balanced", Hint = "Recommended" });
         Profiles.Add(new ProfileOptionViewModel { Profile = QualityProfile.High, Name = "High quality", Hint = "Slower" });
         AppServices.Models.Changed += () => AppServices.RunOnUI(UpdateModelCard);
-        AppServices.Engine.DeviceChanged += () => AppServices.RunOnUI(() => { if (IsRunning) DeviceLabel = "Processing on " + AppServices.Engine.DeviceLabel; });
+        AppServices.Engine.DeviceChanged += () => AppServices.RunOnUI(() =>
+        {
+            if (IsRunning) DeviceLabel = "Processing on " + AppServices.Engine.DeviceLabel;
+            GpuMemory = IsRunning ? GpuMemoryReport.From(AppServices.Engine) : null;
+        });
     }
 
     public ObservableCollection<ProfileOptionViewModel> Profiles { get; } = new();
@@ -67,6 +71,8 @@ public sealed partial class GenerateViewModel : ObservableObject
     [ObservableProperty] private string _deviceLabel = "";
     [ObservableProperty] private bool _showGpuHint;
     [ObservableProperty] private string _gpuHint = "";
+    /// <summary>While the GPU is too full: which apps are using its memory.</summary>
+    [ObservableProperty] private GpuMemoryReport? _gpuMemory;
 
     public void Refresh()
     {
@@ -97,6 +103,8 @@ public sealed partial class GenerateViewModel : ObservableObject
         // Listening can start immediately: unfinished chapters play as they're generated.
         CanListen = p.ReadyChapters > 0 || IsRunning;
         DeviceLabel = IsRunning ? "Processing on " + (p.Device.Length > 0 ? p.Device : AppServices.Engine.DeviceLabel) : "";
+        if (!IsRunning) GpuMemory = null;
+        else GpuMemory ??= GpuMemoryReport.From(AppServices.Engine);
         Error = p.Error;
 
         bool changed = p.Chapters.Any(c => c.Status == ChapterStatus.Changed);

@@ -141,6 +141,16 @@ public sealed partial class ReviewViewModel : ObservableObject
     /// <summary>"Someone else…": choose any speaker from the searchable list.</summary>
     public List<Bilgames.App.Controls.PickerItem> AllSpeakers() => ContextHelpers.SpeakerItems(_cast, _current?.Line.SpeakerId);
 
+    /// <summary>"Someone else…" → a name that isn't in the cast yet: add them and select them.</summary>
+    public async Task AddAndPickAsync(string name)
+    {
+        if (_book.BookId is not { } id) return;
+        var member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name));
+        _cast = AppServices.Store.LoadCast(id);
+        PickOther(member.Id);
+        Status = $"Added {member.Name} (voice {Bilgames.Core.Tts.VoiceCatalog.Name(member.VoiceId)}). Confirm to give them this line.";
+    }
+
     public void PickOther(string speakerId)
     {
         var existing = Options.FirstOrDefault(o => o.SpeakerId == speakerId);

@@ -184,6 +184,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _deviceNow = "";
     [ObservableProperty] private string _deviceDetail = "";
     [ObservableProperty] private bool _gpuNeedsModel;
+    [ObservableProperty] private GpuMemoryReport? _gpuMemory;
 
     public void RefreshDevice()
     {
@@ -195,6 +196,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         DeviceDetail = GpuNeedsModel
             ? $"GPU processing uses the {KokoroModels.Gpu.Label} model ({Ui.Size(KokoroModels.Gpu.Size)})."
             : engine.DeviceDetail;
+        GpuMemory = PreferGpu ? GpuMemoryReport.From(engine) : null;
+        if (GpuMemory is not null) DeviceDetail = ""; // the memory panel explains it
     }
 
     partial void OnPreferGpuChanged(bool value)

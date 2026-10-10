@@ -206,6 +206,14 @@ public sealed partial class MainWindow : Window
                 Vm.Player.Forward();
                 e.Handled = true;
                 break;
+            case VirtualKey.B when Vm.Player.HasAudio:
+                Vm.Player.AddBookmark();
+                e.Handled = true;
+                break;
+            case VirtualKey.H when Vm.Player.HasAudio:
+                Vm.Player.HighlightCurrent();
+                e.Handled = true;
+                break;
             case (VirtualKey)219: // [
                 Vm.Player.SpeedStep(-1);
                 e.Handled = true;

@@ -13,7 +13,7 @@ one-time voice model download. Product spec: [ReadMe.html](ReadMe.html); design 
 | `src/Bilgames.Tts.Kokoro` | Kokoro-82M text-to-speech on ONNX Runtime (via KokoroSharp), plus the model downloader. |
 | `src/Bilgames.App` | WinUI 3 app: adaptive compact / medium / expanded layout, player, settings, updates. |
 | `tests/Bilgames.Core.Tests` | Unit tests (archive safety, attribution rules, planner, M4B chapters). |
-| `tools/Bilgames.Inspect` | Developer CLI: `dotnet run --project tools/Bilgames.Inspect -- book.epub [structure\|text N\|analyze N]`. |
+| `tools/Bilgames.Inspect` | Developer CLI: `dotnet run --project tools/Bilgames.Inspect -- book.epub [structure\|text N\|analyze N]`; also `-- x gpu` (apps using GPU memory) and `-- x phonemes "text"` (what the speech front end hears). |
 | `build/release.ps1` | Builds and packages the one-click installer. |
 
 ## Build and run
@@ -35,6 +35,26 @@ generation never stops. DirectML can't run Kokoro's depthwise ConvTranspose laye
 the model is rewritten on first use (`ModelPatcher`: zero-insertion upsample + grouped Conv,
 numerically equivalent) and uses full precision (half precision overflows on DirectML).
 
+When the GPU is preferred but too full, the Generate tab and Settings › Processing list the apps
+holding its video memory (largest first), read from the same Windows performance counters Task
+Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
+
+### Speakers
+
+The Cast tab can **add** a character the analysis missed (they get an unused voice and colour) and
+**merge** names that are the same person. Merged names are kept as aliases and added speakers are
+kept as user-added, so finding speakers again re-applies both. Typing a new name in Review's
+"Someone else…" or a line's "Reassign…" picker adds that speaker on the spot.
+
+### Bookmarks and highlights
+
+In the player, **B** bookmarks the moment being heard and **H** highlights the line being read.
+Selecting text in the transcript offers four highlight colours, a note, and copy. Right-clicking a
+line offers bookmark, highlight, play from here, and edit or remove for an existing highlight. They
+are stored in `books/{id}/annotations.json` and survive deleting the audio. The bookmark button in
+the player header lists them, plays from any of them, and exports them as Markdown, plain text or
+CSV (`AnnotationExport`).
+
 ### Listening while generating
 
 Any chapter can be played immediately: the player asks the job to generate that chapter first and
@@ -47,14 +67,15 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.2.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.2.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.3.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.3.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies
 update from the GitHub Releases of `silent-diffusion/Bilgames-Reader`: Settings → *Check for updates*
-(or the opt-in *check when the app starts*). Every network request — update checks, update downloads,
-voice model downloads — asks for confirmation first, and nothing from the user's books is ever sent.
+(or the opt-in *check when the app starts*, off by default). The app only goes online when the user
+clicks something that needs it (checking for updates, installing one, downloading a voice model), and
+nothing from the user's books is ever sent.
 
 Bump `<Version>` in `Directory.Build.props` along with the release so the About/version line matches.
 

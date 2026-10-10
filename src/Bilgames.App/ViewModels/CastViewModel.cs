@@ -34,14 +34,21 @@ public sealed partial class CastMemberViewModel : ObservableObject
     public string VoiceButtonName => $"Change voice for {Name}, currently {VoiceName}";
     public string PreviewName => $"Preview {Name}";
     public string LinesButtonName => $"{Name}: show and reassign lines";
+    public string MoreName => $"More options for {Name}";
+    public int LineCount { get; private set; }
 
     public void Update(CastMember m)
     {
         VoiceId = m.VoiceId;
         VoiceName = VoiceCatalog.Name(m.VoiceId);
+        LineCount = m.LineCount;
         if (m.IsNarrator)
         {
             LinesLabel = "All non-dialogue text";
+        }
+        else if (m.LineCount == 0)
+        {
+            LinesLabel = "No lines yet";
         }
         else
         {
@@ -85,7 +92,10 @@ public sealed partial class CastViewModel : ObservableObject
         if (b is null) return;
         IsAnalyzed = b.Analysis == AnalysisState.Done;
         var cast = AppServices.Store.LoadCast(b.Id);
-        var shown = cast.Members.Where(m => m.IsNarrator || m.LineCount > 0).ToList();
+        Sheet = cast;
+        // Narrator first, then speakers just added (no lines yet) so they are easy to find, then everyone else.
+        var shown = cast.Members.Where(m => m.IsNarrator || m.LineCount > 0 || m.UserAdded)
+            .OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.UserAdded && m.LineCount == 0).ToList();
         int hidden = cast.Members.Count - shown.Count;
         HiddenLabel = hidden > 0 ? $"{hidden} more {(hidden == 1 ? "name appears" : "names appear")} only as possible speakers in Review." : "";
 
@@ -138,6 +148,49 @@ public sealed partial class CastViewModel : ObservableObject
         if (_book.BookId is not { } id) return;
         foreach (var s in _bannerGroup) AppServices.Books.KeepApart(id, s);
         Refresh();
+    }
+
+    /// <summary>The cast as last loaded (for the merge dialog).</summary>
+    public CastSheet Sheet { get; private set; } = new();
+
+    [ObservableProperty] private string _castStatus = "";
+
+    /// <summary>Adds a speaker. Returns the new (or existing, same-named) member's id.</summary>
+    public async Task<string?> AddSpeakerAsync(string name, Gender gender)
+    {
+        if (_book.BookId is not { } id) return null;
+        var member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name, gender));
+        CastStatus = $"Added {member.Name} with the voice {VoiceCatalog.Name(member.VoiceId)}.";
+        _book.Changed();
+        return member.Id;
+    }
+
+    public async Task MergeAsync(IReadOnlyCollection<string> fromIds, string intoId)
+    {
+        if (_book.BookId is not { } id) return;
+        var names = fromIds.Select(f => Sheet.Find(f)?.Name).Where(n => n is not null).ToList();
+        var into = Sheet.Find(intoId)?.Name ?? "";
+        await Task.Run(() => AppServices.Books.MergeMany(id, fromIds, intoId));
+        CastStatus = $"Merged {string.Join(", ", names)} into {into}.";
+        if (Detail.IsOpen && fromIds.Contains(Detail.SpeakerId)) Detail.CloseCommand.Execute(null);
+        _book.Changed();
+    }
+
+    /// <summary>Removes a speaker; their lines go back to the narrator.</summary>
+    public async Task RemoveAsync(CastMemberViewModel member)
+    {
+        if (_book.BookId is not { } id || member.IsNarrator) return;
+        if (member.LineCount > 0)
+        {
+            var go = await Dialogs.ConfirmAsync($"Remove {member.Name}?",
+                $"Their {member.LineCount:N0} {(member.LineCount == 1 ? "line goes" : "lines go")} back to the narrator. To give the lines to someone else instead, use Merge.",
+                "Remove", destructive: true);
+            if (!go) return;
+        }
+        await Task.Run(() => AppServices.Books.Merge(id, member.Id, CastMember.NarratorId));
+        CastStatus = $"Removed {member.Name}.";
+        if (Detail.IsOpen && Detail.SpeakerId == member.Id) Detail.CloseCommand.Execute(null);
+        _book.Changed();
     }
 
     [RelayCommand] private void CheckThem() => _book.Tab = BookTab.Review;
@@ -294,6 +347,15 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
     }
 
     public List<Bilgames.App.Controls.PickerItem> Speakers() => ContextHelpers.SpeakerItems(_cast, SpeakerId);
+
+    /// <summary>Reassign → a name that isn't in the cast yet: add them, then give them the line.</summary>
+    public async Task ReassignToNewAsync(SpeakerLineItem item, string name)
+    {
+        if (_book.BookId is not { } id) return;
+        var member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name));
+        _cast = AppServices.Store.LoadCast(id);
+        await ReassignAsync(item, member.Id);
+    }
 
     public async Task ReassignAsync(SpeakerLineItem item, string speakerId)
     {

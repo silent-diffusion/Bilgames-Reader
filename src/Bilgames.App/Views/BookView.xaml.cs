@@ -80,7 +80,8 @@ public sealed partial class BookView : UserControl
     /// <summary>Review: "Someone else…" — any speaker in the book, searchable.</summary>
     private void SomeoneElse_Click(object sender, RoutedEventArgs e)
     {
-        SearchPicker.Show((FrameworkElement)sender, Vm.Review.AllSpeakers(), "Search speakers", p => Vm.Review.PickOther(p.Id));
+        SearchPicker.Show((FrameworkElement)sender, Vm.Review.AllSpeakers(), "Search, or type a new name", p => Vm.Review.PickOther(p.Id),
+            name => _ = Vm.Review.AddAndPickAsync(name));
     }
 
     /// <summary>Cast: tap a speaker to see (and reassign) all of their lines.</summary>
@@ -92,8 +93,42 @@ public sealed partial class BookView : UserControl
     private void Reassign_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not SpeakerLineItem item) return;
-        SearchPicker.Show((FrameworkElement)sender, Vm.Cast.Detail.Speakers(), "Who says this line?",
-            async p => await Vm.Cast.Detail.ReassignAsync(item, p.Id));
+        SearchPicker.Show((FrameworkElement)sender, Vm.Cast.Detail.Speakers(), "Who says this line? Search or type a new name",
+            async p => await Vm.Cast.Detail.ReassignAsync(item, p.Id),
+            name => _ = Vm.Cast.Detail.ReassignToNewAsync(item, name));
+    }
+
+    private async void AddSpeaker_Click(object sender, RoutedEventArgs e)
+    {
+        if (await SpeakerDialogs.AskNewSpeakerAsync() is { } s) await Vm.Cast.AddSpeakerAsync(s.Name, s.Gender);
+    }
+
+    private async void MergeSpeakers_Click(object sender, RoutedEventArgs e) => await MergeFrom(null);
+
+    private async void DetailMerge_Click(object sender, RoutedEventArgs e) => await MergeFrom(Vm.Cast.Detail.SpeakerId);
+
+    private async Task MergeFrom(string? speakerId)
+    {
+        Vm.Cast.Refresh();
+        if (await SpeakerDialogs.AskMergeAsync(Vm.Cast.Sheet, speakerId) is { } m) await Vm.Cast.MergeAsync(m.From, m.Into);
+    }
+
+    /// <summary>A speaker's "⋯" menu: show lines, merge, remove.</summary>
+    private void MemberMore_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not CastMemberViewModel m) return;
+        var menu = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedRight };
+        var lines = new MenuFlyoutItem { Text = "Show lines", IsEnabled = m.LineCount > 0 };
+        lines.Click += async (_, _) => await Vm.Cast.Detail.OpenAsync(m);
+        var merge = new MenuFlyoutItem { Text = "Merge with…" };
+        merge.Click += async (_, _) => await MergeFrom(m.Id);
+        var remove = new MenuFlyoutItem { Text = m.LineCount > 0 ? "Remove (lines go to the narrator)" : "Remove" };
+        remove.Click += async (_, _) => await Vm.Cast.RemoveAsync(m);
+        menu.Items.Add(lines);
+        menu.Items.Add(merge);
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(remove);
+        menu.ShowAt((FrameworkElement)sender);
     }
 
     /// <summary>"Preview extracted text": exactly what will be read, chapter by chapter.</summary>

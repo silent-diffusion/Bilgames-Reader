@@ -41,7 +41,7 @@ public static class Dialogs
         return r == ContentDialogResult.Primary ? 1 : r == ContentDialogResult.Secondary ? 2 : 0;
     }
 
-    public static async Task<ContentDialogResult> ShowContentAsync(string title, UIElement content, string primary, string close = "Close")
+    public static async Task<ContentDialogResult> ShowContentAsync(string title, UIElement content, string primary, string close = "Close", Action<ContentDialog>? setup = null)
     {
         if (Root is null || _open) return ContentDialogResult.None;
         var dialog = new ContentDialog
@@ -54,7 +54,34 @@ public static class Dialogs
             RequestedTheme = ElementTheme.Dark,
             Background = (Brush)Application.Current.Resources["SurfaceBrush"],
         };
+        dialog.DefaultButton = primary.Length > 0 ? ContentDialogButton.Primary : ContentDialogButton.Close;
+        setup?.Invoke(dialog);
         return await Show(dialog);
+    }
+
+    /// <summary>Asks for a line (or a few lines) of text. Returns null when cancelled.</summary>
+    public static async Task<string?> PromptAsync(string title, string? context, string initial, string placeholder, string primary, bool multiline = false)
+    {
+        var box = new TextBox
+        {
+            Text = initial,
+            PlaceholderText = placeholder,
+            AcceptsReturn = multiline,
+            TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            MinHeight = multiline ? 96 : 0,
+            MaxLength = 2000,
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, placeholder);
+        var panel = new StackPanel { Spacing = 12, Width = 420 };
+        if (!string.IsNullOrEmpty(context))
+            panel.Children.Add(new TextBlock
+            {
+                Text = context, TextWrapping = TextWrapping.Wrap, MaxLines = 4, TextTrimming = TextTrimming.WordEllipsis, FontSize = 14, LineHeight = 21,
+                FontFamily = (FontFamily)Application.Current.Resources["BookFont"], Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"],
+            });
+        panel.Children.Add(box);
+        var result = await ShowContentAsync(title, panel, primary, "Cancel", d => d.Opened += (_, _) => { box.Focus(FocusState.Programmatic); box.SelectAll(); });
+        return result == ContentDialogResult.Primary ? box.Text.Trim() : null;
     }
 
     private static ContentDialog Build(string title, string body) => new()

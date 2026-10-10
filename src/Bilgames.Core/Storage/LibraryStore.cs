@@ -25,6 +25,7 @@ public enum DeleteMode
 /// books/{id}/text/{n}.json     ChapterText, one per chapter
 /// books/{id}/analysis/{n}.json ChapterAnalysis
 /// books/{id}/cast.json         CastSheet
+/// books/{id}/annotations.json  bookmarks and highlights
 /// books/{id}/segments/{h}.wav  synthesized segment cache (content-addressed)
 /// books/{id}/audio/{n}.m4a     assembled chapter audio + {n}.json timing index
 /// </code>
@@ -152,6 +153,14 @@ public sealed class LibraryStore
             TryDeleteDir(Path.Combine(dir, "audio"));
             TryDeleteDir(Path.Combine(dir, "segments"));
         }
+    }
+
+    /// <summary>Bookmarks and highlights. Kept when only the audio is deleted.</summary>
+    public AnnotationSet LoadAnnotations(string id) => Read<AnnotationSet>(Path.Combine(BookDir(id), "annotations.json")) ?? new AnnotationSet();
+
+    public void SaveAnnotations(string id, AnnotationSet set)
+    {
+        lock (LockFor(id)) Write(Path.Combine(BookDir(id), "annotations.json"), set);
     }
 
     public void ClearSegmentCache(string id)
