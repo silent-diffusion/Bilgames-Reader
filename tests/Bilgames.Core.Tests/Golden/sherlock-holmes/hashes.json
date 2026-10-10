@@ -1,6 +1,19 @@
 {
   "model": "kokoro-v1-fp16",
   "chapters": [
-    {"chapter":12,"planHash":"1193d48c777379cb2b7f","segments":472}
+    {"chapter":3,"planHash":"32a80b4dea920191c1ee","segments":226},
+    {"chapter":4,"planHash":"f2d2fd76caea5f5d61cf","segments":181},
+    {"chapter":5,"planHash":"ac7a1125522823879d3e","segments":74},
+    {"chapter":6,"planHash":"08a95f8d5cd9f581c7b9","segments":442},
+    {"chapter":7,"planHash":"0ceac988521d1e042b57","segments":327},
+    {"chapter":8,"planHash":"a50122ae16a193376d39","segments":456},
+    {"chapter":9,"planHash":"65aac96d10aee4f005eb","segments":357},
+    {"chapter":10,"planHash":"75e95f60943577df697a","segments":445},
+    {"chapter":11,"planHash":"1ea79c92b71efd56d4dd","segments":415},
+    {"chapter":12,"planHash":"5c6dcf9b8208d107bd2c","segments":485},
+    {"chapter":13,"planHash":"9514930dea229ecb7bf9","segments":358},
+    {"chapter":14,"planHash":"31645582679f26d25a6b","segments":429},
+    {"chapter":15,"planHash":"9f6b76109df547a6086e","segments":422},
+    {"chapter":16,"planHash":"494c3655a59109c02b1b","segments":426}
   ]
 }

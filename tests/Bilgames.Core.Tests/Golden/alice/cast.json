@@ -1,20 +1,20 @@
 {
   "members": [
-    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":0},
-    {"id":"ch10","name":"Alice","gender":"Female","voice":"af_bella","lines":805},
-    {"id":"ch19","name":"Frog-Footman","gender":"Unknown","voice":"am_fenrir","lines":85},
-    {"id":"ch13","name":"Five","gender":"Unknown","voice":"bf_emma","lines":72},
-    {"id":"ch15","name":"Mouse","gender":"Unknown","voice":"am_michael","lines":59},
-    {"id":"ch14","name":"Rabbit","gender":"Female","voice":"af_nicole","lines":29},
-    {"id":"ch11","name":"Gryphon","gender":"Male","voice":"am_puck","lines":10},
-    {"id":"ch2","name":"Mock Turtle","gender":"Male","voice":"bm_george","lines":7},
-    {"id":"ch12","name":"Hatter","gender":"Male","voice":"bm_fable","lines":4},
-    {"id":"ch16","name":"Dodo","gender":"Unknown","voice":"af_aoede","lines":2},
-    {"id":"ch17","name":"Footman","gender":"Male","voice":"bm_lewis","lines":2},
-    {"id":"ch9","name":"White Rabbit","gender":"Unknown","voice":"bm_daniel","lines":1},
-    {"id":"ch18","name":"Father William","gender":"Male","voice":"am_echo","lines":1},
-    {"id":"ch20","name":"Cat","gender":"Unknown","voice":"af_kore","lines":1},
-    {"id":"ch21","name":"Dormouse","gender":"Unknown","voice":"am_eric","lines":1},
-    {"id":"ch22","name":"Seven","gender":"Unknown","voice":"af_sarah","lines":1}
+    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":19},
+    {"id":"ch4","name":"Alice","gender":"Female","voice":"af_bella","lines":447},
+    {"id":"ch6","name":"Hatter","gender":"Male","voice":"am_fenrir","lines":76},
+    {"id":"ch0","name":"Mock Turtle","gender":"Male","voice":"am_michael","lines":45},
+    {"id":"ch5","name":"Gryphon","gender":"Male","voice":"am_puck","lines":45},
+    {"id":"ch12","name":"Cat","gender":"Unknown","voice":"bm_george","lines":27},
+    {"id":"ch3","name":"Rabbit","gender":"Female","voice":"bf_emma","lines":22},
+    {"id":"ch13","name":"Dormouse","gender":"Unknown","voice":"af_nicole","lines":19},
+    {"id":"ch8","name":"Mouse","gender":"Unknown","voice":"bm_fable","lines":18},
+    {"id":"ch10","name":"Footman","gender":"Male","voice":"bm_lewis","lines":14},
+    {"id":"ch1","name":"The Cook","gender":"Female","voice":"af_aoede","lines":7},
+    {"id":"ch7","name":"Five","gender":"Unknown","voice":"af_kore","lines":7},
+    {"id":"ch2","name":"The Soldiers","gender":"Unknown","voice":"bm_daniel","lines":5},
+    {"id":"ch9","name":"Dodo","gender":"Unknown","voice":"af_sarah","lines":4},
+    {"id":"ch11","name":"Frog-Footman","gender":"Unknown","voice":"am_echo","lines":2},
+    {"id":"ch14","name":"Seven","gender":"Unknown","voice":"bf_isabella","lines":1}
   ]
 }

@@ -3,13 +3,15 @@
   "author": "Charles Dickens",
   "language": "en",
   "chapters": [
-    {"index":0,"kind":"FrontMatter","title":"The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Chris…","words":266,"blocks":26,"notes":0,"analyzed":false},
-    {"index":1,"kind":"Preface","title":"Preface","words":58,"blocks":6,"notes":0,"analyzed":false},
-    {"index":2,"kind":"FrontMatter","title":"Contents","words":77,"blocks":22,"notes":0,"analyzed":false},
-    {"index":3,"kind":"Body","title":"Stave One","words":6418,"blocks":175,"notes":0,"analyzed":true},
-    {"index":4,"kind":"Body","title":"Stave Two","words":6160,"blocks":98,"notes":0,"analyzed":true},
-    {"index":5,"kind":"Body","title":"Stave Three","words":8208,"blocks":14,"notes":0,"analyzed":true},
-    {"index":6,"kind":"Body","title":"Stave Four","words":5360,"blocks":171,"notes":0,"analyzed":true},
-    {"index":7,"kind":"Body","title":"Stave Five","words":5212,"blocks":124,"notes":0,"analyzed":true}
+    {"index":0,"kind":"FrontMatter","title":"The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Chris…","words":161,"blocks":10,"notes":0,"analyzed":false},
+    {"index":1,"kind":"FrontMatter","title":"There are several editions of this ebook in the Project Gutenberg collection. Various c…","words":105,"blocks":16,"notes":0,"analyzed":false},
+    {"index":2,"kind":"Preface","title":"Preface","words":58,"blocks":6,"notes":0,"analyzed":false},
+    {"index":3,"kind":"FrontMatter","title":"Contents","words":77,"blocks":22,"notes":0,"analyzed":false},
+    {"index":4,"kind":"Body","title":"Stave One","words":6418,"blocks":177,"notes":0,"analyzed":true},
+    {"index":5,"kind":"Body","title":"Stave Two","words":6160,"blocks":156,"notes":0,"analyzed":true},
+    {"index":6,"kind":"Body","title":"Stave Three","words":8208,"blocks":153,"notes":0,"analyzed":true},
+    {"index":7,"kind":"Body","title":"Stave Four","words":5360,"blocks":171,"notes":0,"analyzed":true},
+    {"index":8,"kind":"Body","title":"Stave Five","words":2298,"blocks":75,"notes":0,"analyzed":true},
+    {"index":9,"kind":"BackMatter","title":"Project Gutenberg License","words":2914,"blocks":51,"notes":0,"analyzed":false}
   ]
 }

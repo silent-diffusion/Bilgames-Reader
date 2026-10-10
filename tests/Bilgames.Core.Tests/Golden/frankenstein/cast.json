@@ -1,14 +1,18 @@
 {
   "members": [
-    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":219},
-    {"id":"ch11","name":"Henry","gender":"Male","voice":"am_fenrir","lines":28},
-    {"id":"ch9","name":"The Master","gender":"Unknown","voice":"am_michael","lines":17},
-    {"id":"ch6","name":"Elizabeth","gender":"Female","voice":"af_bella","lines":4},
-    {"id":"ch2","name":"The Stranger","gender":"Unknown","voice":"bf_emma","lines":2},
-    {"id":"ch7","name":"M","gender":"Unknown","voice":"am_puck","lines":2},
-    {"id":"ch8","name":"Ernest","gender":"Male","voice":"bm_george","lines":2},
-    {"id":"ch10","name":"Clerval","gender":"Male","voice":"bm_fable","lines":1},
-    {"id":"ch12","name":"Mr. Kirwin","gender":"Male","voice":"bm_lewis","lines":1},
-    {"id":"ch4","name":"The Fiend","gender":"Male","voice":"bm_daniel","lines":0}
+    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":70},
+    {"id":"ch11","name":"Clerval","gender":"Male","voice":"am_fenrir","lines":31},
+    {"id":"ch8","name":"Elizabeth","gender":"Female","voice":"af_bella","lines":23},
+    {"id":"ch3","name":"The Fiend","gender":"Male","voice":"am_michael","lines":21},
+    {"id":"ch0","name":"The Unhappy Victim","gender":"Unknown","voice":"am_puck","lines":5},
+    {"id":"ch4","name":"The Man","gender":"Male","voice":"bm_george","lines":5},
+    {"id":"ch6","name":"M. Waldman","gender":"Male","voice":"bm_fable","lines":5},
+    {"id":"ch9","name":"Ernest","gender":"Male","voice":"bm_lewis","lines":4},
+    {"id":"ch10","name":"The Master","gender":"Unknown","voice":"bf_emma","lines":4},
+    {"id":"ch12","name":"Henry","gender":"Male","voice":"bm_daniel","lines":4},
+    {"id":"ch2","name":"The Stranger","gender":"Unknown","voice":"am_echo","lines":3},
+    {"id":"ch7","name":"Mr. Kirwin","gender":"Male","voice":"am_eric","lines":3},
+    {"id":"ch1","name":"The Old Woman","gender":"Female","voice":"af_nicole","lines":2},
+    {"id":"ch5","name":"M. Krempe","gender":"Male","voice":"am_liam","lines":2}
   ]
 }
