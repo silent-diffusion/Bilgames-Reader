@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Player</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F0A848}a:hover{color:#F7C47E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px">
+    <a href="Main.dc.html" aria-label="Back to library" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 13px; font-weight: 700; color: #9AA3AF">Chapter 3 of 61</span>
+    <button type="button" aria-label="Chapters" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex: 1; padding: 8px 24px 0; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
+    <div style="display: flex; gap: 16px; align-items: center">
+      <div style="width: 84px; height: 120px; flex-shrink: 0; border-radius: 6px; background: #2B4A5E; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 8px; box-sizing: border-box">
+        <div style="font-family: Literata, Georgia, serif; font-size: 13px; line-height: 1.15; color: #F3E9D7; font-weight: 600">Pride and Prejudice</div>
+        <div style="font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #C6D6E0">Austen</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 22px; font-weight: 600; line-height: 1.2">Pride and Prejudice</h1>
+        <div style="font-size: 14px; color: #9AA3AF">Chapter 3</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #171B22">
+      <span style="width: 32px; height: 32px; border-radius: 16px; background: #9BD39A; color: #10141A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0">EB</span>
+      <div style="flex: 1; display: flex; flex-direction: column">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA3AF">Now speaking</span>
+        <span style="font-size: 14px; font-weight: 700">Elizabeth Bennet · voice Mira</span>
+      </div>
+      <button type="button" aria-label="Wrong speaker? Fix it" style="min-height: 36px; padding: 0 10px; border: 1px solid #2A303A; border-radius: 9px; background: transparent; color: #C9CED6; font: 700 12px Manrope, sans-serif">Fix</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; font-family: Literata, Georgia, serif; font-size: 17px; line-height: 1.6">
+      <p style="margin: 0; color: #6B7482">Mr. Darcy walked off; and Elizabeth remained with no very cordial feelings towards him.</p>
+      <p style="margin: 0; color: #ECEEF1">She told the story, however, with great spirit among her friends; for she had a lively, playful disposition, which delighted in anything ridiculous.</p>
+      <p style="margin: 0; color: #6B7482">The evening altogether passed off pleasantly to the whole family.</p>
+    </div>
+  </div>
+
+  <div style="padding: 0 24px 30px; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="position: relative; height: 6px; border-radius: 3px; background: #2A303A">
+        <div style="width: 36%; height: 100%; border-radius: 3px; background: {{accent}}"></div>
+        <div style="position: absolute; left: 36%; top: -5px; width: 16px; height: 16px; margin-left: -8px; border-radius: 8px; background: #ECEEF1"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF; font-variant-numeric: tabular-nums">
+        <span>04:12</span>
+        <span>−07:36</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <button type="button" aria-label="Back 15 seconds" style="width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1; font: 700 10px Manrope, sans-serif">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+        15
+      </button>
+      <button type="button" onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="width: 76px; height: 76px; border-radius: 38px; border: 0; background: {{accent}}; color: #1A1205; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+        </sc-if>
+        <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+        </sc-if>
+      </button>
+      <button type="button" aria-label="Forward 30 seconds" style="width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1; font: 700 10px Manrope, sans-serif">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+        30
+      </button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <button type="button" onClick="{{cycleSpeed}}" style="min-height: 48px; border-radius: 12px; border: 0; background: #171B22; color: #ECEEF1; font: 800 14px Manrope, sans-serif; cursor: pointer">{{speed}}</button>
+      <button type="button" style="min-height: 48px; border-radius: 12px; border: 0; background: #171B22; color: #ECEEF1; font: 700 13px Manrope, sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg>
+        Sleep
+      </button>
+      <button type="button" style="min-height: 48px; border-radius: 12px; border: 0; background: #171B22; color: #ECEEF1; font: 700 13px Manrope, sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>
+        Export
+      </button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { playing: true, speedIdx: 1 };
+  }
+  renderVals() {
+    const speeds = ['0.8×', '1.0×', '1.25×', '1.5×', '2.0×'];
+    const playing = this.state.playing;
+    return {
+      accent: this.props.accent ?? '#F0A848',
+      playing,
+      paused: !playing,
+      playLabel: playing ? 'Pause' : 'Play',
+      speed: speeds[this.state.speedIdx],
+      togglePlay: () => this.setState({ playing: !playing }),
+      cycleSpeed: () => this.setState({ speedIdx: (this.state.speedIdx + 1) % speeds.length })
+    };
+  }
+}
+</script>
+</body>
+</html>

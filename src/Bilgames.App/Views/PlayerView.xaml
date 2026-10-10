@@ -1,0 +1,167 @@
+<UserControl
+    x:Class="Bilgames.App.Views.PlayerView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:Bilgames.App.Controls"
+    xmlns:vm="using:Bilgames.App.ViewModels"
+    AutomationProperties.Name="Now playing">
+
+    <UserControl.Resources>
+        <!-- Scrubber: 6 px track, amber fill, light thumb. -->
+        <SolidColorBrush x:Key="SliderTrackFill" Color="#2A303A" />
+        <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#2A303A" />
+        <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#2A303A" />
+        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#F0A848" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#F7C47E" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#F0A848" />
+        <SolidColorBrush x:Key="SliderThumbBackground" Color="#ECEEF1" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SliderInnerThumbBackground" Color="#ECEEF1" />
+        <x:Double x:Key="SliderTrackThemeHeight">6</x:Double>
+    </UserControl.Resources>
+
+    <Border x:Name="Frame" BorderBrush="{StaticResource LineBrush}" BorderThickness="1,0,0,0">
+        <Grid x:Name="Body" Padding="28,28,28,24" RowSpacing="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid MinHeight="44">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="44" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="CollapseButton" Style="{StaticResource IconButton}" Command="{x:Bind Vm.CollapseCommand}" AutomationProperties.Name="Close player" ToolTipService.ToolTip="Close player">
+                    <c:StrokeIcon Data="M6 9l6 6 6-6" StrokeWidth="2.2" />
+                </Button>
+                <TextBlock Grid.Column="1" Text="{x:Bind Vm.HeaderLabel, Mode=OneWay}" Style="{StaticResource EyebrowText}" FontWeight="ExtraBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="2" Style="{StaticResource IconButton}" AutomationProperties.Name="Chapters" ToolTipService.ToolTip="Chapters" Click="Chapters_Click">
+                    <c:StrokeIcon Data="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" StrokeWidth="2" Width="20" Height="20" />
+                </Button>
+            </Grid>
+
+            <!-- Book -->
+            <Grid Grid.Row="1" ColumnSpacing="14" Visibility="{x:Bind c:Ui.Vis(Vm.HasBook), Mode=OneWay}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <c:CoverView Width="64" Height="92" Radius="6" TitleSize="10" Title="{x:Bind Vm.Title, Mode=OneWay}" CoverColor="{x:Bind Vm.CoverColor, Mode=OneWay}" ImagePath="{x:Bind Vm.CoverPath, Mode=OneWay}" />
+                <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind Vm.Title, Mode=OneWay}" FontFamily="{StaticResource BookFont}" FontSize="20" FontWeight="SemiBold" LineHeight="24" Style="{StaticResource BaseText}" MaxLines="2" />
+                    <TextBlock Text="{x:Bind Vm.Author, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Now speaking -->
+            <Border Grid.Row="2" Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="12" Padding="12,10" Visibility="{x:Bind c:Ui.Vis(Vm.HasAudio), Mode=OneWay}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <c:Avatar Size="32" Initials="{x:Bind Vm.SpeakerInitials, Mode=OneWay}" Color="{x:Bind Vm.SpeakerColor, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="NOW SPEAKING" FontSize="11" FontWeight="Bold" CharacterSpacing="80" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
+                        <TextBlock Text="{x:Bind Vm.SpeakerLabel, Mode=OneWay}" FontSize="14" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" Content="Fix" Command="{x:Bind Vm.FixCommand}" AutomationProperties.Name="Wrong speaker? Fix it" ToolTipService.ToolTip="Wrong speaker? Fix it" />
+                </Grid>
+            </Border>
+
+            <!-- Live transcript -->
+            <StackPanel x:Name="Transcript" Grid.Row="3" Spacing="12" Visibility="{x:Bind c:Ui.Vis(Vm.HasAudio), Mode=OneWay}" AutomationProperties.LiveSetting="Off">
+                <TextBlock Text="{x:Bind Vm.PrevText, Mode=OneWay}" Style="{StaticResource ReadingText}" Foreground="{StaticResource TextDimBrush}" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{x:Bind Vm.CurrentText, Mode=OneWay}" Style="{StaticResource ReadingText}" />
+                <TextBlock Text="{x:Bind Vm.NextText, Mode=OneWay}" Style="{StaticResource ReadingText}" Foreground="{StaticResource TextDimBrush}" MaxLines="3" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <!-- Nothing to play -->
+            <StackPanel Grid.Row="3" Spacing="12" VerticalAlignment="Center" Visibility="{x:Bind c:Ui.NotVis(Vm.HasAudio), Mode=OneWay}">
+                <TextBlock Text="{x:Bind Vm.EmptyText, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center" MaxWidth="300" />
+                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Center" Content="Open Generate" Command="{x:Bind Vm.OpenGenerateCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.HasBook), Mode=OneWay}" />
+            </StackPanel>
+
+            <!-- Scrubber -->
+            <StackPanel Grid.Row="4" Spacing="2" IsHitTestVisible="{x:Bind Vm.HasAudio, Mode=OneWay}">
+                <Slider x:Name="Scrubber" Minimum="0" Maximum="{x:Bind Vm.Duration, Mode=OneWay}" Value="{x:Bind Vm.Position, Mode=OneWay}" StepFrequency="1"
+                        IsThumbToolTipEnabled="False" AutomationProperties.Name="Playback position" Margin="0,-6,0,-6" />
+                <Grid>
+                    <TextBlock Text="{x:Bind Vm.ElapsedText, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                    <TextBlock Text="{x:Bind Vm.RemainingText, Mode=OneWay}" Style="{StaticResource CaptionText}" HorizontalAlignment="Right" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Transport -->
+            <Grid Grid.Row="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource FlatButton}" Width="56" Height="56" Padding="0" CornerRadius="28" HorizontalAlignment="Left" Command="{x:Bind Vm.BackCommand}" AutomationProperties.Name="Back 15 seconds" ToolTipService.ToolTip="Back 15 seconds (←)">
+                    <StackPanel>
+                        <c:StrokeIcon Data="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" Width="26" Height="26" />
+                        <TextBlock Text="15" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource FlatButton}" Width="72" Height="72" Padding="0" CornerRadius="36" Background="{StaticResource AccentBrush}" Foreground="{StaticResource OnAccentBrush}"
+                        Command="{x:Bind Vm.TogglePlayCommand}" AutomationProperties.Name="{x:Bind Vm.PlayLabel, Mode=OneWay}" ToolTipService.ToolTip="Play / pause (Space)">
+                    <c:StrokeIcon Data="{x:Bind Vm.PlayIcon, Mode=OneWay}" Filled="True" Width="28" Height="28" />
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource FlatButton}" Width="56" Height="56" Padding="0" CornerRadius="28" HorizontalAlignment="Right" Command="{x:Bind Vm.ForwardCommand}" AutomationProperties.Name="Forward 30 seconds" ToolTipService.ToolTip="Forward 30 seconds (→)">
+                    <StackPanel>
+                        <c:StrokeIcon Data="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" Width="26" Height="26" />
+                        <TextBlock Text="30" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Speed / sleep / export -->
+            <Grid Grid.Row="6" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource ChipButton}" FontWeight="ExtraBold" FontSize="14" Content="{x:Bind Vm.SpeedLabel, Mode=OneWay}" Command="{x:Bind Vm.CycleSpeedCommand}"
+                        AutomationProperties.Name="{x:Bind Vm.SpeedName, Mode=OneWay}" ToolTipService.ToolTip="Speed ([ and ])" />
+                <Button Grid.Column="1" Style="{StaticResource ChipButton}" AutomationProperties.Name="Sleep timer">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:StrokeIcon Data="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" Width="16" Height="16" />
+                        <TextBlock Text="{x:Bind Vm.SleepLabel, Mode=OneWay}" FontWeight="Bold" TextWrapping="NoWrap" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="15 minutes" Tag="15" Click="Sleep_Click" />
+                            <MenuFlyoutItem Text="30 minutes" Tag="30" Click="Sleep_Click" />
+                            <MenuFlyoutItem Text="45 minutes" Tag="45" Click="Sleep_Click" />
+                            <MenuFlyoutItem Text="1 hour" Tag="60" Click="Sleep_Click" />
+                            <MenuFlyoutItem Text="End of chapter" Tag="-1" Click="Sleep_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Off" Tag="0" Click="Sleep_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource ChipButton}" Command="{x:Bind Vm.ExportCommand}" IsEnabled="{x:Bind c:Ui.Not(Vm.IsExporting), Mode=OneWay}"
+                        AutomationProperties.Name="Export audiobook" ToolTipService.ToolTip="Export as an M4B audiobook with chapters">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:StrokeIcon Data="M12 3v12M7 10l5 5 5-5M5 21h14" Width="16" Height="16" />
+                        <TextBlock Text="{x:Bind Vm.ExportLabel, Mode=OneWay}" FontWeight="Bold" TextWrapping="NoWrap" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <TextBlock x:Name="KeyHint" Grid.Row="7" Text="Space play/pause · ← → skip · [ ] speed" Style="{StaticResource CaptionText}" FontSize="11" HorizontalAlignment="Center" />
+        </Grid>
+    </Border>
+</UserControl>

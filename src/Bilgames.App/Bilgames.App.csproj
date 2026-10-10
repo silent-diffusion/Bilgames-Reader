@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Bilgames.App</RootNamespace>
+    <AssemblyName>BilgamesReader</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows App SDK components without its ML runtime, so Kokoro's ONNX Runtime is the only one loaded. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.250906003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.250916003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25090401" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="1.8.250906002" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="1.8.250906004" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="1.8.250831001" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bilgames.Core\Bilgames.Core.csproj" />
+    <ProjectReference Include="..\Bilgames.Tts.Kokoro\Bilgames.Tts.Kokoro.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    KokoroSharp only copies its voice files on build, not publish. Ship the English voices (the
+    ones the app offers) explicitly so the installed app can speak.
+  -->
+  <ItemGroup>
+    <KokoroVoice Include="$(NuGetPackageRoot)kokorosharp\0.8.4\content\voices\a?_*.npy;$(NuGetPackageRoot)kokorosharp\0.8.4\content\voices\b?_*.npy" />
+    <Content Include="@(KokoroVoice)" Link="voices\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

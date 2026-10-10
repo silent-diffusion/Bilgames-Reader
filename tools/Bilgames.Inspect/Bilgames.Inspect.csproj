@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bilgames.Core\Bilgames.Core.csproj" />
+    <ProjectReference Include="..\..\src\Bilgames.Tts.Kokoro\Bilgames.Tts.Kokoro.csproj" />
+  </ItemGroup>
+</Project>

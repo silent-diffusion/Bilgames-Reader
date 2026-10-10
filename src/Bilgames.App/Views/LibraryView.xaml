@@ -1,0 +1,176 @@
+<UserControl
+    x:Class="Bilgames.App.Views.LibraryView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:Bilgames.App.Controls"
+    xmlns:vm="using:Bilgames.App.ViewModels"
+    AutomationProperties.Name="Library">
+
+    <UserControl.Resources>
+        <!-- Search field: borderless text box inside the design's own field chrome. -->
+        <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#9AA3AF" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#9AA3AF" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#9AA3AF" />
+
+        <DataTemplate x:Key="RowTemplate" x:DataType="vm:BookItemViewModel">
+            <Button Style="{StaticResource RowButton}" MinHeight="76" Padding="8,10" Click="Book_Click" Tag="{x:Bind}"
+                    BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"
+                    Background="{x:Bind c:Ui.Brush(RowBackground), Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind RowName, Mode=OneWay}">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <c:CoverView Width="44" Height="62" Radius="4" TitleSize="7" Title="{x:Bind Title, Mode=OneWay}" CoverColor="{x:Bind CoverColor, Mode=OneWay}" ImagePath="{x:Bind CoverPath, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource BookTitleText}" />
+                        <TextBlock Style="{StaticResource CaptionText}" TextWrapping="NoWrap">
+                            <Run Text="{x:Bind Author, Mode=OneWay}" /><Run Text=" · " /><Run Text="{x:Bind Detail, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="999" Padding="9,4" Background="{x:Bind c:Ui.Brush(BadgeBg), Mode=OneWay}">
+                        <TextBlock Text="{x:Bind Status, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="{x:Bind c:Ui.Brush(BadgeFg), Mode=OneWay}" Style="{StaticResource BaseText}" TextWrapping="NoWrap" />
+                    </Border>
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CardTemplate" x:DataType="vm:BookItemViewModel">
+            <Button Style="{StaticResource RowButton}" MinHeight="76" Padding="12" CornerRadius="14" Click="Book_Click" Tag="{x:Bind}"
+                    Background="{StaticResource SurfaceBrush}"
+                    AutomationProperties.Name="{x:Bind RowName, Mode=OneWay}">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <c:CoverView Width="44" Height="62" Radius="4" TitleSize="7" Title="{x:Bind Title, Mode=OneWay}" CoverColor="{x:Bind CoverColor, Mode=OneWay}" ImagePath="{x:Bind CoverPath, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource BookTitleText}" />
+                        <TextBlock Style="{StaticResource CaptionText}" TextWrapping="NoWrap">
+                            <Run Text="{x:Bind Author, Mode=OneWay}" /><Run Text=" · " /><Run Text="{x:Bind Detail, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="999" Padding="9,4" Background="{x:Bind c:Ui.Brush(BadgeBg), Mode=OneWay}">
+                        <TextBlock Text="{x:Bind Status, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="{x:Bind c:Ui.Brush(BadgeFg), Mode=OneWay}" Style="{StaticResource BaseText}" TextWrapping="NoWrap" />
+                    </Border>
+                </Grid>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border x:Name="Frame" BorderBrush="{StaticResource LineBrush}" BorderThickness="0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="Body" Spacing="20" Padding="28,28,28,24">
+
+                <Grid x:Name="Header" ColumnSpacing="12" RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Library" Style="{StaticResource PageTitleText}" AutomationProperties.HeadingLevel="Level1" />
+                        <TextBlock Text="{x:Bind Vm.CountLabel, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
+                    </StackPanel>
+                    <StackPanel x:Name="Actions" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Border x:Name="SearchBox" Width="280" MinHeight="44" CornerRadius="12" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" Padding="12,0,8,0">
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <c:StrokeIcon Data="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM16 16l5 5" Width="16" Height="16" StrokeWidth="2" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                <TextBox x:Name="SearchInput" Grid.Column="1" PlaceholderText="Search books and characters" BorderThickness="0" Padding="2,10" FontSize="13" FontWeight="Medium"
+                                         VerticalAlignment="Center" Text="{x:Bind Vm.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search library" />
+                                <Border Grid.Column="2" VerticalAlignment="Center" BorderBrush="{StaticResource LineDashedBrush}" BorderThickness="1" CornerRadius="5" Padding="6,2">
+                                    <TextBlock Text="Ctrl K" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Click="Settings_Click" AutomationProperties.Name="Settings" ToolTipService.ToolTip="Settings">
+                            <c:StrokeIcon Data="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+                        </Button>
+                        <Button Style="{StaticResource AccentPillButton}" AutomationProperties.Name="Import EPUB" Command="{x:Bind Vm.ImportCommand}" IsEnabled="{x:Bind c:Ui.Not(Vm.IsImporting), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:StrokeIcon Data="M12 5v14M5 12h14" Width="16" Height="16" StrokeWidth="2.4" />
+                                <TextBlock Text="Import EPUB" FontWeight="Bold" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Importing -->
+                <StackPanel Spacing="8" Visibility="{x:Bind c:Ui.Vis(Vm.IsImporting), Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Vm.ImportStatus, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
+                    <ProgressBar IsIndeterminate="True" Style="{StaticResource ThinProgress}" AutomationProperties.Name="Importing" />
+                </StackPanel>
+
+                <!-- Empty library -->
+                <Border Style="{StaticResource Card}" Padding="24" Visibility="{x:Bind c:Ui.Vis(Vm.IsEmpty), Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Your library is empty" Style="{StaticResource SectionText}" />
+                        <TextBlock Style="{StaticResource SecondaryText}" FontSize="14"
+                                   Text="Import a DRM-free EPUB and Bilgames Reader turns it into an audiobook with a voice for each character. Reading, analysis and speech all happen on this device." />
+                        <Button Style="{StaticResource AccentButton}" Content="Import EPUB" Command="{x:Bind Vm.ImportCommand}" Margin="0,6,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Continue listening -->
+                <Button x:Name="ContinueCard" Style="{StaticResource RowButton}" Padding="16" CornerRadius="18" Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" Click="Continue_Click"
+                        Visibility="{x:Bind HasContinue(Vm.ContinueItem), Mode=OneWay}" AutomationProperties.Name="Continue listening">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="78" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <c:CoverView Width="78" Height="112" Radius="6" TitleSize="12" ShowAuthor="True" TitleAtTop="True"
+                                     Title="{x:Bind Vm.ContinueItem.Title, Mode=OneWay, FallbackValue=''}" Author="{x:Bind Vm.ContinueItem.Author, Mode=OneWay, FallbackValue=''}"
+                                     CoverColor="{x:Bind Vm.ContinueItem.CoverColor, Mode=OneWay, FallbackValue='#2B4A5E'}" ImagePath="{x:Bind Vm.ContinueItem.CoverPath, Mode=OneWay, FallbackValue={x:Null}}" />
+                        <StackPanel Grid.Column="1" Spacing="6">
+                            <TextBlock Text="CONTINUE LISTENING" Style="{StaticResource EyebrowText}" Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="{x:Bind Vm.ContinueItem.Title, Mode=OneWay, FallbackValue=''}" FontFamily="{StaticResource BookFont}" FontSize="20" FontWeight="SemiBold" LineHeight="24" Style="{StaticResource BaseText}" />
+                            <TextBlock Text="{x:Bind Vm.ContinueDetail, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
+                            <StackPanel Spacing="6" Margin="0,6,0,0" Visibility="{x:Bind c:Ui.VisText(Vm.ContinueItem.GenerationText), Mode=OneWay, FallbackValue=Collapsed}">
+                                <Grid>
+                                    <TextBlock Text="{x:Bind Vm.ContinueItem.GenerationText, Mode=OneWay, FallbackValue=''}" Style="{StaticResource CaptionText}" />
+                                    <TextBlock HorizontalAlignment="Right" FontSize="12" FontWeight="Bold" Style="{StaticResource BaseText}">
+                                        <Run Text="{x:Bind PercentOf(Vm.ContinueItem.GenerationFraction), Mode=OneWay, FallbackValue=''}" />
+                                    </TextBlock>
+                                </Grid>
+                                <ProgressBar Style="{StaticResource ThinProgress}" Maximum="1" Value="{x:Bind Vm.ContinueItem.GenerationFraction, Mode=OneWay, FallbackValue=0}" AutomationProperties.Name="Generation progress" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- All books -->
+                <StackPanel Spacing="8" Visibility="{x:Bind c:Ui.NotVis(Vm.IsEmpty), Mode=OneWay}">
+                    <TextBlock Text="All books" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
+                    <ItemsRepeater x:Name="ListRepeater" ItemsSource="{x:Bind Vm.Visible}" ItemTemplate="{StaticResource RowTemplate}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="0" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                    <ItemsRepeater x:Name="GridRepeater" ItemsSource="{x:Bind Vm.Visible}" ItemTemplate="{StaticResource CardTemplate}" Visibility="Collapsed">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="300" MinItemHeight="86" MinColumnSpacing="10" MinRowSpacing="10" ItemsStretch="Fill" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                    <TextBlock Text="No books or characters match your search." Style="{StaticResource SecondaryText}"
+                               Visibility="{x:Bind NoMatches(Vm.Visible.Count, Vm.SearchText), Mode=OneWay}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

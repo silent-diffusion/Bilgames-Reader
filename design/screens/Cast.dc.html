@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cast sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F0A848}a:hover{color:#F7C47E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px">
+    <a href="Import.dc.html" style="display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 15px; font-weight: 600; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      Structure
+    </a>
+    <span style="font-size: 12px; font-weight: 700; color: #9AA3AF">Step 2 of 3</span>
+  </div>
+
+  <div style="flex: 1; padding: 6px 20px 0; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Cast</h1>
+      <div style="font-size: 13px; color: #9AA3AF">14 speakers found in Pride and Prejudice. Tap a voice to change it.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: #2A2312; border: 1px solid #4A3B17">
+      <div style="display: flex; gap: 10px; align-items: flex-start">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0C27A" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; margin-top: 1px" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><circle cx="16" cy="16" r="3"></circle><path d="M10.5 10.5l3 3"></path></svg>
+        <div style="font-size: 14px; line-height: 1.45; color: #F3E3C3"><strong style="color: #FFF1D6">“Lizzy”</strong> and <strong style="color: #FFF1D6">“Miss Eliza”</strong> look like Elizabeth Bennet.</div>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <button type="button" style="flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: #F0C27A; color: #1A1205; font: 800 14px Manrope, sans-serif">Merge into Elizabeth</button>
+        <button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #4A3B17; border-radius: 10px; background: transparent; color: #F3E3C3; font: 700 14px Manrope, sans-serif">Keep apart</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{cast}}" as="c" hint-placeholder-count="6">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 64px; border-bottom: 1px solid #1F242D">
+          <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 20px; background: {{c.color}}; color: #10141A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px">{{c.initials}}</div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 15px; font-weight: 700">{{c.name}}</span>
+            <span style="font-size: 12px; color: #9AA3AF">{{c.lines}}</span>
+          </div>
+          <button type="button" aria-label="Change voice for {{c.name}}" style="display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 10px; border: 1px solid #2A303A; border-radius: 10px; background: #171B22; color: #ECEEF1; font: 700 13px Manrope, sans-serif">
+            {{c.voice}}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <button type="button" aria-label="Preview {{c.name}}" style="width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: #1F242D; color: #ECEEF1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          </button>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed #3A414D">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 20px; background: #232934; color: #C9CED6; display: flex; align-items: center; justify-content: center; font-weight: 800">?</div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 14px; font-weight: 700">37 lines with an unsure speaker</span>
+        <span style="font-size: 12px; color: #9AA3AF">Read by the narrator until you check them</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 20px 28px; display: flex; gap: 10px; border-top: 1px solid #1F242D">
+    <a href="Review.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 14px; border: 1px solid #3A414D; color: #ECEEF1; font-weight: 700; font-size: 15px; text-decoration: none">Check 37 lines</a>
+    <a href="Generate.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 14px; background: {{accent}}; color: #1A1205; font-weight: 800; font-size: 15px; text-decoration: none">Continue</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#F0A848',
+      cast: [
+        { name: 'Narrator', initials: 'N', lines: 'All non-dialogue text', voice: 'Ada', color: '#C9CED6' },
+        { name: 'Elizabeth Bennet', initials: 'EB', lines: '412 lines · confident', voice: 'Mira', color: '#9BD39A' },
+        { name: 'Mr. Darcy', initials: 'D', lines: '238 lines · confident', voice: 'Rowan', color: '#7FB2F0' },
+        { name: 'Mrs. Bennet', initials: 'MB', lines: '156 lines · confident', voice: 'Lena', color: '#F4A3B5' },
+        { name: 'Jane Bennet', initials: 'JB', lines: '121 lines · mostly sure', voice: 'Iris', color: '#7FD6CF' },
+        { name: 'Mr. Bennet', initials: 'B', lines: '98 lines · mostly sure', voice: 'Hal', color: '#C7A6F2' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

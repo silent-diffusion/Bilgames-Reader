@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Book structure</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F0A848}a:hover{color:#F7C47E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px">
+    <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 15px; font-weight: 600; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      Library
+    </a>
+    <span style="font-size: 12px; font-weight: 700; color: #9AA3AF">Step 1 of 3</span>
+  </div>
+
+  <div style="flex: 1; padding: 6px 20px 0; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+    <div style="display: flex; gap: 14px; align-items: center">
+      <div style="width: 58px; height: 84px; flex-shrink: 0; border-radius: 5px; background: #2B4A5E; display: flex; align-items: flex-end; padding: 6px; box-sizing: border-box; font-family: Literata, Georgia, serif; font-size: 9px; line-height: 1.1; color: #F3E9D7; font-weight: 600">Pride and Prejudice</div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 22px; font-weight: 600; line-height: 1.2">Pride and Prejudice</h1>
+        <div style="font-size: 13px; color: #9AA3AF">Jane Austen · 61 chapters · 122k words</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div style="padding: 10px; border-radius: 12px; background: #171B22; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #9AA3AF">Est. audio</span>
+        <span style="font-size: 16px; font-weight: 800">11h 30m</span>
+      </div>
+      <div style="padding: 10px; border-radius: 12px; background: #171B22; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #9AA3AF">Storage</span>
+        <span style="font-size: 16px; font-weight: 800">640 MB</span>
+      </div>
+      <div style="padding: 10px; border-radius: 12px; background: #171B22; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; color: #9AA3AF">Uploaded</span>
+        <span style="font-size: 16px; font-weight: 800; color: #9BD39A">Nothing</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h2 style="margin: 0 0 6px; font-size: 15px; font-weight: 700">What to read aloud</h2>
+      <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+        <label style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid #1F242D; cursor: pointer">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 15px; font-weight: 600">{{s.name}}</span>
+            <span style="font-size: 12px; color: #9AA3AF">{{s.detail}}</span>
+          </div>
+          <input type="checkbox" checked="{{s.on}}" aria-label="Include {{s.name}}" style="width: 22px; height: 22px; accent-color: {{accent}}; flex-shrink: 0">
+        </label>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 15px; font-weight: 700">Footnotes</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B22">
+        <button type="button" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: #C9CED6; font: 600 13px Manrope, sans-serif">Inline</button>
+        <button type="button" aria-pressed="true" style="min-height: 40px; border: 0; border-radius: 9px; background: #2A303A; color: #ECEEF1; font: 700 13px Manrope, sans-serif">End of chapter</button>
+        <button type="button" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: #C9CED6; font: 600 13px Manrope, sans-serif">Skip</button>
+      </div>
+    </div>
+
+    <button type="button" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; border: 0; background: transparent; color: {{accent}}; font: 700 14px Manrope, sans-serif; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      Preview extracted text
+    </button>
+  </div>
+
+  <div style="padding: 12px 20px 28px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #1F242D">
+    <a href="Cast.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 14px; background: {{accent}}; color: #1A1205; font-weight: 800; font-size: 16px; text-decoration: none">Find speakers</a>
+    <span style="text-align: center; font-size: 12px; color: #9AA3AF">Analysis runs on this device. About 2 minutes.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#F0A848',
+      sections: [
+        { name: 'Title & copyright pages', detail: 'Front matter · 2 pages', on: false },
+        { name: 'Preface', detail: 'Front matter · 1,840 words', on: false },
+        { name: 'Chapters 1–61', detail: 'Main text · reading order from the EPUB spine', on: true },
+        { name: 'Chapter headings', detail: 'Read “Chapter 1” before each chapter', on: true },
+        { name: 'Transcriber’s notes', detail: 'Back matter · 420 words', on: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

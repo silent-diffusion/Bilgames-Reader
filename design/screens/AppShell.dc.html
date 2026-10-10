@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bilgames Reader — adaptive app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div ref="{{rootRef}}" style="width: {{rootW}}; height: {{rootH}}; display: flex; flex-direction: {{rootDir}}; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; overflow: hidden; box-sizing: border-box">
+
+  <nav aria-label="Main" style="order: {{navOrder}}; flex: 0 0 auto; width: {{navW}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: {{navPad}}; background: #0B0E12; border-top: {{navBT}}; border-right: {{navBR}}">
+    <div style="display: {{brandDisplay}}; align-items: center; gap: 10px; padding: 0 6px">
+      <div style="width: 32px; height: 32px; border-radius: 9px; background: {{accent}}; color: #1A1205; display: flex; align-items: center; justify-content: center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"></path></svg>
+      </div>
+      <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em">Bilgames Reader</span>
+    </div>
+
+    <div style="display: flex; flex-direction: {{listDir}}; justify-content: {{listJustify}}; gap: {{listGap}}">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+        <button type="button" onClick="{{n.go}}" aria-current="{{n.current}}" style="display: flex; flex-direction: {{itemDir}}; align-items: center; justify-content: {{itemJustify}}; gap: {{itemGap}}; min-height: 48px; min-width: 64px; padding: {{itemPad}}; border: 0; border-radius: 12px; background: {{n.bg}}; color: {{n.fg}}; font: {{itemFont}} Manrope, sans-serif; cursor: pointer">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0" aria-hidden="true"><path d="{{n.icon}}"></path></svg>
+          {{n.label}}
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display: {{brandDisplay}}; flex-direction: column; gap: 10px; margin-top: auto; padding: 14px; border-radius: 12px; background: #141820">
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #9BD39A">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        On this device · offline
+      </span>
+      <div style="height: 6px; border-radius: 3px; background: #2A303A; overflow: hidden"><div style="width: 34%; height: 100%; background: #7FB2F0"></div></div>
+      <span style="font-size: 12px; color: #9AA3AF">Models 1.2 GB · Audio 3.4 GB</span>
+    </div>
+  </nav>
+
+  <div style="order: 1; flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column">
+    <div style="flex: 1 1 0; min-height: 0; display: flex">
+
+      <section aria-label="Library" style="display: {{libDisplay}}; flex: 1 1 0; min-width: 0; flex-direction: column; gap: 20px; padding: {{panePad}}; box-sizing: border-box; overflow-y: auto; border-right: {{libBR}}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h1 style="margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Library</h1>
+            <span style="font-size: 12px; font-weight: 600; color: #9AA3AF">5 books · nothing leaves this device</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <label style="display: {{searchDisplay}}; align-items: center; gap: 8px; min-height: 44px; width: 280px; padding: 0 12px; border-radius: 12px; background: #171B22; border: 1px solid #2A303A; color: #9AA3AF; box-sizing: border-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM16 16l5 5"></path></svg>
+              <input type="search" placeholder="Search books and characters" aria-label="Search library" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #ECEEF1; font: 500 14px Manrope, sans-serif; outline: none">
+              <span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 5px; border: 1px solid #3A414D">Ctrl K</span>
+            </label>
+            <button type="button" onClick="{{openImport}}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: {{accent}}; color: #1A1205; font: 700 14px Manrope, sans-serif; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.4; stroke-linecap: round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              Import EPUB
+            </button>
+          </div>
+        </div>
+
+        <button type="button" onClick="{{openPlayer}}" style="display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; border-radius: 18px; background: #171B22; border: 1px solid #2A303A; color: #ECEEF1; text-align: left; font-family: Manrope, sans-serif; cursor: pointer">
+          <div style="width: 78px; height: 112px; flex-shrink: 0; border-radius: 6px; background: #2B4A5E; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 8px; box-sizing: border-box">
+            <span style="font-family: Literata, Georgia, serif; font-size: 12px; line-height: 1.15; color: #F3E9D7; font-weight: 600">Pride and Prejudice</span>
+            <span style="font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #C6D6E0">Austen</span>
+          </div>
+          <div style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}}">Continue listening</span>
+            <span style="font-family: Literata, Georgia, serif; font-size: 20px; font-weight: 600; line-height: 1.2">Pride and Prejudice</span>
+            <span style="font-size: 13px; color: #9AA3AF">Chapter 3 · 12 min left</span>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF"><span>Generating chapter 14 of 61</span><span style="color: #ECEEF1; font-weight: 700">23%</span></div>
+              <div style="height: 6px; border-radius: 3px; background: #2A303A; overflow: hidden"><div style="width: 23%; height: 100%; background: {{accent}}"></div></div>
+            </div>
+          </div>
+        </button>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700">All books</h2>
+          <div style="display: grid; grid-template-columns: {{libCols}}; gap: {{libGap}}">
+            <sc-for list="{{books}}" as="b" hint-placeholder-count="4">
+              <button type="button" onClick="{{b.open}}" aria-pressed="{{b.selected}}" style="display: flex; align-items: center; gap: 14px; min-height: 76px; padding: {{rowPad}}; border: 0; border-bottom: {{rowBB}}; border-radius: {{rowRadius}}; background: {{b.bg}}; color: #ECEEF1; text-align: left; font-family: Manrope, sans-serif; cursor: pointer">
+                <span style="width: 44px; height: 62px; flex-shrink: 0; border-radius: 4px; background: {{b.cover}}; display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-family: Literata, Georgia, serif; font-size: 7px; line-height: 1.1; color: #F3E9D7">{{b.title}}</span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                  <span style="font-family: Literata, Georgia, serif; font-size: 16px; font-weight: 600">{{b.title}}</span>
+                  <span style="font-size: 12px; color: #9AA3AF">{{b.author}} · {{b.length}}</span>
+                </span>
+                <span style="font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: {{b.badgeBg}}; color: {{b.badgeFg}}; white-space: nowrap">{{b.status}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Book" style="display: {{bookDisplay}}; flex: 1 1 0; min-width: 0; flex-direction: column; gap: 18px; padding: {{panePad}}; box-sizing: border-box; overflow-y: auto">
+        <button type="button" onClick="{{openLibrary}}" style="display: {{backDisplay}}; align-items: center; gap: 4px; align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: transparent; color: {{accent}}; font: 600 15px Manrope, sans-serif; cursor: pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+          Library
+        </button>
+        <div style="display: flex; gap: 14px; align-items: center">
+          <div style="width: 52px; height: 74px; flex-shrink: 0; border-radius: 5px; background: #2B4A5E; display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-family: Literata, Georgia, serif; font-size: 8px; line-height: 1.1; color: #F3E9D7; font-weight: 600">Pride and Prejudice</div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <h1 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; line-height: 1.2">Pride and Prejudice</h1>
+            <span style="font-size: 13px; color: #9AA3AF">Jane Austen · 61 chapters · 6 voices</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B22; max-width: 560px">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+            <button type="button" onClick="{{t.go}}" aria-pressed="{{t.selected}}" style="min-height: 40px; border: 0; border-radius: 9px; background: {{t.bg}}; color: {{t.fg}}; font: 700 13px Manrope, sans-serif; cursor: pointer">{{t.label}}</button>
+          </sc-for>
+        </div>
+
+        <div style="display: {{dStructure}}; flex-direction: column; gap: 16px; max-width: 760px">
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+              <label style="display: flex; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #1F242D; cursor: pointer">
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 15px; font-weight: 600">{{s.name}}</span>
+                  <span style="font-size: 12px; color: #9AA3AF">{{s.detail}}</span>
+                </span>
+                <input type="checkbox" checked="{{s.on}}" aria-label="Include {{s.name}}" style="width: 22px; height: 22px; accent-color: {{accent}}">
+              </label>
+            </sc-for>
+          </div>
+          <span style="font-size: 14px; font-weight: 700">Footnotes</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B22; max-width: 420px">
+            <button type="button" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: #C9CED6; font: 600 13px Manrope, sans-serif">Inline</button>
+            <button type="button" aria-pressed="true" style="min-height: 40px; border: 0; border-radius: 9px; background: #2A303A; color: #ECEEF1; font: 700 13px Manrope, sans-serif">End of chapter</button>
+            <button type="button" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: #C9CED6; font: 600 13px Manrope, sans-serif">Skip</button>
+          </div>
+          <button type="button" onClick="{{goCast}}" style="align-self: flex-start; min-height: 48px; padding: 0 22px; border: 0; border-radius: 14px; background: {{accent}}; color: #1A1205; font: 800 15px Manrope, sans-serif; cursor: pointer">Find speakers</button>
+        </div>
+
+        <div style="display: {{dCast}}; flex-direction: column; gap: 14px; max-width: 900px">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px; border-radius: 14px; background: #2A2312; border: 1px solid #4A3B17">
+            <span style="flex: 1 1 220px; font-size: 14px; line-height: 1.45; color: #F3E3C3"><strong style="color: #FFF1D6">“Lizzy”</strong> and <strong style="color: #FFF1D6">“Miss Eliza”</strong> look like Elizabeth Bennet.</span>
+            <button type="button" style="min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: #F0C27A; color: #1A1205; font: 800 14px Manrope, sans-serif">Merge</button>
+            <button type="button" style="min-height: 44px; padding: 0 14px; border: 1px solid #4A3B17; border-radius: 10px; background: transparent; color: #F3E3C3; font: 700 14px Manrope, sans-serif">Keep apart</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: 24px">
+            <sc-for list="{{cast}}" as="c" hint-placeholder-count="6">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 64px; border-bottom: 1px solid #1F242D">
+                <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 20px; background: {{c.color}}; color: #10141A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px">{{c.initials}}</span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 15px; font-weight: 700">{{c.name}}</span>
+                  <span style="font-size: 12px; color: #9AA3AF">{{c.lines}}</span>
+                </span>
+                <button type="button" aria-label="Change voice for {{c.name}}" style="min-height: 36px; padding: 0 10px; border: 1px solid #2A303A; border-radius: 10px; background: #171B22; color: #ECEEF1; font: 700 13px Manrope, sans-serif">{{c.voice}} ▾</button>
+                <button type="button" aria-label="Preview {{c.name}}" style="width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: #1F242D; color: #ECEEF1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed #3A414D">
+            <span style="flex: 1 1 220px; font-size: 14px"><strong>37 lines</strong> <span style="color: #9AA3AF">have an unsure speaker and are read by the narrator for now.</span></span>
+            <button type="button" onClick="{{goReview}}" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: {{accent}}; color: #1A1205; font: 800 14px Manrope, sans-serif; cursor: pointer">Check them</button>
+          </div>
+        </div>
+
+        <div style="display: {{dReview}}; flex-direction: column; gap: 14px; max-width: 680px">
+          <span style="font-size: 13px; font-weight: 700; color: #9AA3AF">Chapter 1 · 3 of 37</span>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: {{l.color}}">● {{l.speaker}}</span>
+              <p style="margin: 0; font-family: Literata, Georgia, serif; font-size: 15px; line-height: 1.55; color: #C9CED6">{{l.text}}</p>
+            </div>
+          </sc-for>
+          <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #171B22; border: 1.5px solid {{accent}}">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: {{accent}}">No dialogue tag · who says this?</span>
+            <p style="margin: 0; font-family: Literata, Georgia, serif; font-size: 17px; line-height: 1.5">“You want to tell me, and I have no objection to hearing it.”</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px">
+              <sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+                <button type="button" onClick="{{o.pick}}" aria-pressed="{{o.selected}}" style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; border-radius: 12px; border: 1.5px solid {{o.border}}; background: {{o.bg}}; color: #ECEEF1; font: 600 14px Manrope, sans-serif; text-align: left; cursor: pointer">
+                  <span style="width: 28px; height: 28px; border-radius: 14px; background: {{o.color}}; color: #10141A; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0">{{o.initials}}</span>
+                  <span style="flex: 1">{{o.name}}</span>
+                  <span style="font-size: 12px; color: #9AA3AF">{{o.conf}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px">
+              <button type="button" style="min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid #3A414D; background: transparent; color: #ECEEF1; font: 700 14px Manrope, sans-serif">Skip</button>
+              <button type="button" style="flex: 1 1 180px; min-height: 48px; border-radius: 12px; border: 0; background: {{accent}}; color: #1A1205; font: 800 14px Manrope, sans-serif">Confirm · next line</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: {{dGenerate}}; flex-direction: column; gap: 16px; max-width: 760px">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; background: #171B22">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 34px; font-weight: 800; letter-spacing: -0.03em">23%</span><span style="font-size: 13px; color: #9AA3AF">about 2h 10m left</span></div>
+            <div style="height: 8px; border-radius: 4px; background: #2A303A; overflow: hidden"><div style="width: 23%; height: 100%; background: {{accent}}"></div></div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF"><span>Chapter 14 of 61</span><span>1,284 of 5,610 segments</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B22; max-width: 480px">
+            <sc-for list="{{profiles}}" as="p" hint-placeholder-count="3">
+              <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.selected}}" style="min-height: 52px; border: 0; border-radius: 9px; background: {{p.bg}}; color: {{p.fg}}; font: 700 13px Manrope, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer">{{p.name}}<span style="font-size: 11px; font-weight: 500; color: #9AA3AF">{{p.speed}}</span></button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #2A2312; border: 1px solid #4A3B17; font-size: 13px; line-height: 1.45; color: #F3E3C3"><strong style="color: #FFF1D6">Device is warm.</strong> Slowed down to keep it cool. Plug in for faster progress.</div>
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{chapters}}" as="c" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid #1F242D">
+                <span style="width: 12px; height: 12px; border-radius: 6px; background: {{c.dot}}; flex-shrink: 0"></span>
+                <span style="flex: 1; font-size: 14px; font-weight: 600; color: {{c.fg}}">{{c.name}}</span>
+                <span style="font-size: 12px; color: #9AA3AF">{{c.state}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Now playing" style="display: {{playerDisplay}}; flex: {{playerFlex}}; min-width: 0; flex-direction: column; gap: 18px; padding: {{panePad}}; box-sizing: border-box; overflow: hidden; background: {{playerBg}}; border-left: {{playerBL}}">
+        <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px">
+          <button type="button" onClick="{{openLibrary}}" aria-label="Close player" style="display: {{collapseDisplay}}; width: 44px; height: 44px; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1; cursor: pointer">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #9AA3AF">Now playing · Chapter 3</span>
+          <button type="button" aria-label="Chapters" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+          </button>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: center">
+          <div style="width: 64px; height: 92px; flex-shrink: 0; border-radius: 6px; background: #2B4A5E; display: flex; align-items: flex-end; padding: 7px; box-sizing: border-box; font-family: Literata, Georgia, serif; font-size: 10px; line-height: 1.15; color: #F3E9D7; font-weight: 600">Pride and Prejudice</div>
+          <div style="display: flex; flex-direction: column; gap: 3px">
+            <span style="font-family: Literata, Georgia, serif; font-size: 20px; font-weight: 600; line-height: 1.2">Pride and Prejudice</span>
+            <span style="font-size: 13px; color: #9AA3AF">Jane Austen</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #1F242D">
+          <span style="width: 32px; height: 32px; border-radius: 16px; background: #9BD39A; color: #10141A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0">EB</span>
+          <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA3AF">Now speaking</span><span style="font-size: 14px; font-weight: 700">Elizabeth · voice Mira</span></span>
+          <button type="button" style="min-height: 36px; padding: 0 10px; border: 1px solid #3A414D; border-radius: 9px; background: transparent; color: #C9CED6; font: 700 12px Manrope, sans-serif">Fix</button>
+        </div>
+        <div style="flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 12px; font-family: Literata, Georgia, serif; font-size: 17px; line-height: 1.6">
+          <p style="margin: 0; color: #6B7482">Mr. Darcy walked off; and Elizabeth remained with no very cordial feelings towards him.</p>
+          <p style="margin: 0; color: #ECEEF1">She told the story, however, with great spirit among her friends; for she had a lively, playful disposition, which delighted in anything ridiculous.</p>
+          <p style="margin: 0; color: #6B7482">The evening altogether passed off pleasantly to the whole family.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="position: relative; height: 6px; border-radius: 3px; background: #2A303A">
+            <div style="width: 36%; height: 100%; border-radius: 3px; background: {{accent}}"></div>
+            <div style="position: absolute; left: 36%; top: -5px; width: 16px; height: 16px; margin-left: -8px; border-radius: 8px; background: #ECEEF1"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF; font-variant-numeric: tabular-nums"><span>04:12</span><span>−07:36</span></div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+          <button type="button" aria-label="Back 15 seconds" style="width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1; font: 700 10px Manrope, sans-serif">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"></path></svg>15
+          </button>
+          <button type="button" onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="width: 72px; height: 72px; border-radius: 36px; border: 0; background: {{accent}}; color: #1A1205; display: flex; align-items: center; justify-content: center; cursor: pointer">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{playIcon}}"></path></svg>
+          </button>
+          <button type="button" aria-label="Forward 30 seconds" style="width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0; background: transparent; color: #ECEEF1; font: 700 10px Manrope, sans-serif">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg>30
+          </button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <button type="button" onClick="{{cycleSpeed}}" style="min-height: 44px; border-radius: 12px; border: 0; background: #232934; color: #ECEEF1; font: 800 14px Manrope, sans-serif; cursor: pointer">{{speed}}</button>
+          <button type="button" style="min-height: 44px; border-radius: 12px; border: 0; background: #232934; color: #ECEEF1; font: 700 13px Manrope, sans-serif">Sleep</button>
+          <button type="button" style="min-height: 44px; border-radius: 12px; border: 0; background: #232934; color: #ECEEF1; font: 700 13px Manrope, sans-serif">Export</button>
+        </div>
+        <span style="display: {{hintDisplay}}; justify-content: center; gap: 14px; font-size: 11px; color: #9AA3AF">Space play/pause · ← → skip · [ ] speed</span>
+      </section>
+    </div>
+
+    <div style="display: {{miniDisplay}}; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #1F242D; background: #141820">
+      <button type="button" onClick="{{openPlayer}}" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; border: 0; background: transparent; color: #ECEEF1; text-align: left; font-family: Manrope, sans-serif; cursor: pointer">
+        <span style="width: 32px; height: 46px; flex-shrink: 0; border-radius: 3px; background: #2B4A5E"></span>
+        <span style="display: flex; flex-direction: column; min-width: 0">
+          <span style="font-size: 14px; font-weight: 700">Pride and Prejudice</span>
+          <span style="font-size: 12px; color: #9AA3AF">Chapter 3 · Elizabeth speaking</span>
+        </span>
+      </button>
+      <button type="button" onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="width: 44px; height: 44px; flex-shrink: 0; border: 0; border-radius: 22px; background: {{accent}}; color: #1A1205; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{playIcon}}"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"layout":{"editor":"enum","options":["auto","compact","medium","expanded"],"default":"auto"},"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"frameW":{"editor":null},"frameH":{"editor":null},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      w: typeof window !== 'undefined' ? window.innerWidth : 1440,
+      section: 'library', tab: 'cast', book: 'pp',
+      playing: true, speedIdx: 1, picked: 'mrb', profile: 'balanced'
+    };
+    this.ro = null;
+    this.rootRef = (el) => {
+      if (this.ro) { this.ro.disconnect(); this.ro = null; }
+      if (el && typeof ResizeObserver !== 'undefined') {
+        this.ro = new ResizeObserver((entries) => {
+          const w = Math.round(entries[0].contentRect.width);
+          if (Math.abs(w - this.state.w) > 2) this.setState({ w });
+        });
+        this.ro.observe(el);
+      }
+    };
+  }
+  componentWillUnmount() { if (this.ro) this.ro.disconnect(); }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#F0A848';
+    const forced = this.props.layout && this.props.layout !== 'auto' ? this.props.layout : null;
+    const w = this.state.w;
+    // Windows effective-pixel breakpoints: compact < 640, medium < 1008, expanded ≥ 1008
+    const layout = forced || (w < 640 ? 'compact' : w < 1008 ? 'medium' : 'expanded');
+    const C = layout === 'compact', M = layout === 'medium', E = layout === 'expanded';
+    const { section, tab } = this.state;
+    const show = (b) => (b ? 'flex' : 'none');
+
+    let showLib, showBook, showPlayer;
+    if (C) { showLib = section === 'library'; showBook = section === 'book'; showPlayer = section === 'player'; }
+    else if (M) { showLib = true; showPlayer = section === 'player'; showBook = !showPlayer; }
+    else { showLib = section === 'library'; showBook = !showLib; showPlayer = true; }
+
+    const go = (patch) => () => this.setState(patch);
+    const playing = this.state.playing;
+    const speeds = ['0.8×', '1.0×', '1.25×', '1.5×', '2.0×'];
+
+    const navDefs = [
+      { id: 'library', label: 'Library', icon: 'M4 4h5v16H4zM11 4h4v16h-4zM17 5l3 .8-3.6 14.4-3-.8z', patch: { section: 'library' }, on: section === 'library' },
+      { id: 'listen', label: 'Listening', icon: 'M3 18v-6a9 9 0 0 1 18 0v6M3 15h4v6H3zM17 15h4v6h-4z', patch: { section: 'player' }, on: section === 'player' },
+      { id: 'voices', label: 'Voices', icon: 'M9 6a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v3', patch: { section: 'book', tab: 'cast' }, on: section === 'book' && tab !== 'generate' },
+      { id: 'jobs', label: 'Jobs', icon: 'M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1', patch: { section: 'book', tab: 'generate' }, on: section === 'book' && tab === 'generate' }
+    ];
+
+    const tabDefs = [['structure', 'Structure'], ['cast', 'Cast'], ['review', 'Review'], ['generate', 'Generate']];
+    const optDefs = [
+      { id: 'mrb', name: 'Mr. Bennet', initials: 'B', conf: '71%', color: '#C7A6F2' },
+      { id: 'mrsb', name: 'Mrs. Bennet', initials: 'MB', conf: '18%', color: '#F4A3B5' },
+      { id: 'nar', name: 'Narrator', initials: 'N', conf: 'Fallback', color: '#C9CED6' }
+    ];
+    const profDefs = [
+      { id: 'fast', name: 'Fast', speed: 'Plainer voice' },
+      { id: 'balanced', name: 'Balanced', speed: 'Recommended' },
+      { id: 'hq', name: 'High quality', speed: 'Slower' }
+    ];
+    const bookDefs = [
+      { id: 'pp', title: 'Pride and Prejudice', author: 'Jane Austen', length: '11h 30m', cover: '#2B4A5E', status: 'Generating', badgeBg: '#3A2A12', badgeFg: '#F0C27A' },
+      { id: 'md', title: 'Moby-Dick', author: 'Herman Melville', length: '21h 40m', cover: '#3B4C3A', status: 'Ready', badgeBg: '#1E3324', badgeFg: '#9BD39A' },
+      { id: 'lw', title: 'Little Women', author: 'Louisa May Alcott', length: '3 speakers to check', cover: '#5E3B46', status: 'Needs review', badgeBg: '#3A2A12', badgeFg: '#F0C27A' },
+      { id: 'fr', title: 'Frankenstein', author: 'Mary Shelley', length: '8h 35m', cover: '#3A3550', status: 'Ready', badgeBg: '#1E3324', badgeFg: '#9BD39A' },
+      { id: 'dr', title: 'Dracula', author: 'Bram Stoker', length: 'Not analyzed yet', cover: '#4A2626', status: 'Imported', badgeBg: '#232934', badgeFg: '#C9CED6' }
+    ];
+
+    return {
+      accent,
+      rootRef: this.rootRef,
+      rootW: this.props.frameW ?? '100%',
+      rootH: this.props.frameH ?? '100vh',
+      rootDir: C ? 'column' : 'row',
+
+      navOrder: C ? 2 : 0,
+      navW: C ? 'auto' : M ? '92px' : '248px',
+      navPad: C ? '6px 8px 20px' : M ? '20px 8px' : '22px 14px',
+      navBT: C ? '1px solid #1F242D' : 'none',
+      navBR: C ? 'none' : '1px solid #1F242D',
+      brandDisplay: show(E),
+      listDir: C ? 'row' : 'column',
+      listJustify: C ? 'space-around' : 'flex-start',
+      listGap: C ? '0' : '6px',
+      itemDir: E ? 'row' : 'column',
+      itemJustify: E ? 'flex-start' : 'center',
+      itemGap: E ? '12px' : '3px',
+      itemPad: E ? '0 14px' : '6px 4px',
+      itemFont: E ? '600 14px' : '600 11px',
+      nav: navDefs.map((n) => ({
+        ...n,
+        current: n.on ? 'page' : 'false',
+        bg: n.on && !C ? '#1A1F27' : 'transparent',
+        fg: n.on ? accent : '#9AA3AF',
+        go: go(n.patch)
+      })),
+
+      panePad: C ? '24px 20px 16px' : '28px 28px 24px',
+      libDisplay: show(showLib),
+      libBR: M ? '1px solid #1F242D' : 'none',
+      searchDisplay: show(E),
+      libCols: E ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr',
+      libGap: E ? '10px' : '0',
+      rowPad: E ? '12px' : '10px 8px',
+      rowBB: E ? 'none' : '1px solid #1F242D',
+      rowRadius: E ? '14px' : '10px',
+      books: bookDefs.map((b) => {
+        const selected = M && showBook && b.id === this.state.book;
+        return { ...b, selected, bg: selected ? '#1F242D' : E ? '#171B22' : 'transparent', open: go({ section: 'book', book: b.id }) };
+      }),
+
+      bookDisplay: show(showBook),
+      backDisplay: show(C),
+      tabs: tabDefs.map(([id, label]) => ({ id, label, selected: tab === id, bg: tab === id ? '#2A303A' : 'transparent', fg: tab === id ? '#ECEEF1' : '#C9CED6', go: go({ tab: id }) })),
+      dStructure: show(tab === 'structure'),
+      dCast: show(tab === 'cast'),
+      dReview: show(tab === 'review'),
+      dGenerate: show(tab === 'generate'),
+      sections: [
+        { name: 'Title & copyright pages', detail: 'Front matter · 2 pages', on: false },
+        { name: 'Preface', detail: 'Front matter · 1,840 words', on: false },
+        { name: 'Chapters 1–61', detail: 'Main text in EPUB reading order', on: true },
+        { name: 'Chapter headings', detail: 'Read “Chapter 1” before each chapter', on: true },
+        { name: 'Transcriber’s notes', detail: 'Back matter · 420 words', on: false }
+      ],
+      cast: [
+        { name: 'Narrator', initials: 'N', lines: 'All non-dialogue text', voice: 'Ada', color: '#C9CED6' },
+        { name: 'Elizabeth Bennet', initials: 'EB', lines: '412 lines · confident', voice: 'Mira', color: '#9BD39A' },
+        { name: 'Mr. Darcy', initials: 'D', lines: '238 lines · confident', voice: 'Rowan', color: '#7FB2F0' },
+        { name: 'Mrs. Bennet', initials: 'MB', lines: '156 lines · confident', voice: 'Lena', color: '#F4A3B5' },
+        { name: 'Jane Bennet', initials: 'JB', lines: '121 lines · mostly sure', voice: 'Iris', color: '#7FD6CF' },
+        { name: 'Mr. Bennet', initials: 'B', lines: '98 lines · mostly sure', voice: 'Hal', color: '#C7A6F2' }
+      ],
+      lines: [
+        { speaker: 'MRS. BENNET', color: '#F4A3B5', text: '“But it is,” returned she; “for Mrs. Long has just been here, and she told me all about it.”' },
+        { speaker: 'NARRATOR', color: '#C9CED6', text: 'Mr. Bennet made no answer.' },
+        { speaker: 'MRS. BENNET · impatient', color: '#F4A3B5', text: '“Do you not want to know who has taken it?” cried his wife impatiently.' }
+      ],
+      options: optDefs.map((o) => {
+        const selected = this.state.picked === o.id;
+        return { ...o, selected, border: selected ? accent : '#2A303A', bg: selected ? '#232934' : 'transparent', pick: go({ picked: o.id }) };
+      }),
+      profiles: profDefs.map((p) => {
+        const selected = this.state.profile === p.id;
+        return { ...p, selected, bg: selected ? '#2A303A' : 'transparent', fg: selected ? '#ECEEF1' : '#C9CED6', pick: go({ profile: p.id }) };
+      }),
+      chapters: [
+        { name: 'Chapters 1–13', state: 'Ready to play', dot: '#9BD39A', fg: '#ECEEF1' },
+        { name: 'Chapter 14', state: 'Generating · 62%', dot: accent, fg: '#ECEEF1' },
+        { name: 'Chapter 15', state: 'Queued', dot: '#3A414D', fg: '#9AA3AF' },
+        { name: 'Chapters 16–61', state: 'Queued', dot: '#3A414D', fg: '#9AA3AF' }
+      ],
+
+      playerDisplay: show(showPlayer),
+      playerFlex: E ? '0 0 360px' : '1 1 0',
+      playerBg: E ? '#12161C' : '#0E1116',
+      playerBL: C ? 'none' : '1px solid #1F242D',
+      collapseDisplay: show(!E),
+      hintDisplay: show(E),
+      miniDisplay: show(!E && !showPlayer),
+
+      openLibrary: go({ section: 'library' }),
+      openPlayer: go({ section: 'player' }),
+      openImport: go({ section: 'book', tab: 'structure' }),
+      goCast: go({ tab: 'cast' }),
+      goReview: go({ tab: 'review' }),
+      playing,
+      playLabel: playing ? 'Pause' : 'Play',
+      playIcon: playing ? 'M6 5h4v14H6zM14 5h4v14h-4z' : 'M8 5v14l11-7z',
+      speed: speeds[this.state.speedIdx],
+      togglePlay: () => this.setState({ playing: !playing }),
+      cycleSpeed: () => this.setState({ speedIdx: (this.state.speedIdx + 1) % speeds.length })
+    };
+  }
+}
+</script>
+</body>
+</html>

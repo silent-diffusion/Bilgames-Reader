@@ -1,0 +1,128 @@
+<Window
+    x:Class="Bilgames.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:Bilgames.App.Controls"
+    xmlns:v="using:Bilgames.App.Views"
+    Title="Bilgames Reader">
+
+    <Grid x:Name="Root" Background="{StaticResource BgBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="NavColumn" Width="248" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Navigation: sidebar (expanded), rail (medium) or bottom tab bar (compact). -->
+        <Border x:Name="NavHost" Background="{StaticResource NavBgBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+            <Grid x:Name="NavLayout" RowSpacing="20" Padding="14,22">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel x:Name="Brand" Orientation="Horizontal" Spacing="10" Padding="6,0">
+                    <Border Width="32" Height="32" CornerRadius="9" Background="{StaticResource AccentBrush}">
+                        <c:StrokeIcon Data="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" StrokeWidth="2.2" Width="18" Height="18" Foreground="{StaticResource OnAccentBrush}" />
+                    </Border>
+                    <TextBlock Text="Bilgames Reader" FontSize="16" FontWeight="ExtraBold" CharacterSpacing="-10" VerticalAlignment="Center" Style="{StaticResource BaseText}" />
+                </StackPanel>
+
+                <Grid x:Name="NavItems" Grid.Row="1" RowSpacing="6" VerticalAlignment="Top">
+                    <c:SegmentToggle x:Name="NavLibrary" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoLibraryCommand}" IsChecked="{x:Bind Vm.NavLibrary, Mode=OneWay}" AutomationProperties.Name="Library">
+                        <StackPanel x:Name="NavLibraryContent">
+                            <c:StrokeIcon Data="M4 4h5v16H4zM11 4h4v16h-4zM17 5l3 .8-3.6 14.4-3-.8z" />
+                            <TextBlock Text="Library" />
+                        </StackPanel>
+                    </c:SegmentToggle>
+                    <c:SegmentToggle x:Name="NavListening" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoListeningCommand}" IsChecked="{x:Bind Vm.NavListening, Mode=OneWay}" AutomationProperties.Name="Listening">
+                        <StackPanel x:Name="NavListeningContent">
+                            <c:StrokeIcon Data="M3 18v-6a9 9 0 0 1 18 0v6M3 15h4v6H3zM17 15h4v6h-4z" />
+                            <TextBlock Text="Listening" />
+                        </StackPanel>
+                    </c:SegmentToggle>
+                    <c:SegmentToggle x:Name="NavVoices" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoVoicesCommand}" IsChecked="{x:Bind Vm.NavVoices, Mode=OneWay}" AutomationProperties.Name="Voices">
+                        <StackPanel x:Name="NavVoicesContent">
+                            <c:StrokeIcon Data="M9 6a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v3" />
+                            <TextBlock Text="Voices" />
+                        </StackPanel>
+                    </c:SegmentToggle>
+                    <c:SegmentToggle x:Name="NavJobs" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoJobsCommand}" IsChecked="{x:Bind Vm.NavJobs, Mode=OneWay}" AutomationProperties.Name="Jobs">
+                        <StackPanel x:Name="NavJobsContent">
+                            <c:StrokeIcon Data="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+                            <TextBlock Text="Jobs" />
+                        </StackPanel>
+                    </c:SegmentToggle>
+                </Grid>
+
+                <StackPanel x:Name="NavFooter" Grid.Row="2" Spacing="8">
+                    <c:SegmentToggle x:Name="NavSettings" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoSettingsCommand}" IsChecked="{x:Bind Vm.NavSettings, Mode=OneWay}" AutomationProperties.Name="Settings">
+                        <StackPanel x:Name="NavSettingsContent">
+                            <c:StrokeIcon Data="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+                            <TextBlock Text="Settings" />
+                        </StackPanel>
+                    </c:SegmentToggle>
+
+                    <!-- Offline + storage card (expanded only) -->
+                    <Border x:Name="StorageCard" Background="{StaticResource InfoBgBrush}" CornerRadius="12" Padding="14">
+                        <StackPanel Spacing="10">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:StrokeIcon Data="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" Width="14" Height="14" StrokeWidth="2" Foreground="{StaticResource SuccessBrush}" />
+                                <TextBlock Text="On this device · offline" FontSize="12" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Style="{StaticResource BaseText}" />
+                            </StackPanel>
+                            <ProgressBar Style="{StaticResource ThinProgress}" Foreground="{StaticResource ProgressAudioBrush}" Maximum="1" Value="{x:Bind Vm.Library.StorageFraction, Mode=OneWay}" AutomationProperties.Name="Storage used" />
+                            <TextBlock Text="{x:Bind Vm.Library.StorageLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Panes -->
+        <Grid x:Name="MainArea" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid x:Name="Panes">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="LibraryColumn" Width="*" />
+                    <ColumnDefinition x:Name="BookColumn" Width="0" />
+                    <ColumnDefinition x:Name="PlayerColumn" Width="360" />
+                </Grid.ColumnDefinitions>
+                <v:LibraryView x:Name="LibraryPane" Grid.Column="0" />
+                <v:BookView x:Name="BookPane" Grid.Column="1" />
+                <v:SettingsView x:Name="SettingsPane" Grid.Column="1" />
+                <v:PlayerView x:Name="PlayerPane" Grid.Column="2" />
+            </Grid>
+
+            <!-- Mini-player (compact & medium when the player is hidden) -->
+            <Border x:Name="MiniPlayer" Grid.Row="1" Background="{StaticResource InfoBgBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12,8"
+                    Visibility="{x:Bind c:Ui.Vis(Vm.ShowMini), Mode=OneWay}">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource RowButton}" Padding="4,0" MinHeight="48" Command="{x:Bind Vm.GoListeningCommand}" AutomationProperties.Name="Open player">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <c:CoverView Width="32" Height="46" Radius="3" TitleSize="5" Title="{x:Bind Vm.Player.Title, Mode=OneWay}" CoverColor="{x:Bind Vm.Player.CoverColor, Mode=OneWay}" ImagePath="{x:Bind Vm.Player.CoverPath, Mode=OneWay}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind Vm.Player.Title, Mode=OneWay}" FontSize="14" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                                <TextBlock Text="{x:Bind Vm.Player.MiniSubtitle, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Style="{StaticResource IconButton}" Background="{StaticResource AccentBrush}" Foreground="{StaticResource OnAccentBrush}"
+                            Command="{x:Bind Vm.Player.TogglePlayCommand}" AutomationProperties.Name="{x:Bind Vm.Player.PlayLabel, Mode=OneWay}">
+                        <c:StrokeIcon Data="{x:Bind Vm.Player.PlayIcon, Mode=OneWay}" Filled="True" Width="18" Height="18" />
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

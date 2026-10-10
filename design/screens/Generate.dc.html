@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Generate audiobook</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F0A848}a:hover{color:#F7C47E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px">
+    <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 15px; font-weight: 600; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      Library
+    </a>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #9BD39A; padding-right: 8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M2 12l7 2 4 8 2-7 7-3-7-2-2-8-4 8z"></path></svg>
+      Offline
+    </span>
+  </div>
+
+  <div style="flex: 1; padding: 4px 20px 0; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Generating</h1>
+      <div style="font-family: Literata, Georgia, serif; font-size: 15px; color: #C9CED6">Pride and Prejudice</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; background: #171B22">
+      <div style="display: flex; align-items: baseline; justify-content: space-between">
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.03em">23%</span>
+        <span style="font-size: 13px; color: #9AA3AF">about 2h 10m left</span>
+      </div>
+      <div style="height: 8px; border-radius: 4px; background: #2A303A; overflow: hidden">
+        <div style="width: 23%; height: 100%; background: {{accent}}"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF">
+        <span>Chapter 14 of 61</span>
+        <span>1,284 of 5,610 segments</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 14px; font-weight: 700">Quality</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B22">
+        <sc-for list="{{profiles}}" as="p" hint-placeholder-count="3">
+          <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.selected}}" style="min-height: 52px; border: 0; border-radius: 9px; background: {{p.bg}}; color: {{p.fg}}; font: 700 13px Manrope, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer">
+            {{p.name}}
+            <span style="font-size: 11px; font-weight: 500; color: #9AA3AF">{{p.speed}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #2A2312; border: 1px solid #4A3B17">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0C27A" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"></path></svg>
+      <div style="font-size: 13px; line-height: 1.45; color: #F3E3C3"><strong style="color: #FFF1D6">Device is warm.</strong> Slowed down to keep it cool. Plug in for faster progress.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <span style="font-size: 14px; font-weight: 700; margin-bottom: 4px">Chapters</span>
+      <sc-for list="{{chapters}}" as="c" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid #1F242D">
+          <span style="width: 24px; height: 24px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{c.dotBg}}; color: {{c.dotFg}}; font-size: 12px; font-weight: 800; flex-shrink: 0">{{c.mark}}</span>
+          <span style="flex: 1; font-size: 14px; font-weight: 600; color: {{c.fg}}">{{c.name}}</span>
+          <span style="font-size: 12px; color: #9AA3AF">{{c.state}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF">
+      <span>Uses 640 MB · 18.2 GB free</span>
+      <span>Resumes if the app closes</span>
+    </div>
+  </div>
+
+  <div style="padding: 12px 20px 28px; display: flex; gap: 10px; border-top: 1px solid #1F242D">
+    <button type="button" style="min-height: 52px; padding: 0 18px; border-radius: 14px; border: 1px solid #3A414D; background: transparent; color: #ECEEF1; font: 700 15px Manrope, sans-serif">Pause</button>
+    <a href="Player.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 14px; background: {{accent}}; color: #1A1205; font-weight: 800; font-size: 15px; text-decoration: none">Listen to ready chapters</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { profile: 'balanced' };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F0A848';
+    const profiles = [
+      { id: 'fast', name: 'Fast', speed: 'Plainer voice' },
+      { id: 'balanced', name: 'Balanced', speed: 'Recommended' },
+      { id: 'hq', name: 'High quality', speed: 'Slow here' }
+    ];
+    return {
+      accent,
+      profiles: profiles.map((p) => {
+        const selected = this.state.profile === p.id;
+        return { ...p, selected, bg: selected ? '#2A303A' : 'transparent', fg: selected ? '#ECEEF1' : '#C9CED6', pick: () => this.setState({ profile: p.id }) };
+      }),
+      chapters: [
+        { name: 'Chapters 1–13', state: 'Ready to play', mark: '✓', dotBg: '#1E3324', dotFg: '#9BD39A', fg: '#ECEEF1' },
+        { name: 'Chapter 14', state: 'Generating · 62%', mark: '•', dotBg: accent, dotFg: '#1A1205', fg: '#ECEEF1' },
+        { name: 'Chapter 15', state: 'Queued', mark: '', dotBg: '#232934', dotFg: '#9AA3AF', fg: '#9AA3AF' },
+        { name: 'Chapters 16–61', state: 'Queued', mark: '', dotBg: '#232934', dotFg: '#9AA3AF', fg: '#9AA3AF' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<UserControl
+    x:Class="Bilgames.App.Views.BookView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:Bilgames.App.Controls"
+    xmlns:vm="using:Bilgames.App.ViewModels"
+    AutomationProperties.Name="Book">
+
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="Body" Spacing="18" Padding="28,28,28,24">
+
+            <!-- No book selected -->
+            <Border Style="{StaticResource Card}" Padding="24" Visibility="{x:Bind c:Ui.NotVis(Vm.HasBook), Mode=OneWay}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="No book selected" Style="{StaticResource SectionText}" />
+                    <TextBlock Text="Pick a book in your library, or import an EPUB, to set up its structure, voices and audio." Style="{StaticResource SecondaryText}" FontSize="14" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="18" Visibility="{x:Bind c:Ui.Vis(Vm.HasBook), Mode=OneWay}">
+                <Button x:Name="BackButton" Style="{StaticResource LinkButton}" Click="Back_Click" AutomationProperties.Name="Back to library">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <c:StrokeIcon Data="M15 5l-7 7 7 7" Width="18" Height="18" StrokeWidth="2.2" />
+                        <TextBlock Text="Library" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Header -->
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <c:CoverView Width="52" Height="74" Radius="5" TitleSize="8" Title="{x:Bind Vm.Title, Mode=OneWay}" CoverColor="{x:Bind Vm.CoverColor, Mode=OneWay}" ImagePath="{x:Bind Vm.CoverPath, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Vm.Title, Mode=OneWay}" FontFamily="{StaticResource BookFont}" FontSize="24" FontWeight="SemiBold" LineHeight="29" Style="{StaticResource BaseText}" AutomationProperties.HeadingLevel="Level1" />
+                        <TextBlock Text="{x:Bind Vm.Subtitle, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource IconButton}" VerticalAlignment="Center" AutomationProperties.Name="More options" ToolTipService.ToolTip="More options">
+                        <c:StrokeIcon Data="M5 12h.01M12 12h.01M19 12h.01" StrokeWidth="3" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuFlyoutItem Text="Show files" Command="{x:Bind Vm.RevealFolderCommand}" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Delete…" Command="{x:Bind Vm.DeleteCommand}" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </Grid>
+
+                <!-- Tabs -->
+                <Border x:Name="TabStrip" Style="{StaticResource SegmentTrack}" MaxWidth="560" HorizontalAlignment="Left">
+                    <Grid ColumnSpacing="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <c:SegmentToggle Grid.Column="0" Style="{StaticResource SegmentButton}" Content="Structure" IsChecked="{x:Bind Vm.IsStructure, Mode=OneWay}" Command="{x:Bind Vm.ShowStructureCommand}" />
+                        <c:SegmentToggle Grid.Column="1" Style="{StaticResource SegmentButton}" Content="Cast" IsChecked="{x:Bind Vm.IsCast, Mode=OneWay}" Command="{x:Bind Vm.ShowCastCommand}" />
+                        <c:SegmentToggle Grid.Column="2" Style="{StaticResource SegmentButton}" Content="Review" IsChecked="{x:Bind Vm.IsReview, Mode=OneWay}" Command="{x:Bind Vm.ShowReviewCommand}" />
+                        <c:SegmentToggle Grid.Column="3" Style="{StaticResource SegmentButton}" Content="Generate" IsChecked="{x:Bind Vm.IsGenerate, Mode=OneWay}" Command="{x:Bind Vm.ShowGenerateCommand}" />
+                    </Grid>
+                </Border>
+
+                <!-- ============ STRUCTURE ============ -->
+                <StackPanel x:Name="StructureSection" Spacing="16" MaxWidth="760" HorizontalAlignment="Left" Visibility="{x:Bind c:Ui.Vis(Vm.IsStructure), Mode=OneWay}">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}" Padding="10" CornerRadius="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Est. audio" FontSize="11" Style="{StaticResource CaptionText}" />
+                                <TextBlock Text="{x:Bind Vm.Structure.EstAudio, Mode=OneWay}" FontSize="16" FontWeight="ExtraBold" Style="{StaticResource BaseText}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}" Padding="10" CornerRadius="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Storage" FontSize="11" Style="{StaticResource CaptionText}" />
+                                <TextBlock Text="{x:Bind Vm.Structure.Storage, Mode=OneWay}" FontSize="16" FontWeight="ExtraBold" Style="{StaticResource BaseText}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="10" CornerRadius="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Uploaded" FontSize="11" Style="{StaticResource CaptionText}" />
+                                <TextBlock Text="Nothing" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource SuccessBrush}" Style="{StaticResource BaseText}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel>
+                        <TextBlock Text="What to read aloud" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" Style="{StaticResource BaseText}" />
+                        <ItemsControl ItemsSource="{x:Bind Vm.Structure.Rows}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SectionRow">
+                                    <Grid MinHeight="56" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" ColumnSpacing="12" Background="Transparent" Tapped="Row_Tapped" Tag="{x:Bind}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="2" VerticalAlignment="Center" Padding="0,6">
+                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyText}" />
+                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource CaptionText}" />
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" MinWidth="0" Padding="0" IsChecked="{x:Bind IsOn, Mode=TwoWay}" AutomationProperties.Name="{x:Bind AccessibleName}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8" Visibility="{x:Bind c:Ui.Vis(Vm.Structure.HasFootnotes), Mode=OneWay}">
+                        <TextBlock Text="Footnotes" FontSize="14" FontWeight="Bold" Style="{StaticResource BaseText}" />
+                        <Border Style="{StaticResource SegmentTrack}" MaxWidth="420" HorizontalAlignment="Left">
+                            <Grid ColumnSpacing="4" MinWidth="320">
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <c:SegmentToggle Style="{StaticResource SegmentButton}" Content="Inline" IsChecked="{x:Bind Vm.Structure.FootInline, Mode=OneWay}" Command="{x:Bind Vm.Structure.SetFootInlineCommand}" />
+                                <c:SegmentToggle Grid.Column="1" Style="{StaticResource SegmentButton}" Content="End of chapter" IsChecked="{x:Bind Vm.Structure.FootEnd, Mode=OneWay}" Command="{x:Bind Vm.Structure.SetFootEndCommand}" />
+                                <c:SegmentToggle Grid.Column="2" Style="{StaticResource SegmentButton}" Content="Skip" IsChecked="{x:Bind Vm.Structure.FootSkip, Mode=OneWay}" Command="{x:Bind Vm.Structure.SetFootSkipCommand}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <Button Style="{StaticResource LinkButton}" FontWeight="Bold" FontSize="14" Click="Preview_Click" AutomationProperties.Name="Preview extracted text">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <c:StrokeIcon Data="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z" Width="18" Height="18" />
+                            <TextBlock Text="Preview extracted text" FontWeight="Bold" />
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel Spacing="8">
+                        <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Command="{x:Bind Vm.Structure.FindSpeakersCommand}"
+                                IsEnabled="{x:Bind c:Ui.Not(Vm.Structure.IsAnalyzing), Mode=OneWay}" Content="{x:Bind Vm.Structure.AnalyzeLabel, Mode=OneWay}" />
+                        <ProgressBar Style="{StaticResource ThinProgress}" MaxWidth="420" HorizontalAlignment="Stretch" Maximum="100" Value="{x:Bind Vm.Structure.AnalyzeProgress, Mode=OneWay}"
+                                     Visibility="{x:Bind c:Ui.Vis(Vm.Structure.IsAnalyzing), Mode=OneWay}" AutomationProperties.Name="Analysis progress" />
+                        <TextBlock Text="{x:Bind Vm.Structure.AnalyzeHint, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ CAST ============ -->
+                <StackPanel x:Name="CastSection" Spacing="14" MaxWidth="900" HorizontalAlignment="Left" Visibility="{x:Bind c:Ui.Vis(Vm.IsCast), Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Vm.Cast.Intro, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" />
+                    <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Content="Find speakers" Command="{x:Bind Vm.Cast.FindSpeakersCommand}"
+                            Visibility="{x:Bind c:Ui.NotVis(Vm.Cast.IsAnalyzed), Mode=OneWay}" />
+
+                    <Border Background="{StaticResource WarningBgBrush}" BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="1" CornerRadius="14" Padding="14"
+                            Visibility="{x:Bind c:Ui.Vis(Vm.Cast.ShowMerge), Mode=OneWay}">
+                        <Grid ColumnSpacing="12" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="14" LineHeight="20" Foreground="{StaticResource WarningTextBrush}" Style="{StaticResource BaseText}">
+                                <Run Text="{x:Bind Vm.Cast.MergeFromText, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningStrongBrush}" />
+                                <Run Text=" look like " /><Run Text="{x:Bind Vm.Cast.MergeIntoText, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningStrongBrush}" /><Run Text="." />
+                            </TextBlock>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                <Button Style="{StaticResource WarningButton}" Content="Merge" Command="{x:Bind Vm.Cast.MergeCommand}" />
+                                <Button Style="{StaticResource WarningGhostButton}" Content="Keep apart" Command="{x:Bind Vm.Cast.KeepApartCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <ItemsRepeater ItemsSource="{x:Bind Vm.Cast.Members}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="300" MinItemHeight="64" MinColumnSpacing="24" MinRowSpacing="0" ItemsStretch="Fill" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CastMemberViewModel">
+                                <Grid MinHeight="64" ColumnSpacing="12" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <c:Avatar Size="40" Initials="{x:Bind Initials}" Color="{x:Bind Color}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                                        <TextBlock Text="{x:Bind LinesLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" BorderBrush="{StaticResource LineStrongBrush}" Background="{StaticResource SurfaceBrush}"
+                                            Foreground="{StaticResource TextBrush}" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" Click="Voice_Click" Tag="{x:Bind}"
+                                            AutomationProperties.Name="{x:Bind VoiceButtonName, Mode=OneWay}">
+                                        <TextBlock><Run Text="{x:Bind VoiceName, Mode=OneWay}" /><Run Text=" ▾" /></TextBlock>
+                                    </Button>
+                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Background="{StaticResource SurfaceRaisedBrush}" VerticalAlignment="Center" Click="Preview_Voice_Click" Tag="{x:Bind}"
+                                            AutomationProperties.Name="{x:Bind PreviewName}" ToolTipService.ToolTip="Preview voice">
+                                        <Grid>
+                                            <c:StrokeIcon Data="M8 5v14l11-7z" Filled="True" Width="16" Height="16" Visibility="{x:Bind c:Ui.NotVis(IsPreviewing), Mode=OneWay}" />
+                                            <ProgressRing Width="18" Height="18" IsActive="{x:Bind IsPreviewing, Mode=OneWay}" Foreground="{StaticResource AccentBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                    <TextBlock Text="{x:Bind Vm.Cast.HiddenLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.Cast.HiddenLabel), Mode=OneWay}" />
+
+                    <Grid Visibility="{x:Bind c:Ui.Vis(Vm.Cast.HasUnsure), Mode=OneWay}">
+                        <Rectangle RadiusX="12" RadiusY="12" Stroke="{StaticResource LineDashedBrush}" StrokeThickness="1" StrokeDashArray="4,3" />
+                        <Grid Padding="14,12" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="14" Style="{StaticResource BaseText}">
+                                <Run Text="{x:Bind LinesText(Vm.Cast.UnsureCount), Mode=OneWay}" FontWeight="Bold" />
+                                <Run Text=" have an unsure speaker and are read by the narrator for now." Foreground="{StaticResource TextMutedBrush}" />
+                            </TextBlock>
+                            <Button Grid.Column="1" Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Padding="16,0" CornerRadius="12" Content="Check them" Command="{x:Bind Vm.Cast.CheckThemCommand}" />
+                        </Grid>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ============ REVIEW ============ -->
+                <StackPanel x:Name="ReviewSection" Spacing="14" MaxWidth="680" HorizontalAlignment="Left" Visibility="{x:Bind c:Ui.Vis(Vm.IsReview), Mode=OneWay}">
+                    <Border Style="{StaticResource Card}" Visibility="{x:Bind c:Ui.NotVis(Vm.Review.IsAnalyzed), Mode=OneWay}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Nothing to review yet" Style="{StaticResource SectionText}" />
+                            <TextBlock Text="Find speakers first. Lines whose speaker is uncertain will show up here, one at a time." Style="{StaticResource SecondaryText}" FontSize="14" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Visibility="{x:Bind c:Ui.Vis(Vm.Review.IsDone), Mode=OneWay}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="All lines checked" Style="{StaticResource SectionText}" />
+                            <TextBlock Text="Every line has a speaker you've confirmed or the analyzer was sure about. Changes take effect the next time audio is generated." Style="{StaticResource SecondaryText}" FontSize="14" />
+                            <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Content="Go to Generate" Command="{x:Bind Vm.Review.GoGenerateCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="14" Visibility="{x:Bind c:Ui.Vis(Vm.Review.HasItem), Mode=OneWay}">
+                        <TextBlock Text="{x:Bind Vm.Review.ProgressLabel, Mode=OneWay}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
+                        <ItemsControl ItemsSource="{x:Bind Vm.Review.Context}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ContextLineViewModel">
+                                    <StackPanel Spacing="4" Margin="0,0,0,14">
+                                        <TextBlock Text="{x:Bind Label}" FontSize="11" FontWeight="Bold" CharacterSpacing="40" Foreground="{x:Bind c:Ui.Brush(Color)}" Style="{StaticResource BaseText}" />
+                                        <TextBlock Text="{x:Bind Text}" FontFamily="{StaticResource BookFont}" FontSize="15" LineHeight="23" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource BaseText}" TextTrimming="None" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="16" Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="{x:Bind c:Ui.Upper(Vm.Review.Prompt), Mode=OneWay}" FontSize="11" FontWeight="ExtraBold" CharacterSpacing="80" Foreground="{StaticResource AccentBrush}" Style="{StaticResource BaseText}" />
+                                <TextBlock Text="{x:Bind Vm.Review.LineText, Mode=OneWay}" FontFamily="{StaticResource BookFont}" FontSize="17" LineHeight="25" Style="{StaticResource BaseText}" TextTrimming="None" />
+                                <ItemsRepeater ItemsSource="{x:Bind Vm.Review.Options}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MinItemWidth="180" MinItemHeight="48" MinColumnSpacing="6" MinRowSpacing="6" ItemsStretch="Fill" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SpeakerOptionViewModel">
+                                            <Button Style="{StaticResource RowButton}" MinHeight="48" Padding="12,0" CornerRadius="12" Click="Option_Click" Tag="{x:Bind}"
+                                                    BorderThickness="1.5" BorderBrush="{x:Bind c:Ui.Brush(BorderColor), Mode=OneWay}" Background="{x:Bind c:Ui.Brush(Background), Mode=OneWay}"
+                                                    AutomationProperties.Name="{x:Bind AccessibleName}">
+                                                <Grid ColumnSpacing="10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="28" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <c:Avatar Size="28" Initials="{x:Bind Initials}" Color="{x:Bind Color}" />
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind Confidence}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                                <CheckBox Content="Use this for similar back-and-forth lines" IsChecked="{x:Bind Vm.Review.ApplySimilar, Mode=TwoWay}" Style="{StaticResource AccentCheckBox}" />
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Style="{StaticResource GhostButton}" Content="Skip" Command="{x:Bind Vm.Review.SkipCommand}" CornerRadius="12" />
+                                    <Button Grid.Column="1" Style="{StaticResource AccentButton}" HorizontalAlignment="Stretch" CornerRadius="12" FontSize="14" Content="Confirm · next line" Command="{x:Bind Vm.Review.ConfirmCommand}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{x:Bind Vm.Review.Status, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.Review.Status), Mode=OneWay}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ GENERATE ============ -->
+                <StackPanel x:Name="GenerateSection" Spacing="16" MaxWidth="760" HorizontalAlignment="Left" Visibility="{x:Bind c:Ui.Vis(Vm.IsGenerate), Mode=OneWay}">
+                    <Border Style="{StaticResource Card}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" Visibility="{x:Bind c:Ui.Vis(Vm.Generate.NeedsModel), Mode=OneWay}">
+                        <StackPanel Spacing="10">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <c:StrokeIcon Data="M12 3v12M7 10l5 5 5-5M5 21h14" Width="18" Height="18" Foreground="{StaticResource AccentBrush}" />
+                                <TextBlock Text="Voice model needed" FontSize="15" FontWeight="Bold" Style="{StaticResource BaseText}" />
+                            </StackPanel>
+                            <TextBlock Text="{x:Bind Vm.Generate.ModelText, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Content="Download…" Command="{x:Bind Vm.Generate.DownloadModelCommand}"
+                                        Visibility="{x:Bind c:Ui.NotVis(Vm.Generate.IsDownloading), Mode=OneWay}" />
+                                <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Cancel download" Command="{x:Bind Vm.Generate.CancelDownloadCommand}"
+                                        Visibility="{x:Bind c:Ui.Vis(Vm.Generate.IsDownloading), Mode=OneWay}" />
+                            </StackPanel>
+                            <ProgressBar Style="{StaticResource ThinProgress}" Maximum="100" Value="{x:Bind Vm.Generate.DownloadPercent, Mode=OneWay}"
+                                         Visibility="{x:Bind c:Ui.Vis(Vm.Generate.IsDownloading), Mode=OneWay}" AutomationProperties.Name="Model download progress" />
+                            <TextBlock Text="{x:Bind Vm.Generate.DownloadLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.Generate.DownloadLabel), Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel Spacing="10">
+                            <Grid>
+                                <TextBlock Text="{x:Bind Vm.Generate.PercentText, Mode=OneWay}" Style="{StaticResource BigNumberText}" />
+                                <TextBlock Text="{x:Bind Vm.Generate.TimeLeft, Mode=OneWay}" Style="{StaticResource SecondaryText}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                            </Grid>
+                            <ProgressBar Height="8" MinHeight="8" CornerRadius="4" Foreground="{StaticResource AccentBrush}" Background="{StaticResource LineStrongBrush}" Maximum="100"
+                                         Value="{x:Bind Vm.Generate.Percent, Mode=OneWay}" AutomationProperties.Name="Generation progress" />
+                            <Grid>
+                                <TextBlock Text="{x:Bind Vm.Generate.ChapterLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                                <TextBlock Text="{x:Bind Vm.Generate.SegmentsLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" HorizontalAlignment="Right" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Quality" FontSize="14" FontWeight="Bold" Style="{StaticResource BaseText}" />
+                        <Border x:Name="QualityTrack" Style="{StaticResource SegmentTrack}" HorizontalAlignment="Left">
+                            <ItemsRepeater ItemsSource="{x:Bind Vm.Generate.Profiles}">
+                                <ItemsRepeater.Layout>
+                                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="90" MinItemHeight="52" MinColumnSpacing="4" ItemsStretch="Fill" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ProfileOptionViewModel">
+                                        <c:SegmentToggle Style="{StaticResource SegmentButton}" MinHeight="52" IsChecked="{x:Bind IsSelected, Mode=OneWay}" Click="Profile_Click" Tag="{x:Bind}"
+                                                         AutomationProperties.Name="{x:Bind Name}">
+                                            <StackPanel Spacing="1" HorizontalAlignment="Center">
+                                                <TextBlock Text="{x:Bind Name}" FontSize="13" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind Hint}" FontSize="11" FontWeight="Medium" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </c:SegmentToggle>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </Border>
+                    </StackPanel>
+
+                    <Border Style="{StaticResource WarningPanel}" Visibility="{x:Bind c:Ui.Vis(Vm.Generate.ShowWarning), Mode=OneWay}">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <c:StrokeIcon Data="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z" Width="20" Height="20" Foreground="{StaticResource WarningBrush}" VerticalAlignment="Top" />
+                            <TextBlock Grid.Column="1" FontSize="13" LineHeight="19" Foreground="{StaticResource WarningTextBrush}" Style="{StaticResource BaseText}">
+                                <Run Text="{x:Bind Vm.Generate.WarningTitle, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningStrongBrush}" />
+                                <Run Text="{x:Bind Vm.Generate.WarningText, Mode=OneWay}" />
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="{x:Bind Vm.Generate.Error, Mode=OneWay}" Foreground="{StaticResource WarningBrush}" FontSize="13" Style="{StaticResource BaseText}"
+                               Visibility="{x:Bind c:Ui.VisText(Vm.Generate.Error), Mode=OneWay}" />
+
+                    <StackPanel>
+                        <TextBlock Text="Chapters" FontSize="14" FontWeight="Bold" Margin="0,0,0,4" Style="{StaticResource BaseText}" />
+                        <ItemsControl ItemsSource="{x:Bind Vm.Generate.Groups}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ChapterGroupViewModel">
+                                    <Grid MinHeight="48" ColumnSpacing="12" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="24" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="24" Height="24" CornerRadius="12" Background="{x:Bind c:Ui.Brush(DotBg)}" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Mark}" FontSize="12" FontWeight="ExtraBold" Foreground="{x:Bind c:Ui.Brush(DotFg)}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" FontSize="14" FontWeight="SemiBold" Foreground="{x:Bind c:Ui.Brush(Foreground)}" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind State}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <Grid>
+                        <TextBlock Text="{x:Bind Vm.Generate.StorageLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                        <TextBlock Text="Resumes if the app closes" Style="{StaticResource CaptionText}" HorizontalAlignment="Right" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="10" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="PrimaryJobButton" Style="{x:Bind JobButtonStyle(Vm.Generate.IsRunning, Vm.Generate.IsComplete), Mode=OneWay}" MinHeight="52" CornerRadius="14" FontSize="15"
+                                Content="{x:Bind Vm.Generate.PrimaryLabel, Mode=OneWay}" Command="{x:Bind Vm.Generate.PrimaryCommand}" IsEnabled="{x:Bind c:Ui.Not(Vm.Generate.IsComplete), Mode=OneWay}" />
+                        <Button Grid.Column="1" Style="{x:Bind ListenButtonStyle(Vm.Generate.IsRunning, Vm.Generate.IsComplete), Mode=OneWay}" MinHeight="52" HorizontalAlignment="Stretch" Content="Listen to ready chapters"
+                                Command="{x:Bind Vm.Generate.ListenCommand}" IsEnabled="{x:Bind Vm.Generate.CanListen, Mode=OneWay}" />
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

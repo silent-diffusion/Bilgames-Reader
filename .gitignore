@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+.vscode/
+*.swp
+
+# Local test books are copyrighted; never commit them.
+test epubs/
+*.epub
+
+# Voice model files are downloaded by the app, not stored in the repo.
+*.onnx

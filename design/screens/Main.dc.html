@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F0A848}a:hover{color:#F7C47E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0E1116; color: #ECEEF1; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex: 1; padding: 28px 20px 0; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Library</h1>
+        <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #9BD39A">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          On this device · works offline
+        </div>
+      </div>
+      <a href="Import.dc.html" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 22px; background: {{accent}}; color: #1A1205; font-weight: 700; font-size: 14px; text-decoration: none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 2.4; stroke-linecap: round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        Import EPUB
+      </a>
+    </div>
+
+    <a href="Player.dc.html" style="display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 18px; background: #171B22; border: 1px solid #2A303A; text-decoration: none; color: #ECEEF1">
+      <div style="display: flex; gap: 14px">
+        <div style="width: 78px; height: 112px; flex-shrink: 0; border-radius: 6px; background: #2B4A5E; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 8px; box-sizing: border-box">
+          <div style="font-family: Literata, Georgia, serif; font-size: 12px; line-height: 1.15; color: #F3E9D7; font-weight: 600">Pride and Prejudice</div>
+          <div style="font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #C6D6E0">Austen</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}}">Continue listening</div>
+          <div style="font-family: Literata, Georgia, serif; font-size: 19px; font-weight: 600; line-height: 1.2">Pride and Prejudice</div>
+          <div style="font-size: 13px; color: #9AA3AF">Chapter 3 · 12 min left</div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px">
+            <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: #232934; color: #C9CED6">6 voices</span>
+            <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: #232934; color: #C9CED6">Subtle delivery</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #2A303A">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9AA3AF">
+          <span>Generating chapter 14 of 61</span>
+          <span style="color: #ECEEF1; font-weight: 700">23%</span>
+        </div>
+        <div style="height: 6px; border-radius: 3px; background: #2A303A; overflow: hidden">
+          <div style="width: 23%; height: 100%; background: {{accent}}; border-radius: 3px"></div>
+        </div>
+        <div style="font-size: 12px; color: #9AA3AF">Chapters 1–13 are ready to play</div>
+      </div>
+    </a>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 700">All books</h2>
+        <span style="font-size: 12px; color: #9AA3AF">4 books</span>
+      </div>
+      <sc-for list="{{books}}" as="book" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #1F242D">
+          <div style="width: 44px; height: 62px; flex-shrink: 0; border-radius: 4px; background: {{book.cover}}; display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-family: Literata, Georgia, serif; font-size: 7px; line-height: 1.1; color: #F3E9D7">{{book.title}}</div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+            <div style="font-family: Literata, Georgia, serif; font-size: 16px; font-weight: 600">{{book.title}}</div>
+            <div style="font-size: 12px; color: #9AA3AF">{{book.author}} · {{book.length}}</div>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: {{book.badgeBg}}; color: {{book.badgeFg}}; white-space: nowrap">{{book.status}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #141820; font-size: 12px; color: #9AA3AF">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg>
+      <span>Voice models 1.2 GB · Audio 3.4 GB</span>
+      <a href="Generate.dc.html" style="margin-left: auto; font-weight: 700; text-decoration: none">Manage</a>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="display: flex; justify-content: space-around; padding: 8px 8px 22px; border-top: 1px solid #1F242D; background: #0B0E12">
+    <a href="Main.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; min-height: 44px; justify-content: center; font-size: 11px; font-weight: 700; color: {{accent}}; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M4 4h5v16H4zM11 4h4v16h-4zM17 5l3 .8-3.6 14.4-3-.8"></path></svg>
+      Library
+    </a>
+    <a href="Player.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; min-height: 44px; justify-content: center; font-size: 11px; font-weight: 600; color: #9AA3AF; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"></path><rect x="3" y="14" width="5" height="7" rx="1.5"></rect><rect x="16" y="14" width="5" height="7" rx="1.5"></rect></svg>
+      Listening
+    </a>
+    <a href="Cast.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; min-height: 44px; justify-content: center; font-size: 11px; font-weight: 600; color: #9AA3AF; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+      Voices
+    </a>
+    <a href="Generate.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; min-height: 44px; justify-content: center; font-size: 11px; font-weight: 600; color: #9AA3AF; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+      Jobs
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F0A848","options":["#F0A848","#7FB2F0","#9BD39A","#F4A3B5"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#F0A848',
+      books: [
+        { title: 'Moby-Dick', author: 'Herman Melville', length: '21h 40m', cover: '#3B4C3A', status: 'Ready', badgeBg: '#1E3324', badgeFg: '#9BD39A' },
+        { title: 'Little Women', author: 'Louisa May Alcott', length: '3 speakers to check', cover: '#5E3B46', status: 'Needs review', badgeBg: '#3A2A12', badgeFg: '#F0C27A' },
+        { title: 'Frankenstein', author: 'Mary Shelley', length: '8h 35m', cover: '#3A3550', status: 'Ready', badgeBg: '#1E3324', badgeFg: '#9BD39A' },
+        { title: 'Dracula', author: 'Bram Stoker', length: 'Not analyzed yet', cover: '#4A2626', status: 'Imported', badgeBg: '#232934', badgeFg: '#C9CED6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Bilgames.Tts.Kokoro</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="KokoroSharp.CPU" Version="0.8.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bilgames.Core\Bilgames.Core.csproj" />
+  </ItemGroup>
+</Project>

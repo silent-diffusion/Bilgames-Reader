@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Product specification and README for an on-device EPUB-to-audiobook app.">
+<title>On-Device EPUB Audiobook Generator — Product Spec</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #18212f; --muted: #596579; --line: #dbe2ea;
+  --paper: #ffffff; --wash: #f4f7fb; --accent: #3759c7; --accent2: #eaf0ff;
+  --green: #176b50; --amber: #80530a;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--wash); color: var(--ink); font: 16px/1.62 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+header { background: #111a2c; color: #fff; padding: 52px 22px 42px; }
+.wrap { max-width: 1000px; margin: 0 auto; }
+.eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .76rem; font-weight: 750; color: #b9c8ff; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -.04em; margin: 12px 0 18px; max-width: 800px; }
+header p { color: #d7deeb; max-width: 760px; font-size: 1.08rem; }
+.pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.pill { border:1px solid #53617b; border-radius:999px; padding:5px 11px; color:#edf1ff; font-size:.83rem; }
+nav { background: var(--paper); border-bottom:1px solid var(--line); }
+nav .wrap { display:flex; flex-wrap:wrap; gap:8px 18px; padding:13px 22px; }
+nav a { color:var(--accent); font-size:.9rem; text-decoration:none; font-weight:650; }
+main { max-width:1000px; margin: 28px auto 70px; padding: 0 22px; }
+section { background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:26px clamp(18px, 4vw, 34px); margin:18px 0; box-shadow:0 3px 14px #18212f08; }
+h2 { font-size:1.55rem; line-height:1.25; margin:0 0 12px; letter-spacing:-.025em; }
+h3 { font-size:1.06rem; margin:20px 0 7px; }
+p { margin:8px 0 12px; }
+.lead { color:var(--muted); font-size:1.06rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:16px; }
+.card { background:#f8faff; border:1px solid var(--line); border-radius:12px; padding:15px; }
+.card strong { display:block; margin-bottom:4px; }
+.card p { margin:0; color:var(--muted); font-size:.94rem; }
+.callout { border-left:4px solid var(--accent); background:var(--accent2); padding:13px 16px; border-radius:0 10px 10px 0; margin:14px 0; }
+.warning { border-left-color:#c18a20; background:#fff7e5; }
+.good { color:var(--green); font-weight:700; }
+ul, ol { padding-left:1.35rem; }
+li { margin:5px 0; }
+code, pre { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+code { background:#eef1f6; padding:2px 5px; border-radius:5px; font-size:.91em; }
+pre { background:#111a2c; color:#e9efff; border-radius:12px; padding:16px; overflow:auto; font-size:.88rem; line-height:1.55; }
+table { width:100%; border-collapse:collapse; margin:12px 0; font-size:.94rem; }
+th, td { text-align:left; vertical-align:top; padding:10px 11px; border-bottom:1px solid var(--line); }
+th { background:#f4f6fa; }
+.status { display:inline-block; font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; border-radius:5px; padding:2px 7px; white-space:nowrap; }
+.must { color:#194c3b; background:#dff5e9; }
+.should { color:#65450b; background:#fff0c9; }
+.later { color:#46516a; background:#e9edf4; }
+footer { text-align:center; color:var(--muted); font-size:.88rem; padding:0 20px 35px; }
+@media print {
+ body { background:#fff; font-size:11pt; }
+ header { padding:25px; print-color-adjust:exact; }
+ nav { display:none; }
+ main { margin:0 auto; padding:0; }
+ section { box-shadow:none; break-inside:avoid; padding:18px; }
+ a { color:inherit; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Product specification · Draft 0.1</div>
+    <h1>On-Device EPUB Audiobook Generator</h1>
+    <p>A privacy-first app that turns an EPUB into a listenable, chapter-aware audiobook—with dialogue attribution, distinct character voices, expressive delivery, and local audio export.</p>
+    <div class="pills">
+      <span class="pill">Local-first / offline</span><span class="pill">EPUB ingestion</span>
+      <span class="pill">Multi-speaker narration</span><span class="pill">Human-reviewable</span>
+    </div>
+  </div>
+</header>
+<nav><div class="wrap">
+  <a href="#vision">Vision</a><a href="#requirements">Requirements</a><a href="#pipeline">Pipeline</a>
+  <a href="#voices">Voices &amp; emotion</a><a href="#architecture">Architecture</a><a href="#privacy">Privacy &amp; rights</a>
+  <a href="#mvp">MVP plan</a><a href="#acceptance">Acceptance tests</a>
+</div></nav>
+<main>
+<section id="vision">
+  <h2>1. Product vision</h2>
+  <p class="lead">The user imports an EPUB, reviews the book structure and detected speakers, chooses a voice style, and generates a complete audiobook without uploading the book or its text to a server.</p>
+  <div class="grid">
+    <div class="card"><strong>Read the book</strong><p>Parse EPUB chapters and reading order, clean up markup, preserve paragraph boundaries, and handle footnotes and front/back matter deliberately.</p></div>
+    <div class="card"><strong>Understand who speaks</strong><p>Identify dialogue, infer likely speakers from nearby narration, and track character identity across chapters.</p></div>
+    <div class="card"><strong>Perform the text</strong><p>Assign stable voices, infer restrained delivery cues from context, and synthesize speech in chapter-sized segments.</p></div>
+    <div class="card"><strong>Deliver a real audiobook</strong><p>Join segments, preserve chapter navigation, support resume playback, and export audio plus metadata.</p></div>
+  </div>
+  <div class="callout warning"><strong>Core feasibility note:</strong> fully on-device operation is a design constraint, not a guarantee that every device can run every model at high quality. Speaker attribution and emotional intent are probabilistic. The app should expose uncertainty, allow corrections, and use a model/device compatibility check rather than promising perfect interpretation.</div>
+</section>
+
+<section id="requirements">
+  <h2>2. Feature requirements</h2>
+  <h3>Import and book structure</h3>
+  <ul>
+    <li><span class="status must">Must</span> Import a local <code>.epub</code> using the operating system file picker; never upload it.</li>
+    <li><span class="status must">Must</span> Parse the EPUB container, package manifest, spine/reading order, navigation/TOC, XHTML, and CSS-relevant text order.</li>
+    <li><span class="status must">Must</span> Split content into chapters and smaller synthesis segments while preserving paragraph order and sentence boundaries.</li>
+    <li><span class="status should">Should</span> Handle common publishing patterns: chapter headings, epigraphs, block quotes, inline emphasis, footnotes, poetry, letters, and scene breaks.</li>
+    <li><span class="status must">Must</span> Offer a preview of extracted text and let users skip or include front matter, footnotes, appendices, and end matter.</li>
+  </ul>
+  <h3>Text understanding and dialogue</h3>
+  <ul>
+    <li><span class="status must">Must</span> Detect quoted dialogue and likely speaker turns, including dialogue tags such as “she said” and action beats.</li>
+    <li><span class="status must">Must</span> Maintain a character/speaker registry across the whole book, not just within a paragraph.</li>
+    <li><span class="status must">Must</span> Support ambiguous or unknown speakers and narration; do not force every line into a character voice.</li>
+    <li><span class="status should">Should</span> Use surrounding context to infer delivery (questioning, whispering, shouting, sadness, excitement) with conservative confidence thresholds.</li>
+    <li><span class="status must">Must</span> Provide an editor for correcting speaker labels, merging duplicate character entries, assigning voices, and overriding delivery.</li>
+    <li><span class="status should">Should</span> Remember user corrections and apply them to later occurrences in the same book.</li>
+  </ul>
+  <h3>Speech generation and listening</h3>
+  <ul>
+    <li><span class="status must">Must</span> Synthesize narration and dialogue locally using downloadable, locally stored model assets.</li>
+    <li><span class="status must">Must</span> Keep character voices stable throughout a book, including pitch/timbre presets and pronunciation overrides where supported.</li>
+    <li><span class="status must">Must</span> Generate incrementally, cache completed segments, and resume after app closure or interruption.</li>
+    <li><span class="status must">Must</span> Include playback speed, skip forward/back, chapter navigation, sleep timer, and resume position.</li>
+    <li><span class="status should">Should</span> Provide voice previews and a short sample render before committing to a full book.</li>
+    <li><span class="status should">Should</span> Export chapter audio and a complete audiobook package with chapter metadata; format support depends on platform libraries.</li>
+  </ul>
+  <h3>On-device and reliability</h3>
+  <ul>
+    <li><span class="status must">Must</span> After model assets are installed, book processing and synthesis work in airplane mode.</li>
+    <li><span class="status must">Must</span> Show estimated storage, model download size, progress, remaining work, and thermal/battery warnings where available.</li>
+    <li><span class="status must">Must</span> Provide low-memory behavior: smaller segments, sequential generation, cache eviction controls, and recovery from failed segments.</li>
+    <li><span class="status should">Should</span> Offer model profiles such as <em>Fast</em>, <em>Balanced</em>, and <em>High quality</em>, subject to device capability.</li>
+  </ul>
+</section>
+
+<section id="pipeline">
+  <h2>3. End-to-end processing pipeline</h2>
+  <ol>
+    <li><strong>Import:</strong> open the EPUB locally and validate the archive and required files.</li>
+    <li><strong>Extract:</strong> read the spine in order, convert XHTML into structured blocks, normalize whitespace, and retain paragraph/chapter IDs.</li>
+    <li><strong>Normalize:</strong> expand or annotate abbreviations where useful, preserve punctuation and emphasis, and create sentence-aligned segments.</li>
+    <li><strong>Analyze:</strong> detect narration, quoted spans, dialogue tags, named entities, speaker candidates, and contextual delivery cues.</li>
+    <li><strong>Resolve characters:</strong> cluster mentions and speaker references into a consistent cast list; track aliases and pronouns with confidence scores.</li>
+    <li><strong>Review:</strong> show a cast sheet and uncertain passages; users can correct labels and choose voice assignments.</li>
+    <li><strong>Plan synthesis:</strong> assign voice, delivery, pronunciation hints, segment boundaries, and model settings.</li>
+    <li><strong>Synthesize:</strong> generate speech in manageable chunks; store audio and timing metadata locally.</li>
+    <li><strong>Assemble:</strong> normalize loudness carefully, add optional pauses between paragraphs/scenes, and write chapter boundaries and metadata.</li>
+    <li><strong>Listen/export:</strong> play from the library, resume reliably, and export supported audio formats.</li>
+  </ol>
+  <div class="callout"><strong>Important separation:</strong> use one module for deciding <em>what should be spoken and by whom</em>, and another for turning the approved text/voice/delivery plan into audio. This makes the system easier to debug, test, and improve without re-parsing the entire book.</div>
+</section>
+
+<section id="voices">
+  <h2>4. Character voices and expressive delivery</h2>
+  <h3>Voice assignment model</h3>
+  <ul>
+    <li>Start with a small, bundled or locally installable set of licensed voices.</li>
+    <li>Map each character to a stable voice profile; map non-character text to the narrator.</li>
+    <li>Allow a user to set narrator, character voices, voice gender/presentation where available, accent, pace, and expressiveness.</li>
+    <li>Use voice identity consistently. Emotion should usually be a delivery control, not a new voice identity.</li>
+    <li>Support an “unassigned” voice fallback when attribution confidence is low.</li>
+  </ul>
+  <h3>Inferring tone without overacting</h3>
+  <ul>
+    <li>Infer cues from explicit text first (e.g., “she whispered”), then use context for implicit tone.</li>
+    <li>Represent delivery as bounded controls such as pace, energy, softness, and pause length when the TTS model supports them.</li>
+    <li>Prefer neutral delivery when confidence is low; avoid making every line melodramatic.</li>
+    <li>Respect punctuation, italics, exclamation marks, and paragraph breaks, but avoid treating them as perfect emotion labels.</li>
+    <li>Allow global style controls such as “subtle”, “dramatic”, or “neutral” to scale inferred expressiveness.</li>
+  </ul>
+  <div class="callout warning"><strong>Quality reality:</strong> realistic, expressive multi-speaker synthesis is the hardest dependency. Some compact models may be fast and private but less natural, less controllable, or less consistent. Benchmark actual candidate models on target devices before locking the product promise. Avoid cloning a real person's voice without clear permission and appropriate safeguards.</div>
+</section>
+
+<section id="architecture">
+  <h2>5. Suggested local architecture</h2>
+  <pre>EPUB file picker
+      │
+      ▼
+EPUB parser ──► Structured book database (chapters / blocks / IDs)
+      │
+      ▼
+Text normalizer + sentence segmenter
+      │
+      ▼
+Dialogue &amp; character analysis ──► Cast / attribution review UI
+      │                                  │
+      └──────────────────────────────────┘
+                         ▼
+               Synthesis plan / job queue
+                         │
+                         ▼
+           Local TTS inference runtime + models
+                         │
+                         ▼
+       Segment audio cache + timing / chapter index
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+        In-app player          Export / share</pre>
+  <h3>Module boundaries</h3>
+  <table>
+    <thead><tr><th>Module</th><th>Responsibility</th><th>Key design note</th></tr></thead>
+    <tbody>
+      <tr><td>EPUB reader</td><td>Archive safety, package parsing, reading order, text extraction</td><td>Never execute embedded scripts or load remote resources.</td></tr>
+      <tr><td>Book model</td><td>Stable chapter, block, sentence, and segment IDs</td><td>Use IDs so edits do not invalidate all cached audio.</td></tr>
+      <tr><td>Language analysis</td><td>Dialogue spans, speakers, coreference, tone cues</td><td>Confidence-aware; local model or rules/heuristics fallback.</td></tr>
+      <tr><td>Voice manager</td><td>Voice inventory, character mapping, pronunciation lexicon</td><td>Persist per-book mappings and user overrides.</td></tr>
+      <tr><td>Inference engine</td><td>Local TTS model loading and chunk synthesis</td><td>Abstract the backend so models can be replaced.</td></tr>
+      <tr><td>Job coordinator</td><td>Queue, progress, retries, cancellation, background behavior</td><td>Idempotent jobs; checkpoints after each segment.</td></tr>
+      <tr><td>Audio library</td><td>Playback, chapter navigation, metadata, export</td><td>Keep audio, source text, and generated metadata linked.</td></tr>
+    </tbody>
+  </table>
+  <h3>Platform strategy</h3>
+  <p>Choose the first target platform early, because on-device ML acceleration, background execution, file access, audio export, and memory limits differ substantially. Keep parsing and orchestration portable where practical, but use platform-native inference acceleration and audio APIs. Do not promise identical performance across phones, tablets, and desktops.</p>
+  <h3>Model selection checklist</h3>
+  <ul>
+    <li>License permits the intended app distribution and offline use.</li>
+    <li>Model size, RAM peak, cold-start time, sustained throughput, battery use, and thermal behavior are measured on target devices.</li>
+    <li>Supports required languages, punctuation, long-form stability, voice consistency, and controllable prosody.</li>
+    <li>Has an inference runtime compatible with the target OS and available hardware acceleration.</li>
+    <li>Can run without sending text, telemetry containing book content, or audio to a remote service.</li>
+  </ul>
+</section>
+
+<section id="privacy">
+  <h2>6. Privacy, security, and content rights</h2>
+  <ul>
+    <li><strong>Local by default:</strong> EPUB text, analysis, voice assignments, generated audio, and listening history stay on-device.</li>
+    <li><strong>Explicit model downloads:</strong> network use is limited to user-approved model downloads, app updates, or optional non-content features.</li>
+    <li><strong>No hidden upload:</strong> do not transmit book content, excerpts, generated audio, or character analysis for analytics or crash reports.</li>
+    <li><strong>Safe EPUB parsing:</strong> treat EPUB files as untrusted archives; defend against path traversal, decompression bombs, malformed XML, and remote-resource loading.</li>
+    <li><strong>User control:</strong> let users delete source books, generated audio, caches, and model assets independently.</li>
+    <li><strong>Rights-aware messaging:</strong> remind users to use books they are authorized to process, and review copyright, DRM, and export rules for each launch market. Do not bypass DRM.</li>
+    <li><strong>Voice rights:</strong> distribute only voices/models with suitable licenses and avoid deceptive impersonation.</li>
+  </ul>
+</section>
+
+<section id="mvp">
+  <h2>7. Delivery plan</h2>
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Exit criterion</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0 — Feasibility spike</strong></td><td>Pick target platform; benchmark 2–3 local TTS candidates; test EPUB parsing and dialogue attribution on varied books.</td><td>Known model/device limits, quality baseline, and memory/runtime budget.</td></tr>
+      <tr><td><strong>1 — Read aloud</strong></td><td>EPUB import, chapter extraction, one narrator voice, local generation, playback, resume, and basic export.</td><td>A complete book can be generated offline and resumed after interruption.</td></tr>
+      <tr><td><strong>2 — Cast-aware narration</strong></td><td>Dialogue detection, cast sheet, manual speaker correction, stable character-to-voice mapping.</td><td>Users can correct an entire book's cast without editing each line individually.</td></tr>
+      <tr><td><strong>3 — Expressive narration</strong></td><td>Contextual tone cues, delivery controls, pronunciation dictionary, voice previews.</td><td>Expressiveness improves listening tests without frequent distracting misreads.</td></tr>
+      <tr><td><strong>4 — Polish and scale</strong></td><td>Background jobs, low-memory modes, model manager, robust export formats, accessibility, localization.</td><td>Reliable completion across the supported device matrix.</td></tr>
+    </tbody>
+  </table>
+  <h3>Recommended first release boundary</h3>
+  <p>Keep version one narrow: EPUB import, one high-quality narrator voice, reliable offline chapter generation, playback/resume, and a basic speaker editor. Add sophisticated character attribution and emotion only after measuring the quality of the local language-analysis and TTS models. This avoids making the entire app depend on several difficult AI problems being solved perfectly at once.</p>
+</section>
+
+<section id="acceptance">
+  <h2>8. Acceptance tests</h2>
+  <ul>
+    <li>With model assets already installed, the app imports, analyzes, generates, and plays a test EPUB in airplane mode.</li>
+    <li>Chapter order and text order match the EPUB reading order; headings and paragraph breaks are preserved according to settings.</li>
+    <li>A failed or interrupted synthesis job resumes without regenerating every completed segment.</li>
+    <li>Users can correct a speaker assignment and hear the change in regenerated audio.</li>
+    <li>Character voice assignments remain stable across chapter boundaries unless the user changes them.</li>
+    <li>Ambiguous attribution falls back gracefully rather than confidently assigning the wrong character.</li>
+    <li>Long books can be processed without loading the entire text and all audio into memory at once.</li>
+    <li>Deleting a book removes its associated text/audio/cache according to the deletion options shown to the user.</li>
+    <li>Exported chapters play in order and include useful titles and chapter metadata where the chosen format supports them.</li>
+    <li>Automated tests include malformed EPUBs, huge compressed entries, unusual punctuation, nested quotes, dialogue without tags, poetry, and multiple languages.</li>
+  </ul>
+</section>
+
+<section id="open-questions">
+  <h2>9. Decisions to make before implementation</h2>
+  <ul>
+    <li><strong>Target platform:</strong> iOS, Android, desktop, or cross-platform?</li>
+    <li><strong>Device floor:</strong> what minimum RAM, processor class, and free storage are acceptable?</li>
+    <li><strong>Languages:</strong> which languages and accents must work in the first release?</li>
+    <li><strong>Model delivery:</strong> bundled models versus optional user-downloaded model packs?</li>
+    <li><strong>Output formats:</strong> M4B with chapters, MP3, AAC, WAV, or another set? Support varies by platform and licensing.</li>
+    <li><strong>Generation speed:</strong> is slower-than-real-time generation acceptable if quality is better?</li>
+    <li><strong>Editing depth:</strong> should users edit speaker labels only, or also rewrite pronunciation and delivery cues?</li>
+    <li><strong>Business/licensing:</strong> free/open-source models only, paid licensed models, or a mixed model catalog?</li>
+  </ul>
+</section>
+
+<section id="readme">
+  <h2>10. Short README</h2>
+  <p><strong>Project:</strong> On-Device EPUB Audiobook Generator</p>
+  <p><strong>Goal:</strong> Convert an EPUB into a chapter-aware audiobook locally, with optional character-specific voices and contextual delivery.</p>
+  <p><strong>Principles:</strong> privacy first, offline after model setup, stable voice identity, user-correctable AI decisions, resumable generation, and explicit model licensing.</p>
+  <p><strong>Non-goals for the initial MVP:</strong> perfect automatic speaker attribution, real-person voice cloning, cloud processing, DRM circumvention, and guaranteed real-time generation on every device.</p>
+  <p><strong>Build order:</strong> validate model feasibility → parse EPUB safely → generate narrator audio → add resumable playback/export → add speaker attribution and voice mapping → add expressive delivery.</p>
+</section>
+</main>
+<footer>Product spec draft · Intended as a starting point for engineering discovery, not a claim that any specific model meets the requirements.</footer>
+
+</body></html>
