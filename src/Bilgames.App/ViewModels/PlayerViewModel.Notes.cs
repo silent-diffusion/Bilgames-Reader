@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Bilgames.App.Controls;
 using Bilgames.App.Services;
+using Bilgames.Core.Audio;
 using Bilgames.Core.Export;
 using Bilgames.Core.Model;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +17,7 @@ public sealed class NoteItem
     public int ChapterIndex { get; init; }
     public double Seconds { get; init; }
     public string LineId { get; init; } = "";
+    public double Fraction { get; init; }
     public string Where { get; init; } = "";
     public string Text { get; init; } = "";
     public string Note { get; init; } = "";
@@ -84,7 +86,7 @@ public sealed partial class PlayerViewModel
             string Where(int ch, double s) => s >= 0 ? $"{Title(ch)} · {AnnotationExport.Clock(s)}" : Title(ch);
             var items = _notes.Bookmarks.Select(b => (b.ChapterIndex, b.Seconds, b.CreatedUtc, Item: new NoteItem
                 {
-                    Id = b.Id, IsBookmark = true, ChapterIndex = b.ChapterIndex, Seconds = b.Seconds, LineId = b.LineId,
+                    Id = b.Id, IsBookmark = true, ChapterIndex = b.ChapterIndex, Seconds = b.Seconds, LineId = b.LineId, Fraction = b.Fraction,
                     Where = Where(b.ChapterIndex, b.Seconds), Text = b.Excerpt, Note = b.Note, Swatch = "#ECEEF1",
                 }))
                 .Concat(_notes.Highlights.Select(h => (h.ChapterIndex, h.Seconds, h.CreatedUtc, Item: new NoteItem
@@ -171,9 +173,12 @@ public sealed partial class PlayerViewModel
     private void AddBookmarkAt(string lineId, double seconds)
     {
         if (_book is null || _chapter < 0) return;
+        var anchor = TextAnchors.At(_timings, seconds);
+        // A line picked in the transcript is bookmarked at its start; otherwise where playback is in it.
+        var fraction = anchor is { } a && a.LineId == lineId ? a.Fraction : 0;
         _notes.Bookmarks.Add(new Bookmark
         {
-            ChapterIndex = _chapter, Seconds = Math.Max(0, seconds), LineId = lineId, Excerpt = Excerpt(LineText(lineId) ?? ""),
+            ChapterIndex = _chapter, LineId = lineId, Fraction = fraction, Seconds = Math.Max(0, seconds), Excerpt = Excerpt(LineText(lineId) ?? ""),
         });
         SaveNotes();
         NoteStatus = $"Bookmarked {ChapterTitle} at {AnnotationExport.Clock(seconds)}.";
@@ -265,23 +270,25 @@ public sealed partial class PlayerViewModel
     {
         if (item is null || _book is null) return;
         ShowNotes = false;
+        var seconds = ResolveSeconds(item.ChapterIndex, item.LineId, item.Fraction, item.Seconds);
         if (item.ChapterIndex == _chapter && HasAudio)
         {
-            if (item.Seconds >= 0) Seek(item.Seconds + 0.01); else JumpToLine(item.LineId);
+            if (seconds > 0 || item.Seconds >= 0) Seek(seconds + 0.01); else JumpToLine(item.LineId);
             return;
         }
-        await OpenChapterAsync(item.ChapterIndex, Math.Max(0, item.Seconds), true);
+        await OpenChapterAsync(item.ChapterIndex, seconds, true);
     }
 
     /// <summary>The global Notes page: play a book from a chapter and time, loading the book if needed.</summary>
-    public async Task PlayAtAsync(string bookId, int chapter, double seconds)
+    public async Task PlayAtAsync(string bookId, int chapter, double seconds, string? lineId = null, double fraction = 0)
     {
         if (_book?.Id != bookId)
         {
-            Load(bookId, autoplay: true, start: (chapter, seconds));
+            Load(bookId, autoplay: true, start: (chapter, seconds, lineId, fraction));
             return;
         }
         ShowNotes = false;
+        seconds = ResolveSeconds(chapter, lineId, fraction, seconds);
         if (chapter == _chapter && HasAudio) { Seek(seconds + 0.01); if (!IsPlaying) TogglePlay(); }
         else await OpenChapterAsync(chapter, seconds, true);
     }

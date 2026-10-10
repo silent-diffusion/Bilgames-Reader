@@ -1,5 +1,6 @@
 using Bilgames.App.Controls;
 using Bilgames.Core.Model;
+using Bilgames.App.Services;
 using Bilgames.Core.Tts;
 
 namespace Bilgames.App.ViewModels;
@@ -151,7 +152,7 @@ public static class ContextHelpers
             {
                 Id = m.Id,
                 Title = m.Name,
-                Detail = m.IsNarrator ? "Narration and unknown speakers" : $"{m.LineCount:N0} lines · voice {VoiceCatalog.Name(m.VoiceId)}",
+                Detail = m.IsNarrator ? "Narration and unknown speakers" : $"{m.LineCount:N0} lines · voice {VoiceResolver.NameOf(m.VoiceId, AppServices.Engine.Voices)}",
                 Color = m.Color,
                 Initials = m.Initials,
                 IsCurrent = m.Id == currentId,
@@ -169,7 +170,7 @@ public static class ContextHelpers
             .Where(m => m.Id != forMemberId && (m.IsNarrator || m.LineCount > 0 || m.UserAdded) && !string.IsNullOrEmpty(m.VoiceId))
             .GroupBy(m => m.VoiceId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.LineCount).Select(m => m.IsNarrator ? "the narrator" : m.Name).ToList());
-        return VoiceCatalog.All.Select(v =>
+        return AppServices.Engine.Voices.Select(v =>
         {
             users.TryGetValue(v.Id, out var who);
             string? usedBy = who is null ? null

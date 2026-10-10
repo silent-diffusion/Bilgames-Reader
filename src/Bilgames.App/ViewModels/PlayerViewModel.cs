@@ -93,6 +93,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     }
 
     public string? BookId => _book?.Id;
+    /// <summary>The chapter open in the player, or -1.</summary>
+    public int ChapterIndex => _chapter;
     public ObservableCollection<PlayerChapterViewModel> Chapters { get; } = new();
     public ObservableCollection<TranscriptParagraph> Transcript { get; } = new();
 
@@ -153,7 +155,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     // ---------- loading ----------
 
     /// <summary>Loads a book. With <paramref name="autoplay"/>, starts listening even if nothing is generated yet.</summary>
-    public void Load(string bookId, bool autoplay = false, (int Chapter, double Seconds)? start = null)
+    public void Load(string bookId, bool autoplay = false, (int Chapter, double Seconds, string? LineId, double Fraction)? start = null)
     {
         SavePosition();
         StopStream();
@@ -178,7 +180,12 @@ public sealed partial class PlayerViewModel : ObservableObject
         var included = _book.IncludedChapters.Select(c => c.Index).ToList();
         int chapter = _ready.Contains(pos.ChapterIndex) ? pos.ChapterIndex : _ready.FirstOrDefault(-1);
         // Opened from a bookmark or highlight: go straight there (plays as it's generated if not ready).
-        if (start is { } at && _book.Chapters.Any(c => c.Index == at.Chapter)) { _ = OpenChapterAsync(at.Chapter, at.Seconds, autoplay); _shell.RaiseLayout(); return; }
+        if (start is { } at && _book.Chapters.Any(c => c.Index == at.Chapter))
+        {
+            _ = OpenChapterAsync(at.Chapter, ResolveSeconds(at.Chapter, at.LineId, at.Fraction, at.Seconds), autoplay);
+            _shell.RaiseLayout();
+            return;
+        }
         if (chapter < 0 && autoplay)
         {
             // Nothing finished yet: listen to the chapter being generated (or the first one).
@@ -190,7 +197,7 @@ public sealed partial class PlayerViewModel : ObservableObject
             Clear();
             return;
         }
-        _ = OpenChapterAsync(chapter, chapter == pos.ChapterIndex ? pos.Seconds : 0, autoplay);
+        _ = OpenChapterAsync(chapter, chapter == pos.ChapterIndex ? ResolveSeconds(chapter, pos.LineId, pos.Fraction, pos.Seconds) : 0, autoplay);
         _shell.RaiseLayout();
     }
 
@@ -301,6 +308,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         UpdateTranscript(force: true);
         BuildChapterList();
         SavePosition(force: true);
+        AppServices.Jobs.ListeningMoved(_book.Id, index);
     }
 
     /// <summary>Plays a chapter that isn't finished: generation is pointed at it and chunks play as they land.</summary>
@@ -343,6 +351,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         PumpStream();
         UpdateClock();
         BuildChapterList();
+        SavePosition(force: true);
+        AppServices.Jobs.ListeningMoved(_book!.Id, index);
     }
 
     /// <summary>Adds any newly generated paragraphs to the playlist; resumes if playback was waiting.</summary>
@@ -591,7 +601,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         SpeakerName = member?.Name ?? "Narrator";
         SpeakerInitials = member?.Initials ?? "N";
         SpeakerColor = member?.Color ?? VoiceCatalog.NarratorColor;
-        SpeakerLabel = $"{SpeakerName} · voice {VoiceCatalog.Name(member?.VoiceId ?? VoiceCatalog.DefaultNarrator)}";
+        SpeakerLabel = $"{SpeakerName} · voice {VoiceResolver.NameOf(member?.VoiceId ?? VoiceCatalog.DefaultNarrator, AppServices.Engine.Voices)}";
         MiniSubtitle = $"{ChapterTitle} · {(member?.IsNarrator != false ? "Narrator" : SpeakerName)} speaking";
     }
 
@@ -633,6 +643,18 @@ public sealed partial class PlayerViewModel : ObservableObject
         else { IsPlaying = false; SavePosition(force: true); }
     }
 
+    /// <summary>
+    /// Seconds into a chapter's current audio for a text anchor. The audio may have been re-timed since
+    /// the anchor was saved (another quality or voice), so the line decides; the cached seconds are
+    /// used only when the line isn't in the timings (e.g. still generating).
+    /// </summary>
+    private double ResolveSeconds(int chapter, string? lineId, double fraction, double cached)
+    {
+        if (string.IsNullOrEmpty(lineId) || _book is null) return Math.Max(0, cached);
+        var timings = chapter == _chapter && _timings.Count > 0 ? _timings : AppServices.Store.LoadChapterAudio(_book.Id, chapter)?.Timings;
+        return timings is null ? Math.Max(0, cached) : TextAnchors.SecondsOf(timings, lineId, fraction) ?? Math.Max(0, cached);
+    }
+
     public void SavePosition(bool force = false)
     {
         if (_book is null || _chapter < 0) return;
@@ -640,7 +662,12 @@ public sealed partial class PlayerViewModel : ObservableObject
         _lastSave = DateTime.UtcNow;
         var b = AppServices.Store.LoadBook(_book.Id);
         if (b is null) return;
-        b.Position = new PlaybackPosition { ChapterIndex = _chapter, Seconds = Position, UpdatedUtc = DateTime.UtcNow };
+        var anchor = TextAnchors.At(_timings, Position);
+        b.Position = new PlaybackPosition
+        {
+            ChapterIndex = _chapter, LineId = anchor?.LineId ?? "", Fraction = anchor?.Fraction ?? 0,
+            Seconds = Position, UpdatedUtc = DateTime.UtcNow,
+        };
         AppServices.Store.SaveBook(b);
     }
 

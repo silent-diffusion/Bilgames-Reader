@@ -41,7 +41,7 @@ public sealed partial class CastMemberViewModel : ObservableObject
     public void Update(CastMember m)
     {
         VoiceId = m.VoiceId;
-        VoiceName = VoiceCatalog.Name(m.VoiceId);
+        VoiceName = VoiceResolver.NameOf(m.VoiceId, AppServices.Engine.Voices);
         LineCount = m.LineCount;
         if (m.IsNarrator)
         {
@@ -163,7 +163,7 @@ public sealed partial class CastViewModel : ObservableObject
         CastMember member;
         try { member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name, gender)); }
         catch (Exception ex) { AppServices.Log($"Add speaker failed: {ex}"); CastStatus = $"Couldn't add {name} ({ex.Message}). Please try again."; return null; }
-        CastStatus = $"Added {member.Name} with the voice {VoiceCatalog.Name(member.VoiceId)}.";
+        CastStatus = $"Added {member.Name} with the voice {VoiceResolver.NameOf(member.VoiceId, AppServices.Engine.Voices)}.";
         _book.Changed();
         return member.Id;
     }
@@ -230,7 +230,7 @@ public sealed partial class CastViewModel : ObservableObject
         if (_book.BookId is not { } id) return;
         AppServices.Books.SetVoice(id, member.Id, voiceId);
         member.VoiceId = voiceId;
-        member.VoiceName = VoiceCatalog.Name(voiceId);
+        member.VoiceName = VoiceResolver.NameOf(voiceId, AppServices.Engine.Voices);
         _book.Changed();
     }
 

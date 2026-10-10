@@ -11,6 +11,7 @@ public static class Pickers
     {
         var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, ViewMode = PickerViewMode.List };
         picker.FileTypeFilter.Add(".epub");
+        picker.FileTypeFilter.Add(Bilgames.Core.Storage.LibraryBackup.PackageExtension);
         WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
         var file = await picker.PickSingleFileAsync();
         return file?.Path;

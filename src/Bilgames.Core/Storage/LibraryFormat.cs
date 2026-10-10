@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Bilgames.Core.Audio;
+using Bilgames.Core.Model;
 
 namespace Bilgames.Core.Storage;
 
@@ -32,12 +34,63 @@ public sealed record FormatCheck(int FoundVersion, int CurrentVersion, string? B
 /// </summary>
 public static class LibraryFormat
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     private const string ManifestName = "library.json";
     private const int KeepUpgradeBackups = 3;
 
     /// <summary>Upgrade steps, oldest first. Each one must be safe to re-run on a book it already upgraded.</summary>
-    public static readonly IReadOnlyList<Migration> Migrations = Array.Empty<Migration>();
+    public static readonly IReadOnlyList<Migration> Migrations = new[]
+    {
+        new Migration(2, "Anchor the listening position and bookmarks to the text", Book: AnchorToText),
+    };
+
+    /// <summary>
+    /// v1 → v2: the listening position and bookmarks gain a line and a fraction through it, worked out
+    /// from the chapter's timing index where its audio exists. Seconds stay as the fallback.
+    /// </summary>
+    internal static void AnchorToText(string bookDir)
+    {
+        var timings = new Dictionary<int, List<SegmentTiming>?>();
+        List<SegmentTiming>? TimingsFor(int chapter)
+        {
+            if (!timings.TryGetValue(chapter, out var t))
+                timings[chapter] = t = LibraryStore.Read<ChapterAudio>(Path.Combine(bookDir, "audio", $"{chapter}.json"))?.Timings;
+            return t;
+        }
+
+        var bookPath = Path.Combine(bookDir, "book.json");
+        if (LibraryStore.Read<BookRecord>(bookPath) is { } book && book.Position.ChapterIndex >= 0 && book.Position.LineId.Length == 0
+            && TimingsFor(book.Position.ChapterIndex) is { } bt && TextAnchors.At(bt, book.Position.Seconds) is { } at)
+        {
+            book.Position.LineId = at.LineId;
+            book.Position.Fraction = at.Fraction;
+            LibraryStore.Write(bookPath, book);
+        }
+
+        var notesPath = Path.Combine(bookDir, "annotations.json");
+        if (LibraryStore.Read<AnnotationSet>(notesPath) is not { } notes) return;
+        bool changed = false;
+        foreach (var mark in notes.Bookmarks)
+        {
+            if (TimingsFor(mark.ChapterIndex) is not { } mt) continue;
+            // Bookmarks already knew their line; place them within it. Older ones without a line get one.
+            if (mark.LineId.Length > 0)
+            {
+                if (TextAnchors.SecondsOf(mt, mark.LineId, 0) is { } start && TextAnchors.SecondsOf(mt, mark.LineId, 1) is { } end && end > start)
+                {
+                    mark.Fraction = Math.Round(Math.Clamp((mark.Seconds - start) / (end - start), 0, 1), 4);
+                    changed = true;
+                }
+            }
+            else if (TextAnchors.At(mt, mark.Seconds) is { } a)
+            {
+                mark.LineId = a.LineId;
+                mark.Fraction = a.Fraction;
+                changed = true;
+            }
+        }
+        if (changed) LibraryStore.Write(notesPath, notes);
+    }
 
     public static FormatCheck Prepare(LibraryStore store, string appVersion) =>
         Prepare(store, appVersion, CurrentVersion, Migrations);

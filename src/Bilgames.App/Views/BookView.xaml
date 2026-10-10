@@ -41,6 +41,7 @@
                         <c:StrokeIcon Data="M5 12h.01M12 12h.01M19 12h.01" StrokeWidth="3" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuFlyoutItem Text="Export book file…" Command="{x:Bind Vm.ExportBookFileCommand}" />
                                 <MenuFlyoutItem Text="Show files" Command="{x:Bind Vm.RevealFolderCommand}" />
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="Delete…" Command="{x:Bind Vm.DeleteCommand}" />

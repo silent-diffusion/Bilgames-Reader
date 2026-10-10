@@ -1,5 +1,6 @@
 using Bilgames.App.Services;
 using Bilgames.Core.Audio;
+using Bilgames.Core.Jobs;
 using Bilgames.Core.Model;
 using CommunityToolkit.Mvvm.Input;
 
@@ -19,6 +20,7 @@ public sealed partial class PlayerViewModel
         }
         if (_book is null) return;
         RefreshReady();
+        if (!await RegenerateRemovedAsync()) return;
         var included = _book.IncludedChapters.ToList();
         if (_ready.Count == 0)
         {
@@ -76,6 +78,41 @@ public sealed partial class PlayerViewModel
             ExportPercent = 0;
             ExportLabel = "Export";
         }
+    }
+
+    /// <summary>
+    /// Chapters "Keep finished audio" removed to save space have to exist for an audiobook file:
+    /// offers to make them again first, and waits. False when the user declines or stops.
+    /// </summary>
+    private async Task<bool> RegenerateRemovedAsync()
+    {
+        var book = AppServices.Store.LoadBook(_book!.Id);
+        if (book is null) return false;
+        var removed = book.IncludedChapters.Select(c => c.Index).Where(i => book.Generation.Removed.Contains(i) && !_ready.Contains(i)).ToList();
+        if (removed.Count == 0) return true;
+        var go = await Dialogs.ConfirmAsync("Some chapters need generating again",
+            $"{removed.Count} {(removed.Count == 1 ? "chapter's" : "chapters'")} audio was removed to save space (Settings › Storage › Keep finished audio). They'll be generated again first, then the audiobook is exported.",
+            $"Generate {removed.Count} and export");
+        if (!go) return false;
+
+        AppServices.Jobs.Start(book.Id, includeRemoved: true);
+        var done = await Dialogs.RunWithProgressAsync("Preparing the export", $"Generating {removed.Count} removed {(removed.Count == 1 ? "chapter" : "chapters")} again…", async (progress, ct) =>
+        {
+            while (true)
+            {
+                ct.ThrowIfCancellationRequested();
+                var now = AppServices.Store.LoadBook(book.Id);
+                if (now is null) return;
+                var snapshot = AppServices.Jobs.Snapshot(now);
+                var wanted = snapshot.Chapters.Where(c => removed.Contains(c.Index)).ToList();
+                progress.Report(100.0 * wanted.Sum(c => c.Status == ChapterStatus.Ready ? 1 : c.Fraction) / Math.Max(1, wanted.Count));
+                if (wanted.All(c => c.Status == ChapterStatus.Ready)) return;
+                if (now.Generation.State is JobState.Failed or JobState.Paused or JobState.Done) throw new InvalidOperationException(now.Generation.Error ?? "Generation stopped before those chapters were ready.");
+                await Task.Delay(1500, ct);
+            }
+        });
+        RefreshReady();
+        return done;
     }
 
     private static async Task Export(BookRecord book, List<int> chapters, string dest, Action<double> progress, CancellationToken ct)

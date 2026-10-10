@@ -51,5 +51,5 @@ public partial class App : Application
     }
 
     private static List<string> EpubArgs(IEnumerable<string> args) =>
-        args.Where(a => a.EndsWith(".epub", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).ToList();
+        args.Where(a => (a.EndsWith(".epub", StringComparison.OrdinalIgnoreCase) || a.EndsWith(Core.Storage.LibraryBackup.PackageExtension, StringComparison.OrdinalIgnoreCase)) && File.Exists(a)).ToList();
 }

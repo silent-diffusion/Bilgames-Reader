@@ -4,6 +4,7 @@ using Bilgames.App.Services;
 using Bilgames.Core.Epub;
 using Bilgames.Core.Jobs;
 using Bilgames.Core.Model;
+using Bilgames.Core.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -262,6 +263,13 @@ public sealed partial class LibraryViewModel : ObservableObject
 
     public async Task ImportPathAsync(string path)
     {
+        // A book file from another PC or device (or a whole backup) rather than an EPUB.
+        if (path.EndsWith(LibraryBackup.PackageExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            await LibraryTransfer.ImportPackageAsync(_shell, path);
+            RefreshSummary();
+            return;
+        }
         IsImporting = true;
         ImportStatus = "Reading " + Path.GetFileName(path) + "…";
         try

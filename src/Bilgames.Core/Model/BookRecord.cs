@@ -44,6 +44,10 @@ public sealed class PlaybackPosition
     [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
 
     public int ChapterIndex { get; set; } = -1;
+    /// <summary>The line being read and how far through it (0..1): the real position, which survives re-timed audio.</summary>
+    public string LineId { get; set; } = "";
+    public double Fraction { get; set; }
+    /// <summary>Cached seconds into the chapter's current audio; used when the line can't be found.</summary>
     public double Seconds { get; set; }
     public DateTime UpdatedUtc { get; set; }
 }

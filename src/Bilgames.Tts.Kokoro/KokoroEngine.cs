@@ -40,6 +40,9 @@ public static class KokoroModels
 /// </summary>
 public sealed class KokoroEngine : ITtsEngine, IDisposable
 {
+    /// <summary>The English Kokoro v1.0 voices.</summary>
+    public IReadOnlyList<VoiceInfo> Voices => VoiceCatalog.All;
+
     public static readonly TimeSpan GpuRetryInterval = TimeSpan.FromSeconds(20);
 
     private readonly string _modelsDir;

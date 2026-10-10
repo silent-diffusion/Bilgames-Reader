@@ -95,7 +95,10 @@ public sealed partial class GenerateViewModel : ObservableObject
         Percent = Math.Round(p.Fraction * 100);
         PercentText = $"{Percent:0}%";
         IsRunning = p.State is JobState.Running or JobState.Queued;
-        IsComplete = p.Chapters.Count > 0 && p.Chapters.All(c => c.Status == ChapterStatus.Ready);
+        // With "Keep finished audio" keeping less than all, done means the kept chapters are ready.
+        var policy = AppServices.Settings.KeepFinishedAudio;
+        var keep = AudioRetention.Wanted(b, policy).ToHashSet();
+        IsComplete = p.Chapters.Count > 0 && p.Chapters.All(c => c.Status == ChapterStatus.Ready || (policy != KeepAudio.All && !keep.Contains(c.Index)));
         TimeLeft = IsComplete ? "Complete" : p.Remaining is { } r && r > TimeSpan.Zero ? $"about {Ui.Duration(r)} left" : "";
         int current = p.Current is { } cur ? p.Chapters.IndexOf(cur) + 1 : p.ReadyChapters;
         ChapterLabel = p.Chapters.Count == 0 ? "No chapters selected" : $"Chapter {Math.Max(1, Math.Min(current, p.Chapters.Count))} of {p.Chapters.Count}";
@@ -135,7 +138,7 @@ public sealed partial class GenerateViewModel : ObservableObject
         {
             var c = p.Chapters[i];
             int j = i;
-            if (c.Status is ChapterStatus.Ready or ChapterStatus.Queued or ChapterStatus.Changed)
+            if (c.Status is ChapterStatus.Ready or ChapterStatus.Queued or ChapterStatus.Changed or ChapterStatus.Removed)
             {
                 // The first queued chapter after the current one gets its own row, as in the design.
                 bool single = c.Status == ChapterStatus.Queued && !firstQueuedShown && p.Current is not null;
@@ -150,6 +153,7 @@ public sealed partial class GenerateViewModel : ObservableObject
                 ChapterStatus.Generating => new ChapterGroupViewModel { Name = name, State = $"Generating · {Math.Round(c.Fraction * 100)}%", Mark = "•", DotBg = accent, DotFg = "#1A1205" },
                 ChapterStatus.Changed => new ChapterGroupViewModel { Name = name, State = "Speakers changed · will update", Mark = "↻", DotBg = "#3A2A12", DotFg = "#F0C27A" },
                 ChapterStatus.Failed => new ChapterGroupViewModel { Name = name, State = "Failed · will retry", Mark = "!", DotBg = "#3A2A12", DotFg = "#F0C27A" },
+                ChapterStatus.Removed => new ChapterGroupViewModel { Name = name, State = "Removed to save space · made again when you get there", Mark = "–", DotBg = "#232934", DotFg = "#9AA3AF", Foreground = "#9AA3AF" },
                 _ => new ChapterGroupViewModel { Name = name, State = "Queued", Mark = "", DotBg = "#232934", DotFg = "#9AA3AF", Foreground = "#9AA3AF" },
             });
             i = j + 1;

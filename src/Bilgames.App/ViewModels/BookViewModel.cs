@@ -30,6 +30,13 @@ public sealed partial class BookViewModel : ObservableObject
     public BookRecord? Record { get; private set; }
     public string? BookId => Record?.Id;
 
+    /// <summary>Saves this book as a .bilgames file to open on another PC or device.</summary>
+    [RelayCommand]
+    private async Task ExportBookFile()
+    {
+        if (BookId is { } id) await LibraryTransfer.ExportBookAsync(id);
+    }
+
     [ObservableProperty] private bool _hasBook;
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _author = "";

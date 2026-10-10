@@ -81,30 +81,10 @@ public sealed partial class SettingsViewModel
             replace = pick == 1;
         }
 
-        var replacing = replace ? existing.Select(b => b.Id).ToHashSet() : new HashSet<string>();
+        var existingIds = existing.Select(b => b.Id).ToHashSet();
         await RunBackupTask("Restoring", async (progress, ct) =>
         {
-            // Books being replaced must not be playing or generating while their folders are swapped.
-            var shell = _shell;
-            var reopenPlayer = shell.Player.BookId is { } p && replacing.Contains(p) ? p : null;
-            if (reopenPlayer is not null) shell.Player.Unload();
-            foreach (var id in replacing) AppServices.Jobs.Pause(id);
-
-            var result = await Task.Run(() =>
-            {
-                if (replacing.Count > 0)
-                {
-                    // Keep today's version of everything before anything is replaced.
-                    var safety = Path.Combine(AppServices.Store.BackupsDir, $"pre-restore-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
-                    LibraryBackup.Create(AppServices.Store, safety, new BackupOptions(IncludeAudio: false, IncludeSources: false), AppServices.AppVersion, null, ct);
-                }
-                return LibraryBackup.Restore(AppServices.Store, path, replace, null, progress, ct);
-            }, ct);
-
-            shell.Library.Load();
-            shell.Notes.Refresh();
-            if (shell.Book.BookId is { } open && replacing.Contains(open)) shell.Book.Load(open);
-            if (reopenPlayer is not null) shell.Player.Load(reopenPlayer, autoplay: false);
+            var result = await LibraryTransfer.RestoreAsync(_shell, path, replace, existingIds, progress, ct);
             var parts = new List<string>();
             if (result.Added > 0) parts.Add($"added {result.Added}");
             if (result.Replaced > 0) parts.Add($"replaced {result.Replaced}");

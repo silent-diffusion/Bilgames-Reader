@@ -16,6 +16,8 @@ public enum ChapterStatus
     /// <summary>Audio exists but speakers or voices changed since; only changed segments regenerate.</summary>
     Changed,
     Failed,
+    /// <summary>Its audio was removed to save space (Keep finished audio); made again when it's needed.</summary>
+    Removed,
 }
 
 public sealed class ChapterProgress
@@ -64,6 +66,8 @@ public sealed class GenerationCoordinator : IDisposable
     private CancellationTokenSource? _current;
     private string? _currentBook;
     private readonly HashSet<string> _queued = new();
+    // Books generating every chapter regardless of "Keep finished audio" (until their job ends).
+    private readonly HashSet<string> _forceAll = new();
     private readonly Task _worker;
 
     // Rolling synthesis speed, seconds of compute per character, for time-left estimates.
@@ -106,11 +110,13 @@ public sealed class GenerationCoordinator : IDisposable
             Enqueue(b.Id);
     }
 
-    public void Start(string bookId)
+    /// <param name="includeRemoved">Also make chapters "Keep finished audio" removed (e.g. before exporting the whole book).</param>
+    public void Start(string bookId, bool includeRemoved = false)
     {
         var book = _store.LoadBook(bookId);
         if (book is null) return;
-        book.Generation = new GenerationState { State = JobState.Queued, StartedUtc = DateTime.UtcNow };
+        if (includeRemoved) lock (_gate) _forceAll.Add(bookId);
+        book.Generation = new GenerationState { State = JobState.Queued, StartedUtc = DateTime.UtcNow, Removed = book.Generation.Removed };
         _store.SaveBook(book);
         Enqueue(bookId);
         Report(Snapshot(book, JobState.Queued));
@@ -150,7 +156,8 @@ public sealed class GenerationCoordinator : IDisposable
             var plan = PlanFor(book, info.Index, cast, modelId);
             var audio = _store.LoadChapterAudio(book.Id, info.Index);
             int cached = plan.Segments.Count(s => File.Exists(_store.SegmentPath(book.Id, s.Hash)));
-            var status = audio is null ? ChapterStatus.Queued : audio.PlanHash == plan.Hash ? ChapterStatus.Ready : ChapterStatus.Changed;
+            var status = audio is null ? (book.Generation.Removed.Contains(info.Index) ? ChapterStatus.Removed : ChapterStatus.Queued)
+                       : audio.PlanHash == plan.Hash ? ChapterStatus.Ready : ChapterStatus.Changed;
             progress.TotalSegments += plan.Segments.Count;
             progress.DoneSegments += status == ChapterStatus.Ready ? plan.Segments.Count : cached;
             progress.Chapters.Add(new ChapterProgress
@@ -170,7 +177,7 @@ public sealed class GenerationCoordinator : IDisposable
     {
         var text = _store.LoadChapterText(book.Id, chapterIndex);
         var analysis = _store.LoadAnalysis(book.Id, chapterIndex);
-        return SynthesisPlanner.Plan(book, text, analysis, cast, modelId ?? _engine.ModelIdFor(book.Quality));
+        return SynthesisPlanner.Plan(book, text, analysis, cast, modelId ?? _engine.ModelIdFor(book.Quality), _engine.Voices);
     }
 
     private async Task WorkLoop()
@@ -275,6 +282,7 @@ public sealed class GenerationCoordinator : IDisposable
 
                 await AssembleChapter(book, plan, ct);
                 if (_priority.TryGetValue(bookId, out var done) && done == chProgress.Index) _priority.TryRemove(bookId, out _);
+                MarkMadeAgain(bookId, chProgress.Index);
                 chProgress.Status = ChapterStatus.Ready;
                 chProgress.Fraction = 1;
                 if (!_settings().KeepSegmentCache) DeleteSegments(bookId, plan, progress);
@@ -291,6 +299,7 @@ public sealed class GenerationCoordinator : IDisposable
             }
         }
 
+        lock (_gate) _forceAll.Remove(bookId);
         book = _store.LoadBook(bookId) ?? book;
         bool anyFailed = progress.Chapters.Any(c => c.Status == ChapterStatus.Failed);
         book.Generation.State = anyFailed ? JobState.Failed : JobState.Done;
@@ -301,15 +310,55 @@ public sealed class GenerationCoordinator : IDisposable
         Report(progress);
     }
 
-    /// <summary>The requested chapter first (if any), then the next unfinished chapter in reading order.</summary>
+    /// <summary>
+    /// The requested chapter first (if any), then the next unfinished chapter in reading order, among
+    /// the chapters "Keep finished audio" keeps (all of them by default).
+    /// </summary>
     private ChapterProgress? NextChapter(string bookId, GenerationProgress progress, HashSet<int> attempted)
     {
-        bool Pending(ChapterProgress c) => c.Status is not ChapterStatus.Ready && !attempted.Contains(c.Index);
+        var policy = _settings().KeepFinishedAudio;
+        bool all;
+        lock (_gate) all = policy == KeepAudio.All || _forceAll.Contains(bookId);
+        var keep = all ? null : _store.LoadBook(bookId) is { } b ? AudioRetention.Wanted(b, policy).ToHashSet() : null;
+        bool Pending(ChapterProgress c) => c.Status is not ChapterStatus.Ready && !attempted.Contains(c.Index)
+                                           && (keep is null || keep.Contains(c.Index) || (_priority.TryGetValue(bookId, out var w) && w == c.Index));
         ChapterProgress? next = null;
         if (_priority.TryGetValue(bookId, out var wanted)) next = progress.Chapters.FirstOrDefault(c => c.Index == wanted && Pending(c));
         next ??= progress.Chapters.FirstOrDefault(Pending);
         if (next is not null) attempted.Add(next.Index);
         return next;
+    }
+
+    /// <summary>A removed chapter has been made again: it's no longer "removed".</summary>
+    private void MarkMadeAgain(string bookId, int chapter)
+    {
+        lock (_store.EditLock(bookId))
+        {
+            if (_store.LoadBook(bookId) is { } b && b.Generation.Removed.Remove(chapter)) _store.SaveBook(b);
+        }
+    }
+
+    /// <summary>
+    /// The listener moved to another chapter. With "Keep finished audio" set to keep less than all,
+    /// chapters now out of range are removed and the ones coming up are generated. Does nothing with All.
+    /// </summary>
+    public void ListeningMoved(string bookId, int playingChapter)
+    {
+        var policy = _settings().KeepFinishedAudio;
+        if (policy == KeepAudio.All) return;
+        lock (_gate) if (_forceAll.Contains(bookId)) return; // e.g. making every chapter for an export
+        AudioRetention.Evict(_store, bookId, policy, playingChapter);
+        var book = _store.LoadBook(bookId);
+        if (book is null || book.Generation.State == JobState.Paused) return;
+        var snapshot = Snapshot(book);
+        var keep = AudioRetention.Wanted(book, policy).ToHashSet();
+        if (!snapshot.Chapters.Any(c => keep.Contains(c.Index) && c.Status != ChapterStatus.Ready)) return;
+        lock (_gate)
+        {
+            if (_currentBook == bookId) { _requeue = bookId; return; } // picks the new window up when this pass ends
+            if (_queued.Contains(bookId)) return;
+        }
+        Start(bookId);
     }
 
     /// <summary>

@@ -28,6 +28,8 @@ public sealed class GlobalNoteItem
     public bool IsBookmark { get; init; }
     public int ChapterIndex { get; init; }
     public double Seconds { get; init; }
+    public string LineId { get; init; } = "";
+    public double Fraction { get; init; }
     public string Where { get; init; } = "";
     public string Text { get; init; } = "";
     public string Note { get; init; } = "";
@@ -101,14 +103,14 @@ public sealed partial class NotesViewModel : ObservableObject
                 _items.Add(new GlobalNoteItem
                 {
                     Id = b.Id, BookId = book.Id, BookTitle = book.Title, Author = book.Author, CoverColor = book.CoverColor, CoverPath = cover,
-                    IsBookmark = true, ChapterIndex = b.ChapterIndex, Seconds = b.Seconds, Where = Where(b.ChapterIndex, b.Seconds),
+                    IsBookmark = true, ChapterIndex = b.ChapterIndex, Seconds = b.Seconds, LineId = b.LineId, Fraction = b.Fraction, Where = Where(b.ChapterIndex, b.Seconds),
                     Text = b.Excerpt, Note = b.Note, CreatedUtc = b.CreatedUtc,
                 });
             foreach (var h in set.Highlights)
                 _items.Add(new GlobalNoteItem
                 {
                     Id = h.Id, BookId = book.Id, BookTitle = book.Title, Author = book.Author, CoverColor = book.CoverColor, CoverPath = cover,
-                    ChapterIndex = h.ChapterIndex, Seconds = h.Seconds, Where = Where(h.ChapterIndex, h.Seconds),
+                    ChapterIndex = h.ChapterIndex, Seconds = h.Seconds, LineId = h.StartLineId, Where = Where(h.ChapterIndex, h.Seconds),
                     Text = h.Text, Note = h.Note, Swatch = HighlightPalette.Swatch(h.Color), CreatedUtc = h.CreatedUtc,
                 });
         }
@@ -159,7 +161,7 @@ public sealed partial class NotesViewModel : ObservableObject
     /// <summary>Plays from the bookmark or highlight, opening its book in the player.</summary>
     public async Task OpenAsync(GlobalNoteItem item)
     {
-        await _shell.Player.PlayAtAsync(item.BookId, item.ChapterIndex, Math.Max(0, item.Seconds));
+        await _shell.Player.PlayAtAsync(item.BookId, item.ChapterIndex, Math.Max(0, item.Seconds), item.LineId, item.Fraction);
         if (!_shell.IsExpanded) _shell.GoListening();
     }
 

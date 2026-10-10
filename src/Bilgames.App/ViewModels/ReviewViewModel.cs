@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Bilgames.App.Services;
+using Bilgames.Core.Tts;
 using Bilgames.Core;
 using Bilgames.Core.Model;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -242,7 +243,7 @@ public sealed partial class ReviewViewModel : ObservableObject
         AppServices.Log($"Review: added speaker {member.Name} ({member.Id}) to {id}");
         _cast = AppServices.Store.LoadCast(id);
         PickOther(member.Id);
-        Status = $"Added {member.Name} (voice {Bilgames.Core.Tts.VoiceCatalog.Name(member.VoiceId)}). Confirm to give them this line.";
+        Status = $"Added {member.Name} (voice {VoiceResolver.NameOf(member.VoiceId, AppServices.Engine.Voices)}). Confirm to give them this line.";
     }
 
     public void PickOther(string speakerId)

@@ -140,6 +140,29 @@ public sealed class StorageSafetyTests : IDisposable
     }
 
     [Fact]
+    public void BookPackageHoldsOneBookAndKeepsReusableAudio()
+    {
+        SaveBook("a", "First"); SaveBook("b", "Second");
+        var file = Path.Combine(_root, "out", "a" + LibraryBackup.PackageExtension);
+        LibraryBackup.Create(_store, file, new BackupOptions(IncludeAudio: false), "1.0.0", onlyBookIds: new[] { "a" });
+        Assert.Equal("First", Assert.Single(LibraryBackup.Inspect(file).Books).Title);
+
+        // The other device already has this book with generated audio and cached segments.
+        var other = new LibraryStore(Path.Combine(_root, "other"));
+        LibraryBackup.Restore(other, file, replaceExisting: false);
+        var audioDir = Path.Combine(other.BookDir("a"), "audio");
+        var segDir = Path.Combine(other.BookDir("a"), "segments");
+        Directory.CreateDirectory(audioDir); File.WriteAllText(Path.Combine(audioDir, "0.json"), "{}");
+        Directory.CreateDirectory(segDir); File.WriteAllText(Path.Combine(segDir, "abc.wav"), "pcm");
+
+        // Bringing the book over again (edited elsewhere, no audio) keeps what can be reused here.
+        Assert.Equal(new RestoreResult(0, 1, 0), LibraryBackup.Restore(other, file, replaceExisting: true));
+        Assert.True(File.Exists(Path.Combine(audioDir, "0.json")));
+        Assert.True(File.Exists(Path.Combine(segDir, "abc.wav")));
+        Assert.Null(other.LoadBook("b"));
+    }
+
+    [Fact]
     public void BookBackedUpWhileGeneratingIsRestoredPaused()
     {
         var book = SaveBook("bk");

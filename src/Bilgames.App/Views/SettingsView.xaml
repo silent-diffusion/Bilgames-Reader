@@ -212,6 +212,21 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsOn="{x:Bind Vm.KeepSegmentCache, Mode=TwoWay}" OnContent="" OffContent="" MinWidth="0" AutomationProperties.Name="Keep segment cache" />
                     </Grid>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Keep finished audio" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="Keeping less saves space: removed chapters are made again when you get to them (exporting makes them first). Text, speakers and notes are always kept." Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectedIndex="{x:Bind Vm.KeepAudioIndex, Mode=TwoWay}" AutomationProperties.Name="Keep finished audio">
+                            <ComboBoxItem Content="All chapters" />
+                            <ComboBoxItem Content="Recent chapters" />
+                            <ComboBoxItem Content="Until listened" />
+                        </ComboBox>
+                    </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Clear segment caches…" Command="{x:Bind Vm.ClearCachesCommand}" />
                         <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Open data folder" Command="{x:Bind Vm.OpenDataFolderCommand}" />

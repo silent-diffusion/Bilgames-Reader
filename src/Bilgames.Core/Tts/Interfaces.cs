@@ -12,6 +12,9 @@ public interface ITtsEngine
 
     bool IsInstalled(QualityProfile profile);
 
+    /// <summary>The voices this engine offers, best first. Saved voices it lacks are played by a stand-in (see VoiceResolver).</summary>
+    IReadOnlyList<VoiceInfo> Voices { get; }
+
     /// <summary>Synthesizes one segment to 16-bit mono PCM at <see cref="SampleRate"/>.</summary>
     Task<short[]> SynthesizeAsync(string text, string voiceId, float speed, QualityProfile profile, CancellationToken ct);
 

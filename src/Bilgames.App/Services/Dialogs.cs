@@ -84,6 +84,55 @@ public static class Dialogs
         return result == ContentDialogResult.Primary ? box.Text.Trim() : null;
     }
 
+    /// <summary>
+    /// Runs <paramref name="work"/> behind a dialog with a progress bar and a Stop button. Returns
+    /// true when it finished, false when stopped. Exceptions from the work are rethrown.
+    /// </summary>
+    public static async Task<bool> RunWithProgressAsync(string title, string body, Func<IProgress<double>, CancellationToken, Task> work)
+    {
+        using var cts = new CancellationTokenSource();
+        var bar = new ProgressBar { Maximum = 100, Height = 6, MinHeight = 6, CornerRadius = new CornerRadius(3) };
+        var label = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap, FontSize = 14, LineHeight = 21 };
+        var percent = new TextBlock { Text = "0%", FontSize = 13, Foreground = (Brush)Application.Current.Resources["TextMutedBrush"] };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(bar, title);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetLiveSetting(percent, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = new StackPanel { Spacing = 12, Width = 420, Children = { label, bar, percent } },
+            CloseButtonText = "Stop",
+            XamlRoot = Root,
+            RequestedTheme = Controls.Palette.ElementTheme,
+            Background = (Brush)Application.Current.Resources["SurfaceBrush"],
+        };
+        dialog.CloseButtonClick += (_, _) => cts.Cancel();
+        int shown = -1;
+        var progress = new Progress<double>(p =>
+        {
+            var whole = (int)Math.Clamp(p, 0, 100);
+            if (whole <= shown) return;
+            shown = whole;
+            bar.Value = whole;
+            percent.Text = $"{whole}%";
+        });
+
+        var showing = Root is null || _open ? Task.CompletedTask : Show(dialog);
+        try
+        {
+            await Task.Run(() => work(progress, cts.Token));
+            return true;
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            return false;
+        }
+        finally
+        {
+            dialog.Hide();
+            await showing;
+        }
+    }
+
     private static ContentDialog Build(string title, string body) => new()
     {
         Title = title,

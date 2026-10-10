@@ -37,12 +37,14 @@ public static partial class SynthesisPlanner
     public const int MaxSegmentChars = 280;
     public const int FastSegmentChars = 420;
 
-    public static ChapterPlan Plan(BookRecord book, ChapterText chapter, ChapterAnalysis? analysis, CastSheet cast, string modelId)
+    /// <param name="voices">The active engine's voices; a cast voice it lacks is replaced by the closest one it has. Null keeps every voice as saved.</param>
+    public static ChapterPlan Plan(BookRecord book, ChapterText chapter, ChapterAnalysis? analysis, CastSheet cast, string modelId, IReadOnlyList<Tts.VoiceInfo>? voices = null)
     {
         var opts = book.Options;
         int maxChars = book.Quality == QualityProfile.Fast ? FastSegmentChars : MaxSegmentChars;
         var narrator = cast.Members.FirstOrDefault(m => m.IsNarrator)?.VoiceId ?? Tts.VoiceCatalog.DefaultNarrator;
-        string VoiceOf(string speakerId) => cast.Find(speakerId)?.VoiceId is { Length: > 0 } v ? v : narrator;
+        string Playable(string voice, Gender gender) => voices is null ? voice : Tts.VoiceResolver.Resolve(voice, voices, gender);
+        string VoiceOf(string speakerId) => cast.Find(speakerId) is { VoiceId.Length: > 0 } m ? Playable(m.VoiceId, m.Gender) : Playable(narrator, Gender.Unknown);
 
         var linesByBlock = analysis?.Lines.GroupBy(l => l.BlockId).ToDictionary(g => g.Key, g => g.ToList());
         var notes = chapter.Notes.ToDictionary(n => n.Id);

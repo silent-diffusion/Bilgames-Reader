@@ -19,8 +19,11 @@ public sealed class Bookmark
 
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
     public int ChapterIndex { get; set; }
-    public double Seconds { get; set; }
+    /// <summary>The line bookmarked and how far through it (0..1); the bookmark's real position.</summary>
     public string LineId { get; set; } = "";
+    public double Fraction { get; set; }
+    /// <summary>Cached seconds into the chapter's audio when it was made; used when the line can't be found.</summary>
+    public double Seconds { get; set; }
     /// <summary>The text being read at the bookmark, kept so exports don't depend on the analysis.</summary>
     public string Excerpt { get; set; } = "";
     public string Note { get; set; } = "";

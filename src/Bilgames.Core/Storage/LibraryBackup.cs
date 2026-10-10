@@ -63,10 +63,17 @@ public static class LibraryBackup
 
     // ---------- create ----------
 
+    /// <summary>File extension of a single-book package (the same format, holding one book).</summary>
+    public const string PackageExtension = ".bilgames";
+
+    /// <summary>
+    /// Writes a backup of the library, or with <paramref name="onlyBookIds"/> a package of some books
+    /// (one book is a <see cref="PackageExtension"/> file, the unit for moving a book to another device).
+    /// </summary>
     public static BackupResult Create(LibraryStore store, string destination, BackupOptions options, string appVersion,
-        IProgress<double>? progress = null, CancellationToken ct = default)
+        IProgress<double>? progress = null, CancellationToken ct = default, IReadOnlyCollection<string>? onlyBookIds = null)
     {
-        var books = store.LoadAll();
+        var books = store.LoadAll().Where(b => onlyBookIds is null || onlyBookIds.Contains(b.Id)).ToList();
         var files = new List<(string Source, string Entry, bool Compress)>();
         foreach (var book in books)
             files.AddRange(FilesFor(store, book, options));
@@ -274,6 +281,7 @@ public static class LibraryBackup
                         if (aside is not null && !Directory.Exists(live)) Directory.Move(aside, live);
                         throw;
                     }
+                    if (aside is not null) KeepReusableAudio(aside, live, manifest.IncludesAudio);
                 }
                 if (exists) replaced++; else added++;
             }
@@ -283,6 +291,22 @@ public static class LibraryBackup
         finally
         {
             try { if (Directory.Exists(scratchRoot)) Directory.Delete(scratchRoot, recursive: true); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// The replaced copy's segment cache always carries over (segments are named by the hash of what
+    /// they say, so any that match the restored plan are reused and the rest are just unused cache),
+    /// and so does its finished audio when the restored copy has none: each chapter records the plan
+    /// it was made from, so a chapter whose plan still matches plays at once and the others regenerate.
+    /// </summary>
+    private static void KeepReusableAudio(string replaced, string live, bool restoredHasAudio)
+    {
+        foreach (var sub in restoredHasAudio ? new[] { "segments" } : new[] { "segments", "audio" })
+        {
+            var from = Path.Combine(replaced, sub);
+            var to = Path.Combine(live, sub);
+            try { if (Directory.Exists(from) && !Directory.Exists(to)) Directory.Move(from, to); } catch { }
         }
     }
 

@@ -45,7 +45,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         _shell = shell;
         foreach (var m in KokoroModels.All) Models.Add(new ModelRowViewModel(m));
-        foreach (var v in VoiceCatalog.All) Voices.Add(new VoiceOptionViewModel(v));
+        foreach (var v in AppServices.Engine.Voices) Voices.Add(new VoiceOptionViewModel(v));
         AppServices.Models.Changed += () => AppServices.RunOnUI(Refresh);
         AppServices.Engine.DeviceChanged += () => AppServices.RunOnUI(RefreshDevice);
         Refresh();
@@ -74,6 +74,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = AppServices.Settings;
         AutoCheck = s.AutoCheckForUpdates;
         ThemeIndex = (int)s.Theme;
+        KeepAudioIndex = (int)s.KeepFinishedAudio;
         TextSizeIndex = NearestScale(s.ReadingTextScale);
         KeepSegmentCache = s.KeepSegmentCache;
         PreferGpu = s.Processor == Bilgames.Core.Tts.ProcessorPreference.Gpu;
@@ -119,6 +120,17 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private static int NearestScale(double scale) =>
         Array.IndexOf(TextScales, TextScales.OrderBy(s => Math.Abs(s - scale)).First());
+
+    [ObservableProperty] private int _keepAudioIndex;
+
+    partial void OnKeepAudioIndexChanged(int value)
+    {
+        if (_loading || value < 0) return;
+        AppServices.Settings.KeepFinishedAudio = (Bilgames.Core.Model.KeepAudio)value;
+        AppServices.SaveSettings();
+        // Apply it now to the book being listened to; others follow when they're next played.
+        if (_shell.Player.BookId is { } id) AppServices.Jobs.ListeningMoved(id, _shell.Player.ChapterIndex);
+    }
 
     partial void OnAutoCheckChanged(bool value)
     {
