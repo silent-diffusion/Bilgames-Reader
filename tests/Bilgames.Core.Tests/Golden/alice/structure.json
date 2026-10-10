@@ -1,0 +1,32 @@
+{
+  "title": "Alice's Adventures in Wonderland",
+  "author": "Lewis Carroll",
+  "language": "en",
+  "chapters": [
+    {"index":0,"kind":"FrontMatter","title":"The Project Gutenberg eBook of Alice's Adventures in Wonderland","words":149,"blocks":13,"notes":0,"analyzed":false},
+    {"index":1,"kind":"FrontMatter","title":"Contents · Chapter I","words":6,"blocks":3,"notes":0,"analyzed":false},
+    {"index":2,"kind":"FrontMatter","title":"Chapter II","words":6,"blocks":2,"notes":0,"analyzed":false},
+    {"index":3,"kind":"FrontMatter","title":"Chapter III","words":8,"blocks":2,"notes":0,"analyzed":false},
+    {"index":4,"kind":"FrontMatter","title":"Chapter IV","words":9,"blocks":2,"notes":0,"analyzed":false},
+    {"index":5,"kind":"FrontMatter","title":"Chapter V","words":6,"blocks":2,"notes":0,"analyzed":false},
+    {"index":6,"kind":"FrontMatter","title":"Chapter VI","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":7,"kind":"FrontMatter","title":"Chapter VII","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":8,"kind":"FrontMatter","title":"Chapter VIII","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":9,"kind":"FrontMatter","title":"Chapter IX","words":6,"blocks":2,"notes":0,"analyzed":false},
+    {"index":10,"kind":"FrontMatter","title":"Chapter X","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":11,"kind":"FrontMatter","title":"Chapter XI","words":6,"blocks":2,"notes":0,"analyzed":false},
+    {"index":12,"kind":"FrontMatter","title":"Chapter XII","words":4,"blocks":2,"notes":0,"analyzed":false},
+    {"index":13,"kind":"Body","title":"CHAPTER I. Down the Rabbit-Hole","words":2186,"blocks":2,"notes":0,"analyzed":true},
+    {"index":14,"kind":"Body","title":"CHAPTER II. The Pool of Tears","words":2099,"blocks":2,"notes":0,"analyzed":true},
+    {"index":15,"kind":"Body","title":"CHAPTER III. A Caucus-Race and a Long Tale","words":1702,"blocks":2,"notes":0,"analyzed":true},
+    {"index":16,"kind":"Body","title":"CHAPTER IV. The Rabbit Sends in a Little Bill","words":2616,"blocks":2,"notes":0,"analyzed":true},
+    {"index":17,"kind":"Body","title":"CHAPTER V. Advice from a Caterpillar","words":2186,"blocks":2,"notes":0,"analyzed":true},
+    {"index":18,"kind":"Body","title":"CHAPTER VI. Pig and Pepper","words":2593,"blocks":2,"notes":0,"analyzed":true},
+    {"index":19,"kind":"Body","title":"CHAPTER VII. A Mad Tea-Party","words":2287,"blocks":2,"notes":0,"analyzed":true},
+    {"index":20,"kind":"Body","title":"CHAPTER VIII. The Queen’s Croquet-Ground","words":2487,"blocks":2,"notes":0,"analyzed":true},
+    {"index":21,"kind":"Body","title":"CHAPTER IX. The Mock Turtle’s Story","words":2272,"blocks":2,"notes":0,"analyzed":true},
+    {"index":22,"kind":"Body","title":"CHAPTER X. The Lobster Quadrille","words":2030,"blocks":2,"notes":0,"analyzed":true},
+    {"index":23,"kind":"Body","title":"CHAPTER XI. Who Stole the Tarts?","words":1878,"blocks":2,"notes":0,"analyzed":true},
+    {"index":24,"kind":"Body","title":"CHAPTER XII. Alice’s Evidence","words":5012,"blocks":53,"notes":0,"analyzed":true}
+  ]
+}

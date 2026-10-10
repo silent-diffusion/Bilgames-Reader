@@ -79,10 +79,10 @@ internal static partial class ChapterBuilder
 
     // ---------- Project Gutenberg boilerplate ----------
 
-    [GeneratedRegex(@"^\W*\**\s*START OF (THE|THIS) PROJECT GUTENBERG", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\W*\**\s*START OF (THE|THIS) PROJECT GUTENBERG", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PgStart();
 
-    [GeneratedRegex(@"^\W*\**\s*END OF (THE |THIS )?PROJECT GUTENBERG", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\W*\**\s*END OF (THE |THIS )?PROJECT GUTENBERG", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PgEnd();
 
     /// <summary>
@@ -162,7 +162,7 @@ internal static partial class ChapterBuilder
             var prev = result.Count > 0 ? result[^1] : null;
             if (prev is not null && prev.Kind == RawKind.Paragraph && b.Kind == RawKind.Paragraph && prev.Boilerplate == b.Boilerplate && LooksContinued(prev.Text, b.Text))
             {
-                prev.Text = prev.Text.EndsWith('-') && char.IsLower(b.Text[0]) && !prev.Text.EndsWith("--")
+                prev.Text = prev.Text.EndsWith('-') && char.IsLower(b.Text[0]) && !prev.Text.EndsWith("--", StringComparison.Ordinal)
                     ? prev.Text + b.Text
                     : prev.Text + " " + b.Text;
                 prev.NoteRefs.AddRange(b.NoteRefs);
@@ -203,11 +203,11 @@ internal static partial class ChapterBuilder
 
     // ---------- headings ----------
 
-    [GeneratedRegex(@"^(chapter|book|part|volume|canto|letter|stave)\s+([0-9]+|[ivxlcdm]+|the\s+\w+|[a-z]+(-[a-z]+)?)\b[\s\.:\-–—]*.{0,70}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(chapter|book|part|volume|canto|letter|stave)\s+([0-9]+|[ivxlcdm]+|the\s+\w+|[a-z]+(-[a-z]+)?)\b[\s\.:\-–—]*.{0,70}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ChapterLike();
 
     /// <summary>The same, with room for long descriptive titles; only used for real heading elements.</summary>
-    [GeneratedRegex(@"^(chapter|book|part|volume|canto|letter|stave|act)\s+([0-9]+|[ivxlcdm]+|the\s+\w+)\b[\s\.:\-–—]*.{0,180}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(chapter|book|part|volume|canto|letter|stave|act)\s+([0-9]+|[ivxlcdm]+|the\s+\w+)\b[\s\.:\-–—]*.{0,180}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex LongChapterLike();
 
     /// <summary>"II. The Red-Headed League", "XIV The First Blow", "3. Departure": a numeral followed by a title.</summary>
@@ -217,7 +217,7 @@ internal static partial class ChapterBuilder
     [GeneratedRegex(@"^([IVXLCDM]{1,7}|[0-9]{1,3})\.?$")]
     private static partial Regex NumeralOnly();
 
-    [GeneratedRegex(@"^(prologue|epilogue|preface|foreword|introduction|afterword|appendix|contents|table of contents|dedication|acknowledg(e)?ments|notes|endnotes|glossary|bibliography|about the author|copyright|epigraph|interlude)\b.{0,40}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(prologue|epilogue|preface|foreword|introduction|afterword|appendix|contents|table of contents|dedication|acknowledg(e)?ments|notes|endnotes|glossary|bibliography|about the author|copyright|epigraph|interlude)\b.{0,40}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SectionWord();
 
     internal static bool IsHeadingLike(string text) =>
@@ -342,7 +342,7 @@ internal static partial class ChapterBuilder
                 // "II. THE RED-HEADED LEAGUE" → "II. The Red-Headed League", not "Ii. …"
                 h = LeadingRoman().Replace(h, m => m.Value.ToUpperInvariant());
                 h = h.Replace("’S ", "’s ").Replace("'S ", "'s ");
-                if (h.EndsWith("’S") || h.EndsWith("'S")) h = h[..^1] + "s";
+                if (h.EndsWith("’S", StringComparison.Ordinal) || h.EndsWith("'S", StringComparison.Ordinal)) h = h[..^1] + "s";
             }
             h = FixRomanCase(h);
             if (h.Length > 90) h = h[..87] + "…";
@@ -355,7 +355,7 @@ internal static partial class ChapterBuilder
     private static string FixRomanCase(string s) =>
         RomanAfterLabel().Replace(s, m => m.Groups[1].Value + m.Groups[2].Value.ToUpperInvariant());
 
-    [GeneratedRegex(@"\b((?:Part|Book|Chapter|Volume|Canto|Stave|Act|Scene)\s+)([ivxlcdm]{1,7})\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b((?:Part|Book|Chapter|Volume|Canto|Stave|Act|Scene)\s+)([ivxlcdm]{1,7})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RomanAfterLabel();
 
     [GeneratedRegex(@"^[IVXLC][ivxlc]{0,6}(?=\.)")]
@@ -385,13 +385,13 @@ internal static partial class ChapterBuilder
         return null;
     }
 
-    [GeneratedRegex(@"\b(cover|title page|half title|copyright|contents|dedication|epigraph|also by|praise for|frontispiece|map|opening pages|by the same author)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(cover|title page|half title|copyright|contents|dedication|epigraph|also by|praise for|frontispiece|map|opening pages|by the same author)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FrontWords();
 
-    [GeneratedRegex(@"\b(preface|foreword|introduction|note on the text|a note on|chronology|editor'?s note|translator'?s|author'?s note|acknowledg(e)?ments)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(preface|foreword|introduction|note on the text|a note on|chronology|editor'?s note|translator'?s|author'?s note|acknowledg(e)?ments)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PrefaceWords();
 
-    [GeneratedRegex(@"\b(afterword|appendix|appendices|notes|endnotes|glossary|bibliography|index|about the author|transcriber|further reading|reading group|discussion questions|enriched|excerpt|preview|colophon|credits|explanatory|suggestions for)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(afterword|appendix|appendices|notes|endnotes|glossary|bibliography|index|about the author|transcriber|further reading|reading group|discussion questions|enriched|excerpt|preview|colophon|credits|explanatory|suggestions for)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex BackWords();
 
     /// <summary>A chapter-style title, or a title group with one ("Test Book · Chapter I").</summary>
@@ -399,8 +399,8 @@ internal static partial class ChapterBuilder
 
     private static bool IsBodyTitlePart(string title) =>
         ChapterLike().IsMatch(title) || title.StartsWith("Chapter ", StringComparison.OrdinalIgnoreCase)
-        || Regex.IsMatch(title, @"^(Part|Book|Act|Scene)\b", RegexOptions.IgnoreCase)
-        || Regex.IsMatch(title, @"^(the\s+)?(prologue|epilogue)\b", RegexOptions.IgnoreCase)
+        || Regex.IsMatch(title, @"^(Part|Book|Act|Scene)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
+        || Regex.IsMatch(title, @"^(the\s+)?(prologue|epilogue)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
         || NumberedTitle().IsMatch(title);
 
     /// <summary>

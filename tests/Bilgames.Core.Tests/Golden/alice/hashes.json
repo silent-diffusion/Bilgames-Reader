@@ -1,0 +1,17 @@
+{
+  "model": "kokoro-v1-fp16",
+  "chapters": [
+    {"chapter":13,"planHash":"c46a045faca82dc0f3ee","segments":93},
+    {"chapter":14,"planHash":"ed323eb2174e47ce937e","segments":106},
+    {"chapter":15,"planHash":"b4ec063a34fc33c02d1d","segments":135},
+    {"chapter":16,"planHash":"f67d812f2f18a237b7a4","segments":130},
+    {"chapter":17,"planHash":"e16081947dde5f7d858e","segments":180},
+    {"chapter":18,"planHash":"f24188a8feeab4cf5fef","segments":210},
+    {"chapter":19,"planHash":"366ca2e6a4b6fa9dc27a","segments":258},
+    {"chapter":20,"planHash":"3511c86300bef29aa195","segments":181},
+    {"chapter":21,"planHash":"a3bccb082927488cbfb6","segments":238},
+    {"chapter":22,"planHash":"ad29b93d675d083fab4f","segments":209},
+    {"chapter":23,"planHash":"bd3bf015e6224e98acdf","segments":184},
+    {"chapter":24,"planHash":"bf34a1b1a77fb734c717","segments":274}
+  ]
+}

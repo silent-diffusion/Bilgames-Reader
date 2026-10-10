@@ -1,0 +1,31 @@
+{
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "chapters": [
+    {"index":0,"kind":"FrontMatter","title":"The Project Gutenberg eBook of The Adventures of Sherlock Holmes","words":169,"blocks":13,"notes":0,"analyzed":false},
+    {"index":1,"kind":"FrontMatter","title":"Contents · Chapter I","words":6,"blocks":3,"notes":0,"analyzed":false},
+    {"index":2,"kind":"FrontMatter","title":"Chapter II","words":4,"blocks":2,"notes":0,"analyzed":false},
+    {"index":3,"kind":"FrontMatter","title":"Chapter III","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":4,"kind":"FrontMatter","title":"Chapter IV","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":5,"kind":"FrontMatter","title":"Chapter V","words":5,"blocks":2,"notes":0,"analyzed":false},
+    {"index":6,"kind":"FrontMatter","title":"Chapter VI","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":7,"kind":"FrontMatter","title":"Chapter VII","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":8,"kind":"FrontMatter","title":"Chapter VIII","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":9,"kind":"FrontMatter","title":"Chapter IX","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":10,"kind":"FrontMatter","title":"Chapter X","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":11,"kind":"FrontMatter","title":"Chapter XI","words":7,"blocks":2,"notes":0,"analyzed":false},
+    {"index":12,"kind":"Body","title":"Chapter XII","words":8533,"blocks":4,"notes":0,"analyzed":true},
+    {"index":13,"kind":"BackMatter","title":"Ii. The Red-Headed League","words":9109,"blocks":2,"notes":0,"analyzed":false},
+    {"index":14,"kind":"BackMatter","title":"Iii. A Case Of Identity","words":6980,"blocks":2,"notes":0,"analyzed":false},
+    {"index":15,"kind":"BackMatter","title":"Iv. The Boscombe Valley Mystery","words":9621,"blocks":2,"notes":0,"analyzed":false},
+    {"index":16,"kind":"BackMatter","title":"V. The Five Orange Pips","words":7319,"blocks":2,"notes":0,"analyzed":false},
+    {"index":17,"kind":"BackMatter","title":"Vi. The Man With The Twisted Lip","words":9206,"blocks":2,"notes":0,"analyzed":false},
+    {"index":18,"kind":"BackMatter","title":"Vii. The Adventure Of The Blue Carbuncle","words":7815,"blocks":2,"notes":0,"analyzed":false},
+    {"index":19,"kind":"BackMatter","title":"Viii. The Adventure Of The Speckled Band","words":9812,"blocks":2,"notes":0,"analyzed":false},
+    {"index":20,"kind":"BackMatter","title":"Ix. The Adventure Of The Engineer’S Thumb","words":8290,"blocks":2,"notes":0,"analyzed":false},
+    {"index":21,"kind":"BackMatter","title":"X. The Adventure Of The Noble Bachelor","words":8109,"blocks":2,"notes":0,"analyzed":false},
+    {"index":22,"kind":"BackMatter","title":"Xi. The Adventure Of The Beryl Coronet","words":9686,"blocks":2,"notes":0,"analyzed":false},
+    {"index":23,"kind":"BackMatter","title":"Xii. The Adventure Of The Copper Beeches","words":12859,"blocks":53,"notes":0,"analyzed":false}
+  ]
+}

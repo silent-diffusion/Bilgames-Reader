@@ -1,0 +1,33 @@
+{
+  "members": [
+    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":24},
+    {"id":"ch21","name":"Scrooge","gender":"Male","voice":"am_fenrir","lines":360},
+    {"id":"ch16","name":"Bob","gender":"Male","voice":"am_michael","lines":38},
+    {"id":"ch6","name":"The Woman","gender":"Female","voice":"af_bella","lines":21},
+    {"id":"ch7","name":"The Gentleman","gender":"Male","voice":"am_puck","lines":20},
+    {"id":"ch27","name":"Ghost","gender":"Male","voice":"bm_george","lines":13},
+    {"id":"ch8","name":"The Boy","gender":"Male","voice":"bm_fable","lines":10},
+    {"id":"ch9","name":"The Nephew","gender":"Unknown","voice":"bm_lewis","lines":10},
+    {"id":"ch22","name":"Joe","gender":"Male","voice":"bm_daniel","lines":10},
+    {"id":"ch23","name":"Peter","gender":"Male","voice":"am_echo","lines":8},
+    {"id":"ch14","name":"The Hall","gender":"Male","voice":"am_eric","lines":7},
+    {"id":"ch4","name":"The Same Woman","gender":"Female","voice":"bf_emma","lines":5},
+    {"id":"ch10","name":"The Child","gender":"Male","voice":"am_liam","lines":5},
+    {"id":"ch25","name":"Mrs. Dilber","gender":"Female","voice":"af_nicole","lines":5},
+    {"id":"ch2","name":"The First Speaker","gender":"Unknown","voice":"af_aoede","lines":4},
+    {"id":"ch12","name":"The Phantom","gender":"Male","voice":"am_onyx","lines":4},
+    {"id":"ch24","name":"Fred","gender":"Male","voice":"am_adam","lines":4},
+    {"id":"ch18","name":"The Man","gender":"Male","voice":"am_fenrir","lines":3},
+    {"id":"ch28","name":"Fezziwig","gender":"Male","voice":"am_michael","lines":3},
+    {"id":"ch1","name":"The Same Speaker","gender":"Unknown","voice":"am_puck","lines":2},
+    {"id":"ch13","name":"The Spectre","gender":"Unknown","voice":"af_kore","lines":2},
+    {"id":"ch19","name":"The Laundress","gender":"Unknown","voice":"bm_george","lines":2},
+    {"id":"ch26","name":"The Uncle","gender":"Male","voice":"bm_fable","lines":2},
+    {"id":"ch3","name":"The First Woman","gender":"Female","voice":"af_sarah","lines":1},
+    {"id":"ch5","name":"The Old Gentleman","gender":"Male","voice":"bm_lewis","lines":1},
+    {"id":"ch17","name":"Tiny Tim","gender":"Male","voice":"bm_daniel","lines":1},
+    {"id":"ch20","name":"The Lad","gender":"Male","voice":"am_echo","lines":1},
+    {"id":"ch11","name":"The Girl","gender":"Female","voice":"bf_isabella","lines":0},
+    {"id":"ch15","name":"The Husband","gender":"Male","voice":"am_eric","lines":0}
+  ]
+}

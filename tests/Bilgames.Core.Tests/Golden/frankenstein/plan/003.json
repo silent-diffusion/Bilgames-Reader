@@ -1,0 +1,17 @@
+{
+  "chapter": 3,
+  "model": "kokoro-v1-fp16",
+  "planHash": "69883f1679f7d242c048",
+  "segments": [
+    {"hash":"59d133c4f3fbb6aaa756","block":"c3b0","line":"c3b0l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":1000,"text":"Letter 3."},
+    {"hash":"bd6e7dfe82ed60028e82","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"To Mrs. Saville, England. July 7th, 17—. My dear Sister, I write a few lines in haste to say that I am safe—and well advanced on my voyage."},
+    {"hash":"804162fba79a8bf266b1","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"This letter will reach England by a merchantman now on its homeward voyage from Archangel; more fortunate than I, who may not see my native land, perhaps, for many years."},
+    {"hash":"f927f96ac65ca7766118","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"I am, however, in good spirits: my men are bold and apparently firm of purpose, nor do the floating sheets of ice that continually pass us, indicating the dangers of the region towards which we are advancing, appear to dismay them."},
+    {"hash":"d614c6c5220e4c6059ff","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"We have already reached a very high latitude; but it is the height of summer, and although not so warm as in England, the southern gales, which blow us speedily towards those shores which I so ardently desire to attain,"},
+    {"hash":"551c93d4a9bbe89e86e5","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"breathe a degree of renovating warmth which I had not expected. No incidents have hitherto befallen us that would make a figure in a letter."},
+    {"hash":"4aa724c522e365da83d5","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"One or two stiff gales and the springing of a leak are accidents which experienced navigators scarcely remember to record, and I shall be well content if nothing worse happen to us during our voyage. Adieu, my dear Margaret."},
+    {"hash":"4c0fdf83304d8ae40c66","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"Be assured that for my own sake, as well as yours, I will not rashly encounter danger. I will be cool, persevering, and prudent. But success shall crown my endeavours. Wherefore not?"},
+    {"hash":"0607b96aa78a3d9db66e","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":80,"text":"Thus far I have gone, tracing a secure way over the pathless seas, the very stars themselves being witnesses and testimonies of my triumph. Why not still proceed over the untamed yet obedient element? What can stop the determined heart and resolved will of man?"},
+    {"hash":"f4cfea2a187b35a79585","block":"c3b1","line":"c3b1l0","voice":"af_heart","speed":1,"gainDb":0,"pauseAfterMs":450,"text":"My swelling heart involuntarily pours itself out thus. But I must finish. Heaven bless my beloved sister! R.W."}
+  ]
+}

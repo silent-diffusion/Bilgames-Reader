@@ -108,25 +108,25 @@ public static partial class Tones
 
     // ---------- guessing tone from context (no tag) ----------
 
-    [GeneratedRegex(@"\b([A-Za-z])-\1", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b([A-Za-z])-\1", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Stammer();
 
-    [GeneratedRegex(@"^(?:um+|uh+|er+|erm|well\W+um)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(?:um+|uh+|er+|erm|well\W+um)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Filler();
 
     private static readonly (string Tone, Regex Pattern)[] Beats =
     {
         // Qualified smiles and laughs first, so "a humorless laugh" isn't read as amusement.
-        (Stern, new Regex(@"\b(humou?rless|mirthless|without (?:any )?humou?r|little humou?r|no humou?r|(?:tight|thin|grim|forced|cold|icy) (?:smile|laugh|grin)|tone was flat|flat tone|(?:smile|grin) (?:faded|vanished|slipped)|sobered)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Sad, new Regex(@"\b((?:sad|rueful|wistful|weary|tired) (?:smile|laugh)|sadness)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Whispered, new Regex(@"\b(lean(?:ed|ing|s)? (?:in )?close|under (?:his|her|their|my) breath|lower(?:ed|ing|s)? (?:his|her|their|my) voice|barely audible|in a whisper|whisper(?:ed|ing)?|hush(?:ed)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Sad, new Regex(@"\b(tears?|wept|weep(?:ing|s)?|sobb?(?:ed|ing|s)?|crying|choked|grief|mournful(?:ly)?|sorrow(?:ful)?|eyes (?:glistened|glistening|welled)|voice (?:broke|breaking|cracked)|sadly|heartbroken)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Angry, new Regex(@"\b(glar(?:ed|ing|es)|scowl(?:ed|ing|s)?|snarl(?:ed|ing|s)?|furious(?:ly)?|fury|rage|rag(?:ed|ing)|clench(?:ed|ing)|slamm(?:ed|ing)|seeth(?:ed|ing)|livid|gritted teeth|jaw (?:tightened|clenched)|angrily|anger)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Amused, new Regex(@"\b(grinn?(?:ed|ing|s)?|smil(?:ed|ing|es)|smirk(?:ed|ing|s)?|laugh(?:ed|ing|s)?|chuckl(?:ed|ing|es)|amusement|amused|eyes twinkl(?:ed|ing)|wink(?:ed|ing|s)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Hesitant, new Regex(@"\b(hesitat(?:ed|ing|es)|hesitantly|nervously|swallow(?:ed|ing)|trembl(?:ed|ing|es)|stammer(?:ed|ing)?|falter(?:ed|ing)|uncertainly|bit (?:his|her|their|my) lip|fidget(?:ed|ing))\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Urgent, new Regex(@"\b(urgently|hurried(?:ly)?|rush(?:ed|ing)|panick?(?:ed|ing)?|frantic(?:ally)?|desperately|grabb(?:ed|ing))\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Stern, new Regex(@"\b(coldly|sternly|frown(?:ed|ing|s)?|narrow(?:ed|ing) (?:his|her|their|my) eyes|flatly|icily|grimly)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
-        (Excited, new Regex(@"\b(beam(?:ed|ing)|eagerly|excitedly|bounc(?:ed|ing)|eyes lit|grinning broadly|delighted(?:ly)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)),
+        (Stern, new Regex(@"\b(humou?rless|mirthless|without (?:any )?humou?r|little humou?r|no humou?r|(?:tight|thin|grim|forced|cold|icy) (?:smile|laugh|grin)|tone was flat|flat tone|(?:smile|grin) (?:faded|vanished|slipped)|sobered)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Sad, new Regex(@"\b((?:sad|rueful|wistful|weary|tired) (?:smile|laugh)|sadness)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Whispered, new Regex(@"\b(lean(?:ed|ing|s)? (?:in )?close|under (?:his|her|their|my) breath|lower(?:ed|ing|s)? (?:his|her|their|my) voice|barely audible|in a whisper|whisper(?:ed|ing)?|hush(?:ed)?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Sad, new Regex(@"\b(tears?|wept|weep(?:ing|s)?|sobb?(?:ed|ing|s)?|crying|choked|grief|mournful(?:ly)?|sorrow(?:ful)?|eyes (?:glistened|glistening|welled)|voice (?:broke|breaking|cracked)|sadly|heartbroken)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Angry, new Regex(@"\b(glar(?:ed|ing|es)|scowl(?:ed|ing|s)?|snarl(?:ed|ing|s)?|furious(?:ly)?|fury|rage|rag(?:ed|ing)|clench(?:ed|ing)|slamm(?:ed|ing)|seeth(?:ed|ing)|livid|gritted teeth|jaw (?:tightened|clenched)|angrily|anger)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Amused, new Regex(@"\b(grinn?(?:ed|ing|s)?|smil(?:ed|ing|es)|smirk(?:ed|ing|s)?|laugh(?:ed|ing|s)?|chuckl(?:ed|ing|es)|amusement|amused|eyes twinkl(?:ed|ing)|wink(?:ed|ing|s)?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Hesitant, new Regex(@"\b(hesitat(?:ed|ing|es)|hesitantly|nervously|swallow(?:ed|ing)|trembl(?:ed|ing|es)|stammer(?:ed|ing)?|falter(?:ed|ing)|uncertainly|bit (?:his|her|their|my) lip|fidget(?:ed|ing))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Urgent, new Regex(@"\b(urgently|hurried(?:ly)?|rush(?:ed|ing)|panick?(?:ed|ing)?|frantic(?:ally)?|desperately|grabb(?:ed|ing))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Stern, new Regex(@"\b(coldly|sternly|frown(?:ed|ing|s)?|narrow(?:ed|ing) (?:his|her|their|my) eyes|flatly|icily|grimly)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
+        (Excited, new Regex(@"\b(beam(?:ed|ing)|eagerly|excitedly|bounc(?:ed|ing)|eyes lit|grinning broadly|delighted(?:ly)?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled)),
     };
 
     /// <summary>
@@ -150,7 +150,7 @@ public static partial class Tones
             foreach (var (tone, pattern) in Beats)
                 if (pattern.IsMatch(narration)) { beat = tone; break; }
 
-        bool exclaims = q.EndsWith('!') || q.EndsWith("!’") || bangs > 0 && q.TrimEnd('—', '…', '.').EndsWith('!');
+        bool exclaims = q.EndsWith('!') || q.EndsWith("!’", StringComparison.Ordinal) || bangs > 0 && q.TrimEnd('—', '…', '.').EndsWith('!');
         if (beat is not null)
         {
             // "!" sharpens a beat: an angry glare plus "!" is anger; a grin plus "!" is excitement.

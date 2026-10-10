@@ -26,6 +26,13 @@ dotnet build src/Bilgames.App
 src/Bilgames.App/bin/x64/Debug/net10.0-windows10.0.19041.0/win-x64/BilgamesReader.exe
 ```
 
+The tests include golden-file conformance tests: the public-domain books in `tests/corpus/` are
+imported, analyzed and planned, and the result (structure, cast, per-line analysis, per-segment plan
+and hashes) must match `tests/Bilgames.Core.Tests/Golden/` exactly — also under de-DE and tr-TR
+cultures. After an intended change, regenerate with `$env:BILGAMES_UPDATE_GOLDEN = "1"; dotnet test
+tests/Bilgames.Core.Tests --filter GoldenFile` and review the diff: a changed segment hash means
+users re-synthesize that audio.
+
 ### CPU and GPU
 
 Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings › Processing), the

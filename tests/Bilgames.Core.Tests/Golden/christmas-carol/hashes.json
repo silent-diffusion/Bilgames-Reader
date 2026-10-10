@@ -1,0 +1,10 @@
+{
+  "model": "kokoro-v1-fp16",
+  "chapters": [
+    {"chapter":3,"planHash":"4702e76f10879fb8ad23","segments":397},
+    {"chapter":4,"planHash":"95c885534023d04c65a0","segments":344},
+    {"chapter":5,"planHash":"58452c54190ec7af6a72","segments":380},
+    {"chapter":6,"planHash":"2bff33e655c3527db75f","segments":350},
+    {"chapter":7,"planHash":"e99bf771f7ed4e9a6530","segments":260}
+  ]
+}

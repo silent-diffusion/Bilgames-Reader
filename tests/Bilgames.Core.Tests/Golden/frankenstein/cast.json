@@ -1,0 +1,14 @@
+{
+  "members": [
+    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":219},
+    {"id":"ch11","name":"Henry","gender":"Male","voice":"am_fenrir","lines":28},
+    {"id":"ch9","name":"The Master","gender":"Unknown","voice":"am_michael","lines":17},
+    {"id":"ch6","name":"Elizabeth","gender":"Female","voice":"af_bella","lines":4},
+    {"id":"ch2","name":"The Stranger","gender":"Unknown","voice":"bf_emma","lines":2},
+    {"id":"ch7","name":"M","gender":"Unknown","voice":"am_puck","lines":2},
+    {"id":"ch8","name":"Ernest","gender":"Male","voice":"bm_george","lines":2},
+    {"id":"ch10","name":"Clerval","gender":"Male","voice":"bm_fable","lines":1},
+    {"id":"ch12","name":"Mr. Kirwin","gender":"Male","voice":"bm_lewis","lines":1},
+    {"id":"ch4","name":"The Fiend","gender":"Male","voice":"bm_daniel","lines":0}
+  ]
+}

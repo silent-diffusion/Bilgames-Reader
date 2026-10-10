@@ -1,0 +1,6 @@
+{
+  "members": [
+    {"id":"narrator","name":"Narrator","gender":"Unknown","voice":"af_heart","lines":245},
+    {"id":"ch0","name":"Holmes","gender":"Male","voice":"am_fenrir","lines":18}
+  ]
+}

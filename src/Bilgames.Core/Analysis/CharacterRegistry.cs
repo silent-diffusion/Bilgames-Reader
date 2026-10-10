@@ -218,6 +218,6 @@ internal sealed partial class CharacterRegistry
         }
     }
 
-    [GeneratedRegex(@"\b(he|him|his|himself|she|her|hers|herself)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(he|him|his|himself|she|her|hers|herself)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PronounRx();
 }

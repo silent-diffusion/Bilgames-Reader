@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -134,7 +135,7 @@ public static partial class SynthesisPlanner
                 Add($"Note {i + 1}. {endNotes[i].Text}", CastMember.NarratorId, null, "notes", endNotes[i].Id, 500);
         }
 
-        var planHash = HashOf(string.Join("|", segs.Select(s => s.Hash + ":" + s.PauseAfterMs + (s.GainDb == 0 ? "" : ":" + s.GainDb.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))), "", 1, modelId);
+        var planHash = HashOf(string.Join("|", segs.Select(s => s.Hash + ":" + s.PauseAfterMs.ToString(CultureInfo.InvariantCulture) + (s.GainDb == 0 ? "" : ":" + s.GainDb.ToString("0.#", CultureInfo.InvariantCulture)))), "", 1, modelId);
         return new ChapterPlan { ChapterIndex = chapter.Index, Segments = segs, Hash = planHash };
     }
 
@@ -161,10 +162,10 @@ public static partial class SynthesisPlanner
             int v = map[char.ToUpperInvariant(roman[i])];
             total += i + 1 < roman.Length && map[char.ToUpperInvariant(roman[i + 1])] > v ? -v : v;
         }
-        return total.ToString();
+        return total.ToString(CultureInfo.InvariantCulture);
     }
 
-    [GeneratedRegex(@"^((?:Chapter|Part|Book|Volume|Canto|Stave)\s+)([IVXLCDM]+)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^((?:Chapter|Part|Book|Volume|Canto|Stave)\s+)([IVXLCDM]+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RomanLabel();
 
     private static string EndSentence(string s) => s.Length > 0 && !char.IsPunctuation(s[^1]) ? s + "." : s;
@@ -270,7 +271,9 @@ public static partial class SynthesisPlanner
 
     public static string HashOf(string text, string voice, float speed, string modelId)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{modelId}\u0001{voice}\u0001{speed:F3}\u0001{text}"));
+        // Invariant culture so the speed reads "1.000" on every machine. (Formatting with the current
+        // culture gave "1,000" on comma-decimal Windows locales, so those machines hashed differently.)
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"{modelId}\u0001{voice}\u0001{speed:F3}\u0001{text}")));
         return Convert.ToHexString(bytes, 0, 10).ToLowerInvariant();
     }
 

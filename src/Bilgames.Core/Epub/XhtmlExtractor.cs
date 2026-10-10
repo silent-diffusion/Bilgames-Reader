@@ -386,10 +386,10 @@ internal sealed partial class XhtmlExtractor
     private static string CollapseVerse(string s) =>
         string.Join('\n', s.Split('\n').Select(Collapse).Where(l => l.Length > 0));
 
-    [GeneratedRegex(@"^[\[\(]?\s*(page\s*)?\d{1,4}\s*[\]\)]?$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^[\[\(]?\s*(page\s*)?\d{1,4}\s*[\]\)]?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PageNumber();
 
-    [GeneratedRegex(@"^\[\s*Illustrations?\b[^\]]*\]$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\[\s*Illustrations?\b[^\]]*\]$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex IllustrationNote();
 
     [GeneratedRegex(@"(?<=\S)\[\d{1,3}\]")]

@@ -112,7 +112,7 @@ public static partial class SpeechTags
         var verb = m.Groups["verb"].Value;
         var adv = m.Groups["adv"].Success ? m.Groups["adv"].Value : null;
         // "cried his wife impatiently": the adverb can end up inside a descriptor match.
-        adv ??= subj.Split(' ').Skip(1).FirstOrDefault(w => w.Length > 4 && w.EndsWith("ly"));
+        adv ??= subj.Split(' ').Skip(1).FirstOrDefault(w => w.Length > 4 && w.EndsWith("ly", StringComparison.Ordinal));
         if (adv is "only" or "early" or "family" or "silly" or "holy" or "lovely" or "ugly" or "jolly" or "fly" or "reply" or "apply") adv = null;
         // When the subject comes first ("his hands together and says") it must sit right before the verb.
         var kind = Classify(ref subj, requireAdjacent: rx == BeforeSubjectFirst() || rx == AfterSubjectFirst());
@@ -143,7 +143,7 @@ public static partial class SpeechTags
             while (cut < words.Length && cut <= 3 && !EndsNounPhrase(words[cut])) cut++;
             // "the duke he says": a resumptive pronoun between the subject and the verb (dialect).
             bool resumptive = cut < words.Length && words[cut] is "he" or "she";
-            if (requireAdjacent && cut < words.Length && !words[cut].EndsWith("ly") && !resumptive) return null;
+            if (requireAdjacent && cut < words.Length && !words[cut].EndsWith("ly", StringComparison.Ordinal) && !resumptive) return null;
             words = words[..cut];
             if (words.Length < 2) return null;
             subj = string.Join(' ', words);
@@ -205,7 +205,7 @@ public static partial class SpeechTags
     };
 
     private static bool EndsNounPhrase(string w) =>
-        PhraseBreakers.Contains(w) || w.EndsWith("ly") || w.EndsWith("ing") || VerbSet.Contains(w);
+        PhraseBreakers.Contains(w) || w.EndsWith("ly", StringComparison.Ordinal) || w.EndsWith("ing", StringComparison.Ordinal) || VerbSet.Contains(w);
 
     /// <summary>"By-and-by", "Well-nigh": hyphenated phrases with lowercase parts aren't names.</summary>
     private static bool IsHyphenatedPhrase(string w)
@@ -257,9 +257,9 @@ public static partial class SpeechTags
     internal static string AdverbRoot(string adverb)
     {
         if (IrregularAdverbs.TryGetValue(adverb, out var r)) return r;
-        if (adverb.EndsWith("ically")) return adverb[..^4];
-        if (adverb.EndsWith("ily")) return adverb[..^3] + "y";
-        if (adverb.EndsWith("bly")) return adverb[..^1] + "e";
+        if (adverb.EndsWith("ically", StringComparison.Ordinal)) return adverb[..^4];
+        if (adverb.EndsWith("ily", StringComparison.Ordinal)) return adverb[..^3] + "y";
+        if (adverb.EndsWith("bly", StringComparison.Ordinal)) return adverb[..^1] + "e";
         return adverb[..^2];
     }
 
