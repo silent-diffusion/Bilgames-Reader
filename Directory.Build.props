@@ -3,7 +3,7 @@
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.4.1</Version>
+    <Version>0.4.2</Version>
     <Company>Bilgames</Company>
     <Product>Bilgames Reader</Product>
   </PropertyGroup>

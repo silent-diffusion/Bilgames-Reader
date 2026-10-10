@@ -89,8 +89,8 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.4.1            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.4.1 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.4.2            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.4.2 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies

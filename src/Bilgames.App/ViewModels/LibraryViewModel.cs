@@ -162,7 +162,8 @@ public sealed partial class LibraryViewModel : ObservableObject
         else if (item is null) Books.Insert(0, new BookItemViewModel(record));
         else item.Update(record, progress);
         ApplyFilter();
-        RefreshSummary();
+        // Progress arrives after every couple of sentences: keep this cheap (storage is re-measured at most every 15 s).
+        RefreshSummary(forceStorage: progress is null);
     }
 
     private void ApplyFilter()
@@ -178,7 +179,10 @@ public sealed partial class LibraryViewModel : ObservableObject
         }
     }
 
-    public void RefreshSummary()
+    // Chapter duration for the "Continue listening" card, so it isn't re-read on every progress update.
+    private (string BookId, int Chapter, double? Duration)? _continueAudio;
+
+    public void RefreshSummary(bool forceStorage = true)
     {
         IsEmpty = Books.Count == 0;
         CountLabel = $"{Books.Count} {(Books.Count == 1 ? "book" : "books")}";
@@ -192,21 +196,60 @@ public sealed partial class LibraryViewModel : ObservableObject
         {
             var pos = cont.Record.Position;
             var chapter = pos.ChapterIndex >= 0 && pos.ChapterIndex < cont.Record.Chapters.Count ? cont.Record.Chapters[pos.ChapterIndex] : null;
-            var audio = chapter is null ? null : AppServices.Store.LoadChapterAudio(cont.Id, chapter.Index);
-            ContinueDetail = chapter is null || audio is null
+            double? duration = null;
+            if (chapter is not null)
+            {
+                if (forceStorage || _continueAudio is not { } c || c.BookId != cont.Id || c.Chapter != chapter.Index || c.Duration is null)
+                    _continueAudio = (cont.Id, chapter.Index, AppServices.Store.LoadChapterAudio(cont.Id, chapter.Index)?.DurationSeconds);
+                duration = _continueAudio.Value.Duration;
+            }
+            ContinueDetail = chapter is null || duration is null
                 ? (cont.ReadyChapters > 0 ? "Ready to start" : "Audio is on its way")
-                : $"{chapter.Title} · {Ui.Duration(TimeSpan.FromSeconds(Math.Max(0, audio.DurationSeconds - pos.Seconds)))} left";
+                : $"{chapter.Title} · {Ui.Duration(TimeSpan.FromSeconds(Math.Max(0, duration.Value - pos.Seconds)))} left";
         }
 
-        long models = AppServices.Store.ModelsSize();
-        long audioBytes = AppServices.Store.AudioSize();
-        StorageLabel = $"Models {Ui.Size(models)} · Audio {Ui.Size(audioBytes)}";
-        try
+        RefreshStorage(forceStorage);
+    }
+
+    private int _measuring;
+    private volatile bool _measureAgain;
+    private DateTime _measuredAt = DateTime.MinValue;
+    private static readonly TimeSpan StorageInterval = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Measures models and audio on a background thread: walking thousands of cached segment files
+    /// on the UI thread froze the window during generation. While generating, at most every 15 s.
+    /// </summary>
+    private void RefreshStorage(bool force)
+    {
+        if (!force && DateTime.UtcNow - _measuredAt < StorageInterval) return;
+        if (Interlocked.Exchange(ref _measuring, 1) == 1) { if (force) _measureAgain = true; return; }
+        _measuredAt = DateTime.UtcNow;
+        var root = AppServices.Store.Root;
+        Task.Run(() =>
         {
-            var drive = new DriveInfo(Path.GetPathRoot(AppServices.Store.Root)!);
-            StorageFraction = Math.Clamp((models + audioBytes) / (double)Math.Max(1, models + audioBytes + drive.AvailableFreeSpace), 0.02, 1);
-        }
-        catch { StorageFraction = 0.02; }
+            long models = AppServices.Store.ModelsSize();
+            long audioBytes = AppServices.Store.AudioSize();
+            double fraction;
+            try
+            {
+                var drive = new DriveInfo(Path.GetPathRoot(root)!);
+                fraction = Math.Clamp((models + audioBytes) / (double)Math.Max(1, models + audioBytes + drive.AvailableFreeSpace), 0.02, 1);
+            }
+            catch { fraction = 0.02; }
+            return (models, audioBytes, fraction);
+        }).ContinueWith(t =>
+        {
+            Interlocked.Exchange(ref _measuring, 0);
+            if (_measureAgain) { _measureAgain = false; AppServices.RunOnUI(() => RefreshStorage(true)); }
+            if (!t.IsCompletedSuccessfully) return;
+            var (models, audioBytes, fraction) = t.Result;
+            AppServices.RunOnUI(() =>
+            {
+                StorageLabel = $"Models {Ui.Size(models)} · Audio {Ui.Size(audioBytes)}";
+                StorageFraction = fraction;
+            });
+        });
     }
 
     [RelayCommand]

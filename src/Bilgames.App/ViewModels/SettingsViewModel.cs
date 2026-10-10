@@ -81,7 +81,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!CanUpdate && UpdateStatus.Length == 0)
             UpdateStatus = "Updates work in the installed app.";
         DataFolder = AppServices.Store.Root;
-        StorageSummary = $"Voice models {Ui.Size(AppServices.Store.ModelsSize())} · Audio and caches {Ui.Size(AppServices.Store.AudioSize())}";
+        // Measured off the UI thread: the segment cache can hold thousands of files.
+        Task.Run(() => (AppServices.Store.ModelsSize(), AppServices.Store.AudioSize())).ContinueWith(t =>
+        {
+            if (t.IsCompletedSuccessfully) AppServices.RunOnUI(() => StorageSummary = $"Voice models {Ui.Size(t.Result.Item1)} · Audio and caches {Ui.Size(t.Result.Item2)}");
+        });
         foreach (var m in Models) m.Refresh();
         DownloadStatus = AppServices.Models.Downloading is { } d ? $"Downloading {d.Label}… {AppServices.Models.Progress * 100:0}%" : AppServices.Models.Error ?? "";
         _loading = false;

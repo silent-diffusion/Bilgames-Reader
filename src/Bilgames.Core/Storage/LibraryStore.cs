@@ -209,14 +209,21 @@ public sealed class LibraryStore
         ? Directory.EnumerateDirectories(BooksDir).Sum(d => DirSize(Path.Combine(d, "audio")) + DirSize(Path.Combine(d, "segments")))
         : 0;
 
+    /// <summary>
+    /// Total size of a folder. Sizes come from the directory listing itself (no per-file stat), so
+    /// thousands of cached segments take milliseconds. Still disk I/O: never call it on the UI thread.
+    /// </summary>
     public static long DirSize(string dir)
     {
         if (!Directory.Exists(dir)) return 0;
         long total = 0;
-        foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+        try
         {
-            try { total += new FileInfo(f).Length; } catch (IOException) { }
+            var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = 0 };
+            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", options)) total += f.Length;
         }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
         return total;
     }
 
