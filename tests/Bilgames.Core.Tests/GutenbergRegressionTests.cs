@@ -147,12 +147,14 @@ public class GutenbergImportTests
     [InlineData("II. THE RED-HEADED LEAGUE", "II. The Red-Headed League")]
     [InlineData("ACT II", "Act II")]
     [InlineData("THE ENGINEER’S THUMB", "The Engineer’s Thumb")]
+    [InlineData("CHAPTERXXVII.", "Chapter XXVII")]
     public void TitlesKeepRomanNumerals(string heading, string title) => Assert.Equal(title, ChapterBuilder.FormatTitle(new List<string> { heading }));
 
     [Theory]
     [InlineData("II. THE RED-HEADED LEAGUE", true)]
     [InlineData("XIV The First Blow", true)]
     [InlineData("CHAPTER 57. Of Whales in Paint; in Teeth; in Wood; in Sheet-Iron; in Stone; in Mountains; in Stars.", true)]
+    [InlineData("CHAPTERXXVII.", true)]
     [InlineData("I hope Mr. Bingley will like it.", false)]
     public void RecognizesChapterHeadingElements(string text, bool expected) => Assert.Equal(expected, ChapterBuilder.IsChapterHeading(text));
 }

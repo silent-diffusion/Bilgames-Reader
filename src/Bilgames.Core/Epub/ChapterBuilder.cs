@@ -228,8 +228,14 @@ internal static partial class ChapterBuilder
     /// <see cref="IsHeadingLike"/>: long titles ("CHAPTER 57. Of Whales in Paint; in Teeth; …") and
     /// numbered titles ("II. THE RED-HEADED LEAGUE") count.
     /// </summary>
-    internal static bool IsChapterHeading(string text) =>
-        IsHeadingLike(text) || (text.Length <= 200 && (LongChapterLike().IsMatch(text) || NumberedTitle().IsMatch(text)));
+    internal static bool IsChapterHeading(string text)
+    {
+        text = GluedLabel().Replace(text, "$1 "); // "CHAPTERXXVII." (a typo in the source)
+        return IsHeadingLike(text) || (text.Length <= 200 && (LongChapterLike().IsMatch(text) || NumberedTitle().IsMatch(text)));
+    }
+
+    [GeneratedRegex(@"^(CHAPTER|Chapter|BOOK|PART|STAVE|ACT)(?=[IVXLC0-9]+\b)")]
+    private static partial Regex GluedLabel();
 
     private static void PromoteHeadingParagraphs(List<RawBlock> blocks)
     {
@@ -327,7 +333,7 @@ internal static partial class ChapterBuilder
         var parts = new List<string>();
         foreach (var raw in headings.Take(3))
         {
-            var h = raw.Trim().TrimEnd('.', ':');
+            var h = GluedLabel().Replace(raw.Trim().TrimEnd('.', ':'), "$1 ");
             if (h.Length == 0) continue;
             if (NumeralOnly().IsMatch(h)) h = "Chapter " + h.TrimEnd('.');
             else if (h.Length > 3 && h.Where(char.IsLetter).All(char.IsUpper))
