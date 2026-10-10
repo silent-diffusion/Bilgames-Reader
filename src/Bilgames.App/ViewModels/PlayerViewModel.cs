@@ -121,8 +121,11 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private bool _canStart;
     [ObservableProperty] private bool _isStreaming;
     [ObservableProperty] private string _streamStatus = "";
-    [ObservableProperty] private bool _isExporting;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ExportName))] private bool _isExporting;
     [ObservableProperty] private string _exportLabel = "Export";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ExportName))] private double _exportPercent;
+    public string ExportName => IsExporting ? $"Exporting audiobook, {ExportPercent:0}% done. Select to stop." : "Export audiobook";
+    private CancellationTokenSource? _exportCts;
 
     public string SpeedLabel => SpeedLabels[SpeedIndex];
     public string PlayLabel => IsPlaying ? "Pause" : "Play";

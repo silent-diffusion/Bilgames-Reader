@@ -32,11 +32,11 @@ public enum ProcessorPreference
 /// <summary>Platform audio encoding (Media Foundation on Windows).</summary>
 public interface IAudioEncoder
 {
-    /// <summary>WAV → AAC in an MPEG-4 container.</summary>
-    Task EncodeAacAsync(string wavPath, string outputPath, CancellationToken ct);
+    /// <summary>WAV → AAC in an MPEG-4 container. Progress, when given, runs 0–100.</summary>
+    Task EncodeAacAsync(string wavPath, string outputPath, CancellationToken ct, IProgress<double>? progress = null);
 
     /// <summary>Any supported audio file → 16-bit mono WAV at the given sample rate.</summary>
-    Task DecodeToWavAsync(string inputPath, string wavPath, int sampleRate, CancellationToken ct);
+    Task DecodeToWavAsync(string inputPath, string wavPath, int sampleRate, CancellationToken ct, IProgress<double>? progress = null);
 }
 
 /// <summary>Power state, so long jobs can slow down on battery.</summary>

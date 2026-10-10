@@ -11,22 +11,38 @@ namespace Bilgames.App.Services;
 /// </summary>
 public sealed class MediaFoundationEncoder : IAudioEncoder
 {
-    public async Task EncodeAacAsync(string wavPath, string outputPath, CancellationToken ct)
+    public async Task EncodeAacAsync(string wavPath, string outputPath, CancellationToken ct, IProgress<double>? progress = null)
     {
         // Mono speech at 64 kbps is transparent for narration and keeps books small (~29 MB/hour).
         var profile = MediaEncodingProfile.CreateM4a(AudioEncodingQuality.Medium);
         profile.Audio = AudioEncodingProperties.CreateAac(44100, 1, 64000);
-        await Transcode(wavPath, outputPath, profile, ct);
+        await Transcode(wavPath, outputPath, profile, ct, progress);
     }
 
-    public async Task DecodeToWavAsync(string inputPath, string wavPath, int sampleRate, CancellationToken ct)
+    public async Task DecodeToWavAsync(string inputPath, string wavPath, int sampleRate, CancellationToken ct, IProgress<double>? progress = null)
     {
         var profile = MediaEncodingProfile.CreateWav(AudioEncodingQuality.High);
         profile.Audio = AudioEncodingProperties.CreatePcm((uint)sampleRate, 1, 16);
-        await Transcode(inputPath, wavPath, profile, ct);
+        await Transcode(inputPath, wavPath, profile, ct, progress);
     }
 
-    private static async Task Transcode(string input, string output, MediaEncodingProfile profile, CancellationToken ct)
+    private static async Task Transcode(string input, string output, MediaEncodingProfile profile, CancellationToken ct, IProgress<double>? progress)
+    {
+        // Windows occasionally breaks the file lock it takes on the source (another reader such as
+        // the player touching the same file); starting over a moment later works.
+        for (int attempt = 1; ; attempt++)
+        {
+            try { await TranscodeOnce(input, output, profile, ct, progress); return; }
+            catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == OplockBroken && attempt < 3)
+            {
+                await Task.Delay(300 * attempt, ct);
+            }
+        }
+    }
+
+    private const int OplockBroken = unchecked((int)0x80070323);
+
+    private static async Task TranscodeOnce(string input, string output, MediaEncodingProfile profile, CancellationToken ct, IProgress<double>? progress)
     {
         var src = await StorageFile.GetFileFromPathAsync(input);
         var folder = await StorageFolder.GetFolderFromPathAsync(Path.GetDirectoryName(output)!);
@@ -35,7 +51,9 @@ public sealed class MediaFoundationEncoder : IAudioEncoder
         var prepared = await transcoder.PrepareFileTranscodeAsync(src, dst, profile);
         if (!prepared.CanTranscode)
             throw new InvalidOperationException($"Windows couldn't encode this audio ({prepared.FailureReason}).");
-        await prepared.TranscodeAsync().AsTask(ct);
+        // Media Foundation reports 0–100 as it goes.
+        if (progress is null) await prepared.TranscodeAsync().AsTask(ct);
+        else await prepared.TranscodeAsync().AsTask(ct, progress);
     }
 }
 

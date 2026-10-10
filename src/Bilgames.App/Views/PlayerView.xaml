@@ -263,12 +263,19 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button Grid.Column="2" Style="{StaticResource ChipButton}" Command="{x:Bind Vm.ExportCommand}" IsEnabled="{x:Bind c:Ui.Not(Vm.IsExporting), Mode=OneWay}"
-                        AutomationProperties.Name="Export audiobook" ToolTipService.ToolTip="Export as an M4B audiobook with chapters">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <c:StrokeIcon Data="M12 3v12M7 10l5 5 5-5M5 21h14" Width="16" Height="16" />
-                        <TextBlock Text="{x:Bind Vm.ExportLabel, Mode=OneWay}" FontWeight="Bold" TextWrapping="NoWrap" />
-                    </StackPanel>
+                <!-- While exporting, the chip shows the percentage over a progress bar; selecting it offers to stop. -->
+                <Button Grid.Column="2" Style="{StaticResource ChipButton}" Command="{x:Bind Vm.ExportCommand}" HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="{x:Bind Vm.ExportName, Mode=OneWay}" ToolTipService.ToolTip="Export as an M4B audiobook with chapters">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" Visibility="{x:Bind c:Ui.NotVis(Vm.IsExporting), Mode=OneWay}">
+                            <c:StrokeIcon Data="M12 3v12M7 10l5 5 5-5M5 21h14" Width="16" Height="16" />
+                            <TextBlock Text="Export" FontWeight="Bold" TextWrapping="NoWrap" />
+                        </StackPanel>
+                        <StackPanel Spacing="4" VerticalAlignment="Center" Visibility="{x:Bind c:Ui.Vis(Vm.IsExporting), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind Vm.ExportLabel, Mode=OneWay}" FontWeight="Bold" TextWrapping="NoWrap" HorizontalAlignment="Center" />
+                            <ProgressBar Style="{StaticResource ThinProgress}" Height="4" MinHeight="4" Maximum="100" Value="{x:Bind Vm.ExportPercent, Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
                 </Button>
             </Grid>
 
