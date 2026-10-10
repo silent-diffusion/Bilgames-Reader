@@ -6,13 +6,35 @@ using AngleSharp.Html.Parser;
 
 namespace Bilgames.Core.Epub;
 
-internal static class Xhtml5
+internal static partial class Xhtml5
 {
     // AngleSharp's HTML parser is tolerant of the malformed XHTML found in real EPUBs and never
     // fetches resources or runs scripts unless explicitly configured to.
     private static readonly HtmlParser Parser = new(new HtmlParserOptions { IsScripting = false });
 
-    public static IHtmlDocument Parse(string html) => Parser.ParseDocument(html);
+    public static IHtmlDocument Parse(string html) => Parser.ParseDocument(ExpandSelfClosing(html));
+
+    /// <summary>
+    /// XHTML allows <c>&lt;a id="x"/&gt;</c>, but an HTML parser ignores the slash on non-void elements and
+    /// treats it as an open tag that swallows the rest of the document (Project Gutenberg books do this
+    /// for every chapter anchor). Rewrite such tags as an explicit open/close pair before parsing.
+    /// </summary>
+    internal static string ExpandSelfClosing(string html)
+    {
+        if (!html.Contains("/>")) return html;
+        return SelfClosing().Replace(html, m => VoidElements.Contains(m.Groups[1].Value)
+            ? m.Value
+            : $"<{m.Groups[1].Value}{m.Groups[2].Value.TrimEnd()}></{m.Groups[1].Value}>");
+    }
+
+    private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+        "basefont", "bgsound", "frame", "keygen", "image",
+    };
+
+    [GeneratedRegex(@"<([A-Za-z][\w:.-]*)((?:\s+[^\s<>/=]+(?:\s*=\s*(?:""[^""]*""|'[^']*'|[^\s""'<>]+))?)*)\s*/>")]
+    private static partial Regex SelfClosing();
 }
 
 internal enum RawKind { Heading, Paragraph, SceneBreak, Verse }
@@ -31,6 +53,10 @@ internal sealed class RawBlock
     public string Semantics = "";
     /// <summary>True when this paragraph was promoted to a heading because it looks like one.</summary>
     public bool Promoted;
+    /// <summary>A table-of-contents line (link-only paragraph or table cell): never promote it to a heading.</summary>
+    public bool NoPromote;
+    /// <summary>Project Gutenberg licence text: 1 = header (before the book), 2 = footer (after it).</summary>
+    public int Boilerplate;
 }
 
 /// <summary>Turns one XHTML spine document into an ordered list of text blocks.</summary>
@@ -86,9 +112,15 @@ internal sealed partial class XhtmlExtractor
             var name = child.LocalName;
             if (Skip.Contains(name)) { CollectAnchors(child); return; }
             if (IsFootnoteBody(child)) return; // bodies are resolved through their references
+            if (IsIllustrationCaption(child)) { CollectAnchors(child); return; } // "[Copyright 1894 by …]" under a picture
 
             var sem = Semantic(child);
             var inherited = sem.Length > 0 ? sem : semantics;
+            // Project Gutenberg wraps its licence header and footer in marked containers.
+            if (child.Id is "pg-header" || (HasClass(child, "pg-boilerplate") && child.Id != "pg-footer" && child.LocalName == "header"))
+                inherited = "frontmatter " + PgBoilerplate;
+            else if (child.Id is "pg-footer" || (HasClass(child, "pg-boilerplate") && child.LocalName == "footer"))
+                inherited = "backmatter " + PgBoilerplate;
             if (child.Id is { Length: > 0 } id) _pendingAnchors.Add(id);
 
             if (name is "h1" or "h2" or "h3" or "h4" or "h5" or "h6")
@@ -107,6 +139,13 @@ internal sealed partial class XhtmlExtractor
             else if (BlockTags.Contains(name))
             {
                 // A container of blocks. If it also holds loose inline text, emit that text as its own paragraph.
+                if (HasLooseText(child)) EmitMixed(child, inherited);
+                else Walk(child, inherited);
+            }
+            else if (HasBlockChildren(child))
+            {
+                // An inline element wrapping blocks (an unclosed <a> from "<a id=x/>", <span> around paragraphs):
+                // keep the paragraphs and headings inside it as separate blocks.
                 if (HasLooseText(child)) EmitMixed(child, inherited);
                 else Walk(child, inherited);
             }
@@ -160,8 +199,50 @@ internal sealed partial class XhtmlExtractor
         if (text.Length == 0) return;
         if (kind != RawKind.Heading && IsSceneBreakText(text)) { Add(new RawBlock { Kind = RawKind.SceneBreak, Semantics = semantics }); return; }
         if (kind == RawKind.Paragraph && PageNumber().IsMatch(text)) return; // stray page numbers from PDF conversions
+        if (kind == RawKind.Paragraph && IllustrationNote().IsMatch(text)) return; // "[Illustration: …]" placeholders
 
-        Add(new RawBlock { Kind = kind, Level = level, Text = text, NoteRefs = refs, Semantics = semantics });
+        // Table-of-contents lines (a paragraph that is only a link, or a table cell) must never be
+        // promoted to chapter headings: they would swallow the real chapter that follows.
+        bool noPromote = kind == RawKind.Paragraph && (el.LocalName is "td" or "th" || HasClass(el, "toc") || IsLinkOnly(el, text));
+        Add(new RawBlock { Kind = kind, Level = level, Text = text, NoteRefs = refs, Semantics = semantics, NoPromote = noPromote });
+    }
+
+    internal const string PgBoilerplate = "pg-boilerplate";
+
+    private static bool IsLinkOnly(IElement el, string text)
+    {
+        var links = el.QuerySelectorAll("a[href]");
+        if (links.Length == 0) return false;
+        var linked = Collapse(string.Concat(links.Select(a => a.TextContent)));
+        return linked.Length > 0 && linked.Length >= text.Length - 2;
+    }
+
+    /// <summary>A caption under an illustration (or inside a heading that carries a picture).</summary>
+    private static bool IsIllustrationCaption(IElement e)
+    {
+        if (e.LocalName == "figcaption") return true;
+        if (!HasClass(e, "caption")) return false;
+        for (var a = e.ParentElement; a is not null; a = a.ParentElement)
+        {
+            if (a.LocalName is "figure" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6") return true;
+            if ((a.GetAttribute("role") ?? "") == "figure" || (a.ClassName ?? "").StartsWith("fig", StringComparison.OrdinalIgnoreCase)) return true;
+            if (a.LocalName is "body" or "section" or "article") break;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// A drop cap drawn as a picture ("&lt;img alt="W"/&gt;HEN Jane…"): its alt text is the first letter
+    /// of the paragraph. Only a one- or two-letter alt at the very start of the text counts.
+    /// </summary>
+    private static bool IsDropCap(IElement img, StringBuilder sb, out string letter)
+    {
+        letter = (img.GetAttribute("alt") ?? "").Trim();
+        var letters = letter.TrimStart('“', '"', '‘', '\'');
+        if (letters.Length is 0 or > 2 || !letters.All(char.IsLetter)) return false;
+        for (int i = 0; i < sb.Length; i++)
+            if (!char.IsWhiteSpace(sb[i]) && sb[i] is not ('“' or '"' or '‘' or '\'' or '(')) return false;
+        return true;
     }
 
     private void Add(RawBlock b)
@@ -187,7 +268,9 @@ internal sealed partial class XhtmlExtractor
                 break;
             case IElement e:
                 var name = e.LocalName;
+                if (name == "img" && IsDropCap(e, sb, out var letter)) { sb.Append(letter); return; }
                 if (Skip.Contains(name)) return;
+                if (IsIllustrationCaption(e)) return;
                 if (name == "br") { sb.Append(verse ? '\n' : ' '); return; }
                 if (IsNoteRef(e, out var target))
                 {
@@ -305,6 +388,9 @@ internal sealed partial class XhtmlExtractor
 
     [GeneratedRegex(@"^[\[\(]?\s*(page\s*)?\d{1,4}\s*[\]\)]?$", RegexOptions.IgnoreCase)]
     private static partial Regex PageNumber();
+
+    [GeneratedRegex(@"^\[\s*Illustrations?\b[^\]]*\]$", RegexOptions.IgnoreCase)]
+    private static partial Regex IllustrationNote();
 
     [GeneratedRegex(@"(?<=\S)\[\d{1,3}\]")]
     private static partial Regex BracketMarker();

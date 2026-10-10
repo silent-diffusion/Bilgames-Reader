@@ -3,6 +3,7 @@ using Bilgames.Core.Model;
 
 // Developer tool: prints what the importer extracts from an EPUB.
 // Usage: Bilgames.Inspect <file.epub> [structure|text <chapter>]
+Console.OutputEncoding = System.Text.Encoding.UTF8; // titles use “ ” · — and accented letters
 var path = args[0];
 var mode = args.Length > 1 ? args[1] : "structure";
 var book = mode is "m4b" or "engine" or "gpu" or "phonemes" ? new ImportedBook() : EpubImporter.Import(path);
