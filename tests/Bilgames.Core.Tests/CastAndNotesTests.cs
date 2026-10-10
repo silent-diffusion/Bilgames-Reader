@@ -270,3 +270,104 @@ public class AllNotesExportTests
         Assert.StartsWith("\"Book, B\",Two,Highlight,Start,0:09,9,Yes.,good,yellow,", csv[2]);
     }
 }
+
+public sealed class ConcurrentEditTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "bilgames-race-" + Guid.NewGuid().ToString("N"));
+    public void Dispose() { try { Directory.Delete(_root, true); } catch { } }
+
+    [Fact]
+    public async Task SimultaneousEditsAreAllKept()
+    {
+        var store = new LibraryStore(_root);
+        var books = new BookService(store);
+        var text = new ChapterText { Index = 0, Title = "One", Kind = SectionKind.Body };
+        for (int i = 0; i < 60; i++)
+            text.Blocks.Add(new Block { Id = $"c0b{i}", Kind = BlockKind.Paragraph, Text = i % 2 == 0 ? $"“Line {i}, is it?”" : $"“Answer {i}.”" });
+        var book = new BookRecord { Id = "bk", Title = "Race" };
+        book.Chapters.Add(new ChapterInfo { Index = 0, Title = "One", Kind = SectionKind.Body });
+        Directory.CreateDirectory(Path.Combine(store.BookDir("bk"), "text"));
+        store.SaveChapterText("bk", text);
+        store.SaveBook(book);
+        books.Analyze("bk");
+        var lines = store.LoadAnalysis("bk", 0)!.Lines.Where(l => l.IsDialogue).ToList();
+
+        // Confirms, new speakers, tone changes and recounts all at once, as UI actions on background threads.
+        var tasks = new List<Task>();
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            int n = i;
+            tasks.Add(Task.Run(() =>
+            {
+                var who = books.AddSpeaker("bk", $"Person {n % 7}");
+                books.AssignSpeaker("bk", 0, line.Id, who.Id, false);
+                if (n % 3 == 0) books.SetCue("bk", 0, line.Id, "sad");
+            }));
+        }
+        await Task.WhenAll(tasks);
+
+        var after = store.LoadAnalysis("bk", 0)!.Lines.Where(l => l.IsDialogue).ToList();
+        var cast = store.LoadCast("bk");
+        Assert.All(after, l => Assert.True(l.Reviewed, $"{l.Id} lost its review"));
+        Assert.All(after, l => Assert.NotNull(cast.Find(l.SpeakerId)));
+        Assert.Equal(7, cast.Members.Count(m => m.UserAdded));
+        Assert.Equal(lines.Count, cast.Members.Where(m => m.UserAdded).Sum(m => m.LineCount));
+        Assert.Equal((lines.Count + 2) / 3, after.Count(l => l.Cue == "sad"));
+    }
+}
+
+public sealed class RenameTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "bilgames-rename-" + Guid.NewGuid().ToString("N"));
+    public void Dispose() { try { Directory.Delete(_root, true); } catch { } }
+
+    private (LibraryStore, BookService) Book()
+    {
+        var store = new LibraryStore(_root);
+        var books = new BookService(store);
+        var text = new ChapterText { Index = 0, Title = "One", Kind = SectionKind.Body };
+        string[] p = { "“We should go,” said Henry.", "“Not yet,” said Rinaldi.", "“The trucks are leaving,” said Henry.", "“Let them,” said Rinaldi.", "“Who is that?”" };
+        for (int i = 0; i < p.Length; i++) text.Blocks.Add(new Block { Id = $"c0b{i}", Kind = BlockKind.Paragraph, Text = p[i] });
+        var book = new BookRecord { Id = "bk", Title = "T" };
+        book.Chapters.Add(new ChapterInfo { Index = 0, Title = "One", Kind = SectionKind.Body });
+        Directory.CreateDirectory(Path.Combine(store.BookDir("bk"), "text"));
+        store.SaveChapterText("bk", text);
+        store.SaveBook(book);
+        books.Analyze("bk");
+        return (store, books);
+    }
+
+    [Fact]
+    public void RenamesSurviveFindingSpeakersAgain()
+    {
+        var (store, books) = Book();
+        var rinaldi = store.LoadCast("bk").Members.Single(m => m.Name == "Rinaldi");
+        Assert.Equal(BookService.RenameResult.Renamed, books.RenameSpeaker("bk", rinaldi.Id, "Lt. Rinaldi", out _));
+        Assert.Equal(BookService.RenameResult.NameTaken, books.RenameSpeaker("bk", rinaldi.Id, "henry", out var taken));
+        Assert.Equal(store.LoadCast("bk").Members.Single(m => m.Name == "Henry").Id, taken);
+
+        books.Analyze("bk");
+        var cast = store.LoadCast("bk");
+        Assert.Contains(cast.Members, m => m.Name == "Lt. Rinaldi" && m.LineCount == 2);
+        Assert.DoesNotContain(cast.Members, m => m.Name == "Rinaldi");
+    }
+
+    [Fact]
+    public void ConfirmedLinesKeepTheirSpeakerEvenIfAnalysisDropsThem()
+    {
+        var (store, books) = Book();
+        var line = store.LoadAnalysis("bk", 0)!.Lines.Last(l => l.IsDialogue);
+        var stranger = books.AddSpeaker("bk", "The Stranger");
+        books.AssignSpeaker("bk", 0, line.Id, stranger.Id, false);
+        // Simulate an older cast where this speaker wasn't marked as added (e.g. found by an earlier analysis).
+        var cast = store.LoadCast("bk");
+        cast.Find(stranger.Id)!.UserAdded = false;
+        store.SaveCast("bk", cast);
+
+        books.Analyze("bk");
+        var after = store.LoadAnalysis("bk", 0)!.Lines.Single(l => l.Id == line.Id);
+        Assert.True(after.Reviewed);
+        Assert.Equal("The Stranger", store.LoadCast("bk").Find(after.SpeakerId)!.Name);
+    }
+}

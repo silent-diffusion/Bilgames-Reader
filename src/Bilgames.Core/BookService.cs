@@ -30,12 +30,68 @@ public sealed class BookService
 
     public BookService(LibraryStore store) => _store = store;
 
+    // Every edit to a book's analysis or cast is a read-modify-save of several files. They run on
+    // background threads (a review confirm, a voice change, a merge…), so each one holds the book's
+    // edit lock: an edit can never save over another with a copy it loaded before that one finished.
+
+    /// <summary>Finds speakers across the book. Earlier corrections and voice choices are kept.</summary>
+    public BookRecord Analyze(string bookId, IProgress<double>? progress = null, CancellationToken ct = default)
+    {
+        lock (_store.EditLock(bookId)) return AnalyzeUnlocked(bookId, progress, ct);
+    }
+
+    public void SetVoice(string bookId, string memberId, string voiceId)
+    {
+        lock (_store.EditLock(bookId)) SetVoiceUnlocked(bookId, memberId, voiceId);
+    }
+
+    /// <summary>Folds one speaker into another (lines, candidates, name as an alias).</summary>
+    public void Merge(string bookId, string fromId, string intoId)
+    {
+        lock (_store.EditLock(bookId)) MergeUnlocked(bookId, fromId, intoId);
+    }
+
+    /// <summary>Merges several speakers into one in a single pass.</summary>
+    public void MergeMany(string bookId, IReadOnlyCollection<string> fromIds, string intoId)
+    {
+        lock (_store.EditLock(bookId)) MergeManyUnlocked(bookId, fromIds, intoId);
+    }
+
+    /// <summary>Adds a character the analysis missed (or returns the existing one with that name).</summary>
+    public CastMember AddSpeaker(string bookId, string name, Gender gender = Gender.Unknown)
+    {
+        lock (_store.EditLock(bookId)) return AddSpeakerUnlocked(bookId, name, gender);
+    }
+
+    public void KeepApart(string bookId, MergeSuggestion s)
+    {
+        lock (_store.EditLock(bookId)) KeepApartUnlocked(bookId, s);
+    }
+
+    /// <summary>Sets who speaks a line (optionally the rest of that exchange by alternation).</summary>
+    public int AssignSpeaker(string bookId, int chapterIndex, string lineId, string speakerId, bool applyToSimilar)
+    {
+        lock (_store.EditLock(bookId)) return AssignSpeakerUnlocked(bookId, chapterIndex, lineId, speakerId, applyToSimilar);
+    }
+
+    /// <summary>Sets a line's tone; kept through re-analysis.</summary>
+    public void SetCue(string bookId, int chapterIndex, string lineId, string? cue)
+    {
+        lock (_store.EditLock(bookId)) SetCueUnlocked(bookId, chapterIndex, lineId, cue);
+    }
+
+    /// <summary>Leaves the line with the narrator and removes it from the review queue.</summary>
+    public void Skip(string bookId, int chapterIndex, string lineId)
+    {
+        lock (_store.EditLock(bookId)) SkipUnlocked(bookId, chapterIndex, lineId);
+    }
+
     public LibraryStore Store => _store;
 
     private static bool Analyzable(BookRecord b, ChapterInfo c) => c.Kind == SectionKind.Body || b.Options.Includes(c.Kind);
 
     /// <summary>Finds speakers across the book. Earlier corrections and voice choices are kept.</summary>
-    public BookRecord Analyze(string bookId, IProgress<double>? progress = null, CancellationToken ct = default)
+    private BookRecord AnalyzeUnlocked(string bookId, IProgress<double>? progress, CancellationToken ct)
     {
         var book = _store.LoadBook(bookId) ?? throw new InvalidOperationException("Book not found.");
         book.Analysis = AnalysisState.Running;
@@ -70,7 +126,12 @@ public sealed class BookService
                         if (tones.TryGetValue(l.Id, out var t) && t.Text == l.Text) { l.Cue = t.Cue; l.CueFrom = CueSource.User; }
                         if (!reviewed.TryGetValue(l.Id, out var r) || r.Text != l.Text) continue;
                         var speaker = idMap.GetValueOrDefault(r.SpeakerId, r.SpeakerId);
-                        if (r.Source == AttributionSource.User && result.Cast.Find(speaker) is null) continue;
+                        if (result.Cast.Find(speaker) is null)
+                        {
+                            // Someone you gave this line to whom the fresh analysis didn't find: keep them rather than lose the correction.
+                            if (oldCast.Find(r.SpeakerId) is not { IsNarrator: false } old) { if (r.Source == AttributionSource.User) continue; }
+                            else speaker = idMap[r.SpeakerId] = KeepMember(result.Cast, old);
+                        }
                         l.SpeakerId = speaker; l.Unsure = r.Unsure; l.Reviewed = true; l.Source = r.Source; l.Confidence = r.Confidence;
                     }
                 }
@@ -115,19 +176,78 @@ public sealed class BookService
         foreach (var old in oldCast.Members.Where(m => !m.IsNarrator && m.Aliases.Count > 0))
         {
             var into = cast.Members.FirstOrDefault(m => !m.IsNarrator && m.Name == old.Name);
-            if (into is null) continue;
+            if (into is null)
+            {
+                // Renamed by the reader ("Tenente" → "Rinaldi"): the analysis found the old name again; restore the new one.
+                into = cast.Members.FirstOrDefault(m => !m.IsNarrator && !m.UserAdded && old.Aliases.Contains(m.Name)
+                                                        && oldCast.Members.All(o => o.Name != m.Name));
+                if (into is null) continue;
+                into.Aliases.Add(into.Name);
+                into.Name = old.Name;
+                into.Aliases = into.Aliases.Distinct().Where(a => a != into.Name).ToList();
+            }
             foreach (var from in cast.Members.Where(m => m != into && !m.IsNarrator && old.Aliases.Contains(m.Name)).ToList())
             {
                 foreach (var a in result.Chapters) Repoint(a, from.Id, into.Id);
                 Absorb(cast, from, into);
             }
         }
+        // Speaker ids are only labels: carry corrections by who the speaker *is* (their name), so a
+        // fresh analysis that numbers characters differently can't hand a line to someone else.
+        foreach (var old in oldCast.Members.Where(m => !m.IsNarrator && !idMap.ContainsKey(m.Id)))
+        {
+            var now = cast.Members.FirstOrDefault(m => !m.IsNarrator && m.Name == old.Name);
+            if (now is not null && now.Id != old.Id) idMap[old.Id] = now.Id;
+            else if (now is null && cast.Find(old.Id) is { } clash && clash.Name != old.Name) idMap[old.Id] = "\u0001missing:" + old.Id;
+        }
         return idMap;
+    }
+
+    /// <summary>Copies a speaker from the previous cast into the new one (with a free id). Returns the id used.</summary>
+    private static string KeepMember(CastSheet cast, CastMember old)
+    {
+        var existing = cast.Members.FirstOrDefault(m => !m.IsNarrator && m.Name == old.Name);
+        if (existing is not null) return existing.Id;
+        var id = old.Id;
+        for (int n = 1; cast.Find(id) is not null; n++) id = $"k{n}";
+        cast.Members.Add(new CastMember
+        {
+            Id = id, Name = old.Name, Aliases = old.Aliases.ToList(), Gender = old.Gender, VoiceId = old.VoiceId,
+            Color = old.Color, UserAdded = old.UserAdded,
+        });
+        return id;
+    }
+
+    public enum RenameResult { Renamed, NameTaken, Invalid }
+
+    /// <summary>
+    /// Renames a speaker. The old name is kept as an alias, so finding speakers again recognises
+    /// them and restores this name. Returns <see cref="RenameResult.NameTaken"/> if someone else
+    /// already has that name (merge them instead).
+    /// </summary>
+    public RenameResult RenameSpeaker(string bookId, string memberId, string newName, out string? takenById)
+    {
+        takenById = null;
+        newName = string.Join(' ', newName.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        lock (_store.EditLock(bookId))
+        {
+            var cast = _store.LoadCast(bookId);
+            var member = cast.Find(memberId);
+            if (member is null || member.IsNarrator || newName.Length == 0) return RenameResult.Invalid;
+            if (member.Name == newName) return RenameResult.Renamed;
+            var other = cast.Members.FirstOrDefault(m => m != member && !m.IsNarrator && m.Name.Equals(newName, StringComparison.OrdinalIgnoreCase));
+            if (other is not null) { takenById = other.Id; return RenameResult.NameTaken; }
+            if (!member.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)) member.Aliases.Add(member.Name);
+            member.Name = newName;
+            member.Aliases = member.Aliases.Distinct().Where(a => !a.Equals(newName, StringComparison.OrdinalIgnoreCase)).ToList();
+            _store.SaveCast(bookId, cast);
+            return RenameResult.Renamed;
+        }
     }
 
     public static string SuggestionKey(MergeSuggestion s) => s.FromId + ">" + s.IntoId;
 
-    public void SetVoice(string bookId, string memberId, string voiceId)
+    private void SetVoiceUnlocked(string bookId, string memberId, string voiceId)
     {
         var cast = _store.LoadCast(bookId);
         var m = cast.Find(memberId);
@@ -142,7 +262,7 @@ public sealed class BookService
     /// Folds one speaker into another: every line (and review candidate) moves over, the name becomes
     /// an alias (so a later re-analysis merges them again), and the merged-away entry is removed.
     /// </summary>
-    public void Merge(string bookId, string fromId, string intoId)
+    private void MergeUnlocked(string bookId, string fromId, string intoId)
     {
         var cast = _store.LoadCast(bookId);
         var from = cast.Find(fromId);
@@ -157,7 +277,7 @@ public sealed class BookService
     }
 
     /// <summary>Merges several speakers into one in a single pass.</summary>
-    public void MergeMany(string bookId, IReadOnlyCollection<string> fromIds, string intoId)
+    private void MergeManyUnlocked(string bookId, IReadOnlyCollection<string> fromIds, string intoId)
     {
         var cast = _store.LoadCast(bookId);
         var into = cast.Find(intoId);
@@ -213,7 +333,7 @@ public sealed class BookService
     /// Adds a character the analysis missed. Returns the existing member if the name (or one of its
     /// aliases) is already in the cast. New speakers get their own colour and an unused voice.
     /// </summary>
-    public CastMember AddSpeaker(string bookId, string name, Gender gender = Gender.Unknown)
+    private CastMember AddSpeakerUnlocked(string bookId, string name, Gender gender)
     {
         name = string.Join(' ', name.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         if (name.Length == 0) throw new ArgumentException("A speaker needs a name.", nameof(name));
@@ -243,7 +363,7 @@ public sealed class BookService
         return member;
     }
 
-    public void KeepApart(string bookId, MergeSuggestion s)
+    private void KeepApartUnlocked(string bookId, MergeSuggestion s)
     {
         var cast = _store.LoadCast(bookId);
         cast.DismissedSuggestions.Add(SuggestionKey(s));
@@ -335,7 +455,7 @@ public sealed class BookService
     /// back-and-forth exchange is re-assigned by alternation: same parity → this speaker, other
     /// parity → the exchange's other main speaker.
     /// </summary>
-    public int AssignSpeaker(string bookId, int chapterIndex, string lineId, string speakerId, bool applyToSimilar)
+    private int AssignSpeakerUnlocked(string bookId, int chapterIndex, string lineId, string speakerId, bool applyToSimilar)
     {
         var a = _store.LoadAnalysis(bookId, chapterIndex);
         if (a is null) return 0;
@@ -367,7 +487,7 @@ public sealed class BookService
     }
 
     /// <summary>Sets how a line is delivered (one of <see cref="Tones.All"/>, or null for neutral). Kept through re-analysis.</summary>
-    public void SetCue(string bookId, int chapterIndex, string lineId, string? cue)
+    private void SetCueUnlocked(string bookId, int chapterIndex, string lineId, string? cue)
     {
         var a = _store.LoadAnalysis(bookId, chapterIndex);
         var line = a?.Lines.FirstOrDefault(l => l.Id == lineId);
@@ -378,7 +498,7 @@ public sealed class BookService
     }
 
     /// <summary>Leaves the line with the narrator and removes it from the queue.</summary>
-    public void Skip(string bookId, int chapterIndex, string lineId)
+    private void SkipUnlocked(string bookId, int chapterIndex, string lineId)
     {
         var a = _store.LoadAnalysis(bookId, chapterIndex);
         var line = a?.Lines.FirstOrDefault(l => l.Id == lineId);
@@ -400,6 +520,11 @@ public sealed class BookService
 
     /// <summary>Refreshes line counts on the cast sheet and the cached numbers on the book record.</summary>
     public void Recount(BookRecord book, CastSheet cast)
+    {
+        lock (_store.EditLock(book.Id)) RecountUnlocked(book, cast);
+    }
+
+    private void RecountUnlocked(BookRecord book, CastSheet cast)
     {
         var counts = new Dictionary<string, (int Lines, int Confident)>();
         int unsure = 0;

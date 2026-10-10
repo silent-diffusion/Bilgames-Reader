@@ -95,6 +95,11 @@ public sealed class GenerationCoordinator : IDisposable
                 if (!Directory.Exists(path)) continue;
                 foreach (var f in Directory.EnumerateFiles(path, "*.part*")) TryDelete(f);
             }
+        // Older takes of regenerated chapters that were still playing when they were replaced.
+        foreach (var dir in Directory.EnumerateDirectories(_store.BooksDir))
+        {
+            try { _store.SweepChapterAudio(Path.GetFileName(dir)); } catch { }
+        }
         try { foreach (var d in Directory.EnumerateDirectories(_store.TempDir)) Directory.Delete(d, true); } catch { }
 
         foreach (var b in _store.LoadAll().Where(b => b.Generation.State is JobState.Running or JobState.Queued).OrderBy(b => b.Generation.StartedUtc))
@@ -380,7 +385,8 @@ public sealed class GenerationCoordinator : IDisposable
     private async Task AssembleChapter(BookRecord book, ChapterPlan plan, CancellationToken ct)
     {
         var tmpWav = Path.Combine(_store.TempDir, $"{book.Id}-{plan.ChapterIndex}.wav");
-        var final = _store.ChapterAudioPath(book.Id, plan.ChapterIndex);
+        // A new file per take: the previous one may be open in the player (replacing it failed with "access denied").
+        var final = _store.NewChapterAudioPath(book.Id, plan.ChapterIndex);
         var tmpOut = final + ".part.m4a";
         var timings = new List<SegmentTiming>();
         try
@@ -400,7 +406,7 @@ public sealed class GenerationCoordinator : IDisposable
             }
             double duration = Wav.DurationSeconds(tmpWav);
             await _encoder.EncodeAacAsync(tmpWav, tmpOut, ct);
-            File.Move(tmpOut, final, overwrite: true);
+            File.Move(tmpOut, final);
             _store.SaveChapterAudio(book.Id, new ChapterAudio
             {
                 ChapterIndex = plan.ChapterIndex,
@@ -410,6 +416,7 @@ public sealed class GenerationCoordinator : IDisposable
                 Timings = timings,
                 CreatedUtc = DateTime.UtcNow,
             });
+            _store.SweepChapterAudio(book.Id); // drop older takes that nothing points at (skips any still playing)
         }
         finally
         {

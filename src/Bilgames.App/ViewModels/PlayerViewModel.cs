@@ -285,7 +285,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         BuildTranscript(index, audio.Timings.Select(t => t.BlockId).Distinct().ToList());
         SetTimings(audio.Timings);
 
-        var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(AppServices.Store.ChapterAudioPath(_book!.Id, index))));
+        var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(AppServices.Store.ChapterAudioPath(_book!.Id, audio))));
         await ApplyDisplayProperties(item, index);
         _pendingSeek = seconds;
         _autoplayOnOpen = play;

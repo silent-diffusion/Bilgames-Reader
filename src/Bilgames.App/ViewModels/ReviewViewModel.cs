@@ -98,7 +98,8 @@ public sealed partial class ReviewViewModel : ObservableObject
     {
         if (_current is not { } item || _book.BookId is not { } id) return;
         cue = string.IsNullOrEmpty(cue) ? null : cue;
-        await Task.Run(() => AppServices.Books.SetCue(id, item.ChapterIndex, item.Line.Id, cue));
+        try { await Task.Run(() => AppServices.Books.SetCue(id, item.ChapterIndex, item.Line.Id, cue)); }
+        catch (Exception ex) { AppServices.Log($"Set tone failed: {ex}"); Status = $"Couldn't save the tone ({ex.Message}). Please try again."; return; }
         item.Line.Cue = cue;
         item.Line.CueFrom = CueSource.User;
         Cue = cue;
@@ -131,6 +132,11 @@ public sealed partial class ReviewViewModel : ObservableObject
     [ObservableProperty] private IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>>? _contextParagraphs;
     private CastSheet _cast = new();
 
+    // Lines to review when this book's session began, so the counter reads "2 of 479" after a confirm, not "1 of 478".
+    private string? _sessionBookId;
+    private int _sessionTotal;
+    private readonly List<string> _recent = new();
+
     public void Reset()
     {
         _queue = null;
@@ -149,6 +155,8 @@ public sealed partial class ReviewViewModel : ObservableObject
     {
         if (_book.BookId is not { } id) return;
         _queue = AppServices.Books.ReviewQueue(id);
+        if (_sessionBookId != id) { _sessionBookId = id; _sessionTotal = 0; _recent.Clear(); }
+        _sessionTotal = Math.Max(_sessionTotal, _queue.Count);
         _fixMode = false;
         Show(_queue.Count == 0 ? null : _queue[Math.Min(index, _queue.Count - 1)]);
     }
@@ -178,7 +186,9 @@ public sealed partial class ReviewViewModel : ObservableObject
         var cast = AppServices.Store.LoadCast(_book.BookId!);
         CastMember? Member(string id) => cast.Find(id);
 
-        ProgressLabel = _fixMode ? $"{item.ChapterTitle} · fixing one line" : $"{item.ChapterTitle} · {item.Position:N0} of {item.Total:N0}";
+        // "Chapter 1 · 2 of 479 · 477 left": the total stays fixed for the session, so each confirm moves you forward.
+        int done = Math.Max(0, _sessionTotal - item.Total), position = done + item.Position, left = item.Total - item.Position;
+        ProgressLabel = _fixMode ? $"{item.ChapterTitle} · fixing one line" : $"{item.ChapterTitle} · {position:N0} of {Math.Max(_sessionTotal, item.Total):N0} · {left:N0} left";
         Prompt = _fixMode ? "Who says this?" : item.Line.Source == AttributionSource.Fallback && item.Line.Candidates.Count > 0 ? "No dialogue tag · who says this?" : "Who says this?";
         LineText = item.Line.Text;
         Cue = Bilgames.Core.Analysis.Tones.Normalize(item.Line.Cue);
@@ -206,6 +216,12 @@ public sealed partial class ReviewViewModel : ObservableObject
             var m = Member(cid)!;
             Options.Add(new SpeakerOptionViewModel { SpeakerId = cid, Name = m.Name, Initials = m.Initials, Color = m.Color, Confidence = conf });
         }
+        // The speakers you picked most recently (e.g. someone you just added), so the next line in the scene is one click.
+        foreach (var rid in _recent.Where(r => Options.All(o => o.SpeakerId != r)).Take(3))
+        {
+            if (Member(rid) is not { } rm || rm.IsNarrator) continue;
+            Options.Add(new SpeakerOptionViewModel { SpeakerId = rid, Name = rm.Name, Initials = rm.Initials, Color = rm.Color, Confidence = "Recent" });
+        }
         var narrator = cast.Narrator;
         Options.Add(new SpeakerOptionViewModel { SpeakerId = narrator.Id, Name = "Narrator", Initials = "N", Color = narrator.Color, Confidence = _fixMode && item.Line.SpeakerId == narrator.Id ? "Current" : "Fallback" });
 
@@ -220,7 +236,10 @@ public sealed partial class ReviewViewModel : ObservableObject
     public async Task AddAndPickAsync(string name)
     {
         if (_book.BookId is not { } id) return;
-        var member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name));
+        CastMember member;
+        try { member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name)); }
+        catch (Exception ex) { AppServices.Log($"Add speaker failed: {ex}"); Status = $"Couldn't add {name} ({ex.Message}). Please try again."; return; }
+        AppServices.Log($"Review: added speaker {member.Name} ({member.Id}) to {id}");
         _cast = AppServices.Store.LoadCast(id);
         PickOther(member.Id);
         Status = $"Added {member.Name} (voice {Bilgames.Core.Tts.VoiceCatalog.Name(member.VoiceId)}). Confirm to give them this line.";
@@ -255,7 +274,21 @@ public sealed partial class ReviewViewModel : ObservableObject
         var item = _current;
         bool similar = ApplySimilar && !_fixMode;
         int index = Math.Max(0, item.Position - 1);
-        int changed = await Task.Run(() => AppServices.Books.AssignSpeaker(id, item.ChapterIndex, item.Line.Id, choice.SpeakerId, similar));
+        int changed;
+        try
+        {
+            changed = await Task.Run(() => AppServices.Books.AssignSpeaker(id, item.ChapterIndex, item.Line.Id, choice.SpeakerId, similar));
+            AppServices.Log($"Review: {id} ch{item.ChapterIndex} {item.Line.Id} → {choice.Name} ({choice.SpeakerId}), {changed} line(s)");
+            _recent.Remove(choice.SpeakerId);
+            _recent.Insert(0, choice.SpeakerId);
+        }
+        catch (Exception ex)
+        {
+            // Never move on as if it saved: the line stays here so it can be confirmed again.
+            AppServices.Log($"Review save failed for {item.Line.Id}: {ex}");
+            Status = $"Couldn't save that ({ex.Message}). Please try again.";
+            return;
+        }
         _book.Changed();
         LoadQueue(index);
         Status = changed > 1 ? $"Set {changed} lines in that exchange." : "";
@@ -267,7 +300,13 @@ public sealed partial class ReviewViewModel : ObservableObject
         if (_current is null || _book.BookId is not { } id) return;
         var item = _current;
         if (_fixMode) { LoadQueue(0); return; }
-        await Task.Run(() => AppServices.Books.Skip(id, item.ChapterIndex, item.Line.Id));
+        try { await Task.Run(() => AppServices.Books.Skip(id, item.ChapterIndex, item.Line.Id)); }
+        catch (Exception ex)
+        {
+            AppServices.Log($"Review skip failed for {item.Line.Id}: {ex}");
+            Status = $"Couldn't save that ({ex.Message}). Please try again.";
+            return;
+        }
         _book.Changed();
         LoadQueue(Math.Max(0, item.Position - 1));
     }

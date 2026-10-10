@@ -65,7 +65,8 @@ public sealed partial class PlayerViewModel
                 for (int i = 0; i < chapters.Count; i++)
                 {
                     var chWav = Path.Combine(tmp, $"{chapters[i]}.wav");
-                    await AppServices.Encoder.DecodeToWavAsync(store.ChapterAudioPath(book.Id, chapters[i]), chWav, AppServices.Engine.SampleRate, CancellationToken.None);
+                    var audio = store.LoadChapterAudio(book.Id, chapters[i]) ?? throw new FileNotFoundException($"Chapter {chapters[i] + 1} audio is missing.");
+                    await AppServices.Encoder.DecodeToWavAsync(store.ChapterAudioPath(book.Id, audio), chWav, AppServices.Engine.SampleRate, CancellationToken.None);
                     marks.Add(new Mp4Chapter(TimeSpan.FromSeconds(cat.PositionSeconds), book.Chapters[chapters[i]].Title));
                     cat.AppendFile(chWav);
                     File.Delete(chWav);

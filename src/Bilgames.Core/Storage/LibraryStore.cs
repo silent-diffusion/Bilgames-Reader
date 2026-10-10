@@ -60,7 +60,30 @@ public sealed class LibraryStore
 
     public string BookDir(string id) => Path.Combine(BooksDir, id);
     public string SegmentPath(string id, string hash) => Path.Combine(BookDir(id), "segments", hash + ".wav");
-    public string ChapterAudioPath(string id, int index) => Path.Combine(BookDir(id), "audio", $"{index}.m4a");
+    /// <summary>The chapter's audio file. Each regeneration writes a new file name, so one the player has open never blocks it.</summary>
+    public string ChapterAudioPath(string id, ChapterAudio a) =>
+        Path.Combine(BookDir(id), "audio", string.IsNullOrEmpty(a.FileName) ? $"{a.ChapterIndex}.m4a" : a.FileName);
+
+    /// <summary>A fresh audio file name for a chapter being (re)assembled.</summary>
+    public string NewChapterAudioPath(string id, int index) => Path.Combine(BookDir(id), "audio", $"{index}-{Guid.NewGuid().ToString("N")[..8]}.m4a");
+
+    /// <summary>
+    /// Deletes audio files no chapter index points at any more (older takes of regenerated chapters).
+    /// Files still open, e.g. in the player, are skipped and go next time.
+    /// </summary>
+    public void SweepChapterAudio(string id)
+    {
+        var dir = Path.Combine(BookDir(id), "audio");
+        if (!Directory.Exists(dir)) return;
+        var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var json in Directory.EnumerateFiles(dir, "*.json"))
+            if (Read<ChapterAudio>(json) is { } a) keep.Add(Path.GetFileName(ChapterAudioPath(id, a)));
+        foreach (var m4a in Directory.EnumerateFiles(dir, "*.m4a"))
+        {
+            if (keep.Contains(Path.GetFileName(m4a)) || m4a.Contains(".part")) continue;
+            try { File.Delete(m4a); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+    }
     public string? CoverPath(BookRecord b) => b.CoverFile is null ? null : Path.Combine(BookDir(b.Id), b.CoverFile);
 
     private object LockFor(string id) => _locks.GetOrAdd(id, _ => new object());
@@ -178,7 +201,10 @@ public sealed class LibraryStore
 
     public ChapterAnalysis? LoadAnalysis(string id, int index) => Read<ChapterAnalysis>(Path.Combine(BookDir(id), "analysis", $"{index}.json"));
 
-    public void SaveAnalysis(string id, ChapterAnalysis a) => Write(Path.Combine(BookDir(id), "analysis", $"{a.ChapterIndex}.json"), a);
+    public void SaveAnalysis(string id, ChapterAnalysis a)
+    {
+        lock (LockFor(id)) Write(Path.Combine(BookDir(id), "analysis", $"{a.ChapterIndex}.json"), a);
+    }
 
     public CastSheet LoadCast(string id) => Read<CastSheet>(Path.Combine(BookDir(id), "cast.json")) ?? new CastSheet();
 
@@ -190,7 +216,7 @@ public sealed class LibraryStore
     public ChapterAudio? LoadChapterAudio(string id, int index)
     {
         var a = Read<ChapterAudio>(Path.Combine(BookDir(id), "audio", $"{index}.json"));
-        return a is not null && File.Exists(ChapterAudioPath(id, index)) ? a : null;
+        return a is not null && File.Exists(ChapterAudioPath(id, a)) ? a : null;
     }
 
     public void SaveChapterAudio(string id, ChapterAudio a) => Write(Path.Combine(BookDir(id), "audio", $"{a.ChapterIndex}.json"), a);
@@ -229,20 +255,59 @@ public sealed class LibraryStore
 
     // ---------- io helpers ----------
 
+    /// <summary>
+    /// Reads a JSON file. Opened with full sharing (so a writer can atomically replace it meanwhile),
+    /// and retried briefly when another thread, the generator or antivirus has it locked.
+    /// </summary>
     public static T? Read<T>(string path) where T : class
     {
-        if (!File.Exists(path)) return null;
-        using var s = File.OpenRead(path);
-        return JsonSerializer.Deserialize<T>(s, Json);
+        for (int attempt = 0; ; attempt++)
+        {
+            if (!File.Exists(path)) return null;
+            try
+            {
+                using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                return JsonSerializer.Deserialize<T>(s, Json);
+            }
+            catch (IOException) when (attempt < 20) { Thread.Sleep(25 + attempt * 10); }
+            catch (UnauthorizedAccessException) when (attempt < 20) { Thread.Sleep(25 + attempt * 10); }
+        }
     }
 
+    /// <summary>
+    /// Writes a JSON file atomically (unique temp file, then rename over the old one). The rename is
+    /// retried while something briefly holds the file, and an error is thrown, never swallowed, if it
+    /// can't be saved: a lost edit must not look like a saved one.
+    /// </summary>
     public static void Write<T>(string path, T value)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var tmp = path + ".tmp";
-        using (var s = File.Create(tmp)) JsonSerializer.Serialize(s, value, Json);
-        File.Move(tmp, path, overwrite: true);
+        var tmp = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            using (var s = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(s, value, Json);
+                s.Flush(flushToDisk: true);
+            }
+            for (int attempt = 0; ; attempt++)
+            {
+                try { File.Move(tmp, path, overwrite: true); return; }
+                catch (IOException) when (attempt < 40) { Thread.Sleep(25 + attempt * 10); }
+                catch (UnauthorizedAccessException) when (attempt < 40) { Thread.Sleep(25 + attempt * 10); }
+            }
+        }
+        finally
+        {
+            try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+        }
     }
+
+    /// <summary>
+    /// Serialises every read-modify-save of one book's analysis and cast (reviews, merges, voice and
+    /// tone changes, recounts), so two edits can never overwrite each other with stale copies.
+    /// </summary>
+    public object EditLock(string id) => LockFor(id);
 
     private static void TryDeleteDir(string dir)
     {

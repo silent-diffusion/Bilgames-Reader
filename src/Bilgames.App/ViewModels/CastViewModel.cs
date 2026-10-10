@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Bilgames.App.Services;
+using Bilgames.Core;
 using Bilgames.Core.Model;
 using Bilgames.Core.Tts;
 using Bilgames.Tts.Kokoro;
@@ -95,12 +96,12 @@ public sealed partial class CastViewModel : ObservableObject
         Sheet = cast;
         // Narrator first, then speakers just added (no lines yet) so they are easy to find, then everyone else.
         var shown = cast.Members.Where(m => m.IsNarrator || m.LineCount > 0 || m.UserAdded)
-            .OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.UserAdded && m.LineCount == 0).ToList();
+            .OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.UserAdded && m.LineCount == 0).ThenByDescending(m => m.LineCount).ToList();
         int hidden = cast.Members.Count - shown.Count;
         HiddenLabel = hidden > 0 ? $"{hidden} more {(hidden == 1 ? "name appears" : "names appear")} only as possible speakers in Review." : "";
 
         // Update in place where possible so voice menus don't flicker.
-        if (Members.Select(m => m.Id).SequenceEqual(shown.Select(m => m.Id)))
+        if (Members.Select(m => (m.Id, m.Name)).SequenceEqual(shown.Select(m => (m.Id, m.Name))))
         {
             for (int i = 0; i < shown.Count; i++) Members[i].Update(shown[i]);
         }
@@ -159,7 +160,9 @@ public sealed partial class CastViewModel : ObservableObject
     public async Task<string?> AddSpeakerAsync(string name, Gender gender)
     {
         if (_book.BookId is not { } id) return null;
-        var member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name, gender));
+        CastMember member;
+        try { member = await Task.Run(() => AppServices.Books.AddSpeaker(id, name, gender)); }
+        catch (Exception ex) { AppServices.Log($"Add speaker failed: {ex}"); CastStatus = $"Couldn't add {name} ({ex.Message}). Please try again."; return null; }
         CastStatus = $"Added {member.Name} with the voice {VoiceCatalog.Name(member.VoiceId)}.";
         _book.Changed();
         return member.Id;
@@ -170,9 +173,34 @@ public sealed partial class CastViewModel : ObservableObject
         if (_book.BookId is not { } id) return;
         var names = fromIds.Select(f => Sheet.Find(f)?.Name).Where(n => n is not null).ToList();
         var into = Sheet.Find(intoId)?.Name ?? "";
-        await Task.Run(() => AppServices.Books.MergeMany(id, fromIds, intoId));
+        try { await Task.Run(() => AppServices.Books.MergeMany(id, fromIds, intoId)); }
+        catch (Exception ex) { AppServices.Log($"Merge failed: {ex}"); CastStatus = $"Couldn't merge ({ex.Message}). Please try again."; return; }
         CastStatus = $"Merged {string.Join(", ", names)} into {into}.";
         if (Detail.IsOpen && fromIds.Contains(Detail.SpeakerId)) Detail.CloseCommand.Execute(null);
+        _book.Changed();
+    }
+
+    /// <summary>Renames a speaker; if the name is someone else's, offers to merge the two.</summary>
+    public async Task RenameAsync(CastMemberViewModel member)
+    {
+        if (_book.BookId is not { } id || member.IsNarrator) return;
+        var name = await Dialogs.PromptAsync($"Rename {member.Name}", "Their old name is remembered, so finding speakers again keeps the new one.",
+            member.Name, "Name", "Rename");
+        if (string.IsNullOrWhiteSpace(name) || name == member.Name) return;
+        string? takenBy = null;
+        BookService.RenameResult result;
+        try { result = await Task.Run(() => AppServices.Books.RenameSpeaker(id, member.Id, name, out takenBy)); }
+        catch (Exception ex) { AppServices.Log($"Rename failed: {ex}"); CastStatus = $"Couldn't rename ({ex.Message})."; return; }
+        if (result == BookService.RenameResult.NameTaken && takenBy is not null)
+        {
+            var other = Sheet.Find(takenBy)?.Name ?? name;
+            if (await Dialogs.ConfirmAsync($"{other} already exists", $"Is {member.Name} the same character as {other}? Merging moves all of {member.Name}'s lines to {other}.", $"Merge into {other}"))
+                await MergeAsync(new[] { member.Id }, takenBy);
+            return;
+        }
+        if (result != BookService.RenameResult.Renamed) return;
+        CastStatus = $"Renamed {member.Name} to {name.Trim()}.";
+        if (Detail.IsOpen && Detail.SpeakerId == member.Id) Detail.Name = name.Trim();
         _book.Changed();
     }
 
@@ -426,7 +454,8 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
     public async Task ReassignAsync(SpeakerLineItem item, string speakerId)
     {
         if (_book.BookId is not { } id || speakerId == SpeakerId) return;
-        await Task.Run(() => AppServices.Books.AssignSpeaker(id, item.ChapterIndex, item.LineId, speakerId, false));
+        try { await Task.Run(() => AppServices.Books.AssignSpeaker(id, item.ChapterIndex, item.LineId, speakerId, false)); }
+        catch (Exception ex) { AppServices.Log($"Reassign failed: {ex}"); Status = $"Couldn't save that ({ex.Message}). Please try again."; return; }
         Lines.Remove(item);
         var to = _cast.Find(speakerId)?.Name ?? "the narrator";
         Status = $"Moved a line to {to}.";

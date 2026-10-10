@@ -43,7 +43,10 @@ Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
 
 The Cast tab can **add** a character the analysis missed (they get an unused voice and colour) and
 **merge** names that are the same person. Merged names are kept as aliases and added speakers are
-kept as user-added, so finding speakers again re-applies both. Typing a new name in Review's
+kept as user-added, so finding speakers again re-applies both; **renames** (⋯ › Rename…) keep the old name as
+an alias and survive it too, and a confirmed line keeps its speaker even if a fresh analysis doesn't find
+them. Every edit to a book's analysis and cast holds a per-book lock and saves atomically, so edits made
+while generating can't overwrite each other. Typing a new name in Review's
 "Someone else…" or a line's "Reassign…" picker adds that speaker on the spot.
 
 Voice pickers (a character's voice on the Cast tab, the default narrator in Settings) browse as **Gender ›
@@ -98,8 +101,8 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.4.3            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.4.3 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.4.4            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.4.4 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies

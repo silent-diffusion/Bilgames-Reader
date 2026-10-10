@@ -260,7 +260,7 @@
                                     </Grid.ColumnDefinitions>
                                     <c:Avatar Size="40" Initials="{x:Bind Initials}" Color="{x:Bind Color}" VerticalAlignment="Center" />
                                     <Button Grid.Column="4" Style="{StaticResource IconButton}" Width="36" VerticalAlignment="Center" Click="MemberMore_Click" Tag="{x:Bind}"
-                                            Visibility="{x:Bind c:Ui.NotVis(IsNarrator)}" AutomationProperties.Name="{x:Bind MoreName}" ToolTipService.ToolTip="Merge, remove, show lines">
+                                            Visibility="{x:Bind c:Ui.NotVis(IsNarrator)}" AutomationProperties.Name="{x:Bind MoreName}" ToolTipService.ToolTip="Rename, merge, remove, show lines">
                                         <c:StrokeIcon Data="M5 12h.01M12 12h.01M19 12h.01" Width="18" Height="18" StrokeWidth="3" />
                                     </Button>
                                     <Button Grid.Column="1" Style="{StaticResource RowButton}" Padding="4,6" Click="Member_Click" Tag="{x:Bind}"

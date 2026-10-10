@@ -132,11 +132,14 @@ public sealed partial class BookView : UserControl
         var menu = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedRight };
         var lines = new MenuFlyoutItem { Text = "Show lines", IsEnabled = m.LineCount > 0 };
         lines.Click += async (_, _) => await Vm.Cast.Detail.OpenAsync(m);
+        var rename = new MenuFlyoutItem { Text = "Rename…" };
+        rename.Click += async (_, _) => await Vm.Cast.RenameAsync(m);
         var merge = new MenuFlyoutItem { Text = "Merge with…" };
         merge.Click += async (_, _) => await MergeFrom(m.Id);
         var remove = new MenuFlyoutItem { Text = m.LineCount > 0 ? "Remove (lines go to the narrator)" : "Remove" };
         remove.Click += async (_, _) => await Vm.Cast.RemoveAsync(m);
         menu.Items.Add(lines);
+        menu.Items.Add(rename);
         menu.Items.Add(merge);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(remove);
