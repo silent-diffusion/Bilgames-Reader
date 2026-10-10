@@ -12,6 +12,8 @@ public sealed class PlannedSegment
     public string Text { get; init; } = "";
     public string VoiceId { get; init; } = "";
     public float Speed { get; init; } = 1f;
+    /// <summary>Loudness change for the tone, applied when the chapter is assembled (the cached segment stays neutral).</summary>
+    public float GainDb { get; init; }
     public string SpeakerId { get; init; } = CastMember.NarratorId;
     public string BlockId { get; init; } = "";
     public string LineId { get; init; } = "";
@@ -52,7 +54,11 @@ public static partial class SynthesisPlanner
             text = ForSpeech(text);
             if (text.Length == 0) return;
             var voice = VoiceOf(speakerId);
-            float speed = CueSpeed(cue);
+            // Tone → speed (synthesis), loudness (assembly) and the pauses either side of the line.
+            var delivery = Analysis.Tones.DeliveryFor(cue);
+            float speed = delivery.Speed;
+            if (delivery.PauseScale > 1 && segs.Count > 0 && segs[^1].BlockId == blockId)
+                segs[^1] = WithPause(segs[^1], (int)(segs[^1].PauseAfterMs * delivery.PauseScale));
             var chunks = Chunk(text, maxChars);
             for (int i = 0; i < chunks.Count; i++)
             {
@@ -62,10 +68,11 @@ public static partial class SynthesisPlanner
                     Text = chunks[i],
                     VoiceId = voice,
                     Speed = speed,
+                    GainDb = delivery.GainDb,
                     SpeakerId = speakerId,
                     BlockId = blockId,
                     LineId = lineId,
-                    PauseAfterMs = last ? pauseAfter : 80,
+                    PauseAfterMs = (int)Math.Round((last ? pauseAfter : 80) * delivery.PauseScale),
                     Hash = HashOf(chunks[i], voice, speed, modelId),
                 });
             }
@@ -125,27 +132,16 @@ public static partial class SynthesisPlanner
                 Add($"Note {i + 1}. {endNotes[i].Text}", CastMember.NarratorId, null, "notes", endNotes[i].Id, 500);
         }
 
-        var planHash = HashOf(string.Join("|", segs.Select(s => s.Hash + ":" + s.PauseAfterMs)), "", 1, modelId);
+        var planHash = HashOf(string.Join("|", segs.Select(s => s.Hash + ":" + s.PauseAfterMs + (s.GainDb == 0 ? "" : ":" + s.GainDb.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))), "", 1, modelId);
         return new ChapterPlan { ChapterIndex = chapter.Index, Segments = segs, Hash = planHash };
     }
 
     private static PlannedSegment WithPause(PlannedSegment s, int ms) => new()
     {
-        Text = s.Text, VoiceId = s.VoiceId, Speed = s.Speed, SpeakerId = s.SpeakerId, BlockId = s.BlockId, LineId = s.LineId,
+        Text = s.Text, VoiceId = s.VoiceId, Speed = s.Speed, GainDb = s.GainDb, SpeakerId = s.SpeakerId, BlockId = s.BlockId, LineId = s.LineId,
         Hash = s.Hash, PauseAfterMs = Math.Max(s.PauseAfterMs, ms),
     };
 
-    /// <summary>
-    /// Delivery is expressed as small speed changes only, kept deliberately subtle so lines are
-    /// not overacted when a cue is wrong.
-    /// </summary>
-    internal static float CueSpeed(string? cue) => cue switch
-    {
-        null => 1f,
-        "whispered" or "sad" or "hesitant" or "gentle" or "soft" or "quiet" or "slow" or "grave" => 0.94f,
-        "shouting" or "excited" or "impatient" or "angry" or "eager" or "sharp" or "hasty" or "quick" => 1.05f,
-        _ => 1f,
-    };
 
     /// <summary>"Part II · Chapter IV" → "Part 2. Chapter 4." so the voice doesn't spell out numerals.</summary>
     internal static string SpokenTitle(string title)
@@ -172,6 +168,9 @@ public static partial class SynthesisPlanner
     private static string EndSentence(string s) => s.Length > 0 && !char.IsPunctuation(s[^1]) ? s + "." : s;
 
     /// <summary>Cleans text for the TTS front end without changing what is said.</summary>
+    /// <summary>The same clean-up generation applies, for previews.</summary>
+    public static string ForSpeechText(string text) => ForSpeech(text);
+
     internal static string ForSpeech(string text)
     {
         var t = text.Replace("--", " — ").Replace("&", " and ").Replace('\n', ' ');

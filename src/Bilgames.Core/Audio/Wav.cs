@@ -90,7 +90,8 @@ public sealed class WavConcatenator : IDisposable
 
     public double PositionSeconds => _dataBytes / 2.0 / _sampleRate;
 
-    public void AppendFile(string wavPath)
+    /// <param name="gainDb">Loudness change for the line's tone (0 = unchanged). Boosts are soft-limited so they never clip.</param>
+    public void AppendFile(string wavPath, float gainDb = 0)
     {
         using var fs = File.OpenRead(wavPath);
         var (offset, length, rate, channels, bits) = Wav.Probe(fs);
@@ -99,13 +100,31 @@ public sealed class WavConcatenator : IDisposable
         fs.Position = offset;
         var buffer = new byte[81920];
         long remaining = length & ~1L;
+        float gain = gainDb == 0 ? 1f : MathF.Pow(10, gainDb / 20f);
         while (remaining > 0)
         {
             int n = fs.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
             if (n <= 0) break;
+            n &= ~1;
+            if (gain != 1f) ApplyGain(buffer.AsSpan(0, n), gain);
             _out.Write(buffer, 0, n);
             remaining -= n;
             _dataBytes += n;
+        }
+    }
+
+    /// <summary>Scales 16-bit samples; above ~70% of full scale a soft knee rounds peaks off instead of clipping.</summary>
+    internal static void ApplyGain(Span<byte> pcm, float gain)
+    {
+        const float knee = 0.7f;
+        for (int i = 0; i + 1 < pcm.Length; i += 2)
+        {
+            float x = (short)(pcm[i] | (pcm[i + 1] << 8)) / 32768f * gain;
+            float a = MathF.Abs(x);
+            if (gain > 1f && a > knee) x = MathF.Sign(x) * (knee + (1 - knee) * MathF.Tanh((a - knee) / (1 - knee)));
+            short s = (short)Math.Clamp((int)MathF.Round(x * 32767f), short.MinValue, short.MaxValue);
+            pcm[i] = (byte)s;
+            pcm[i + 1] = (byte)(s >> 8);
         }
     }
 
@@ -127,5 +146,20 @@ public sealed class WavConcatenator : IDisposable
         _out.Position = 0;
         Wav.WriteHeader(_out, _sampleRate, _dataBytes);
         _out.Dispose();
+    }
+}
+
+public static class Loudness
+{
+    /// <summary>The same tone gain as chapter assembly, for previews.</summary>
+    public static short[] Apply(short[] pcm, float gainDb)
+    {
+        if (gainDb == 0 || pcm.Length == 0) return pcm;
+        var bytes = new byte[pcm.Length * 2];
+        Buffer.BlockCopy(pcm, 0, bytes, 0, bytes.Length);
+        WavConcatenator.ApplyGain(bytes, MathF.Pow(10, gainDb / 20f));
+        var result = new short[pcm.Length];
+        Buffer.BlockCopy(bytes, 0, result, 0, bytes.Length);
+        return result;
     }
 }

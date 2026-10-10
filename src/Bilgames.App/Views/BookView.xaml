@@ -179,8 +179,14 @@
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{x:Bind ChapterTitle}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="NoWrap" />
-                                                <Button Grid.Column="1" Style="{StaticResource SmallOutlineButton}" Content="Reassign…" Click="Reassign_Click" Tag="{x:Bind}"
-                                                        AutomationProperties.Name="{x:Bind ReassignName}" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                                    <Button Style="{StaticResource SmallOutlineButton}" Click="LineTone_Click" Tag="{x:Bind}"
+                                                            AutomationProperties.Name="{x:Bind ToneButtonName, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ToneHint, Mode=OneWay}">
+                                                        <TextBlock><Run Text="{x:Bind ToneLabel, Mode=OneWay}" /><Run Text=" ▾" /></TextBlock>
+                                                    </Button>
+                                                    <Button Style="{StaticResource SmallOutlineButton}" Content="Reassign…" Click="Reassign_Click" Tag="{x:Bind}"
+                                                            AutomationProperties.Name="{x:Bind ReassignName}" />
+                                                </StackPanel>
                                             </Grid>
                                             <c:LineContextView Paragraphs="{x:Bind Shown, Mode=OneWay}" />
                                         </StackPanel>
@@ -358,6 +364,28 @@
                                         <TextBlock Text="Someone else…" FontWeight="Bold" />
                                     </StackPanel>
                                 </Button>
+                                <!-- How the line is delivered: change it, and hear it with the chosen speaker's voice -->
+                                <Grid ColumnSpacing="10" Padding="12,8" CornerRadius="12" Background="{StaticResource SurfaceRaisedBrush}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="TONE" FontSize="11" FontWeight="ExtraBold" CharacterSpacing="80" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Style="{StaticResource BaseText}" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource SmallOutlineButton}" Click="ReviewTone_Click" AutomationProperties.Name="{x:Bind Vm.Review.ToneButtonName, Mode=OneWay}" ToolTipService.ToolTip="Change how this line is delivered">
+                                            <TextBlock><Run Text="{x:Bind Vm.Review.ToneLabel, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" ▾" /></TextBlock>
+                                        </Button>
+                                        <TextBlock Text="{x:Bind Vm.Review.ToneSource, Mode=OneWay}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" Command="{x:Bind Vm.Review.HearItCommand}" AutomationProperties.Name="Hear this line with the chosen speaker and tone">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <c:StrokeIcon Data="M8 5v14l11-7z" Filled="True" Width="12" Height="12" Visibility="{x:Bind c:Ui.NotVis(Vm.Review.IsHearing), Mode=OneWay}" />
+                                            <ProgressRing Width="12" Height="12" IsActive="{x:Bind Vm.Review.IsHearing, Mode=OneWay}" Foreground="{StaticResource AccentBrush}" />
+                                            <TextBlock Text="Hear it" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                                 <CheckBox Content="Use this for similar back-and-forth lines" IsChecked="{x:Bind Vm.Review.ApplySimilar, Mode=TwoWay}" Style="{StaticResource AccentCheckBox}" />
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>

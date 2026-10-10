@@ -64,8 +64,10 @@ public sealed class BookService
                 if (previous is not null)
                 {
                     var reviewed = previous.Lines.Where(l => l.Reviewed).ToDictionary(l => l.Id);
+                    var tones = previous.Lines.Where(l => l.CueFrom == CueSource.User).ToDictionary(l => l.Id);
                     foreach (var l in a.Lines)
                     {
+                        if (tones.TryGetValue(l.Id, out var t) && t.Text == l.Text) { l.Cue = t.Cue; l.CueFrom = CueSource.User; }
                         if (!reviewed.TryGetValue(l.Id, out var r) || r.Text != l.Text) continue;
                         var speaker = idMap.GetValueOrDefault(r.SpeakerId, r.SpeakerId);
                         if (r.Source == AttributionSource.User && result.Cast.Find(speaker) is null) continue;
@@ -362,6 +364,17 @@ public sealed class BookService
         var book = _store.LoadBook(bookId);
         if (book is not null) Recount(book, _store.LoadCast(bookId));
         return changed;
+    }
+
+    /// <summary>Sets how a line is delivered (one of <see cref="Tones.All"/>, or null for neutral). Kept through re-analysis.</summary>
+    public void SetCue(string bookId, int chapterIndex, string lineId, string? cue)
+    {
+        var a = _store.LoadAnalysis(bookId, chapterIndex);
+        var line = a?.Lines.FirstOrDefault(l => l.Id == lineId);
+        if (a is null || line is null) return;
+        line.Cue = Tones.Normalize(cue);
+        line.CueFrom = CueSource.User;
+        _store.SaveAnalysis(bookId, a);
     }
 
     /// <summary>Leaves the line with the narrator and removes it from the queue.</summary>

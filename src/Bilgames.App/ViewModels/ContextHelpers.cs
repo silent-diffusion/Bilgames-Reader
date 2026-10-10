@@ -146,3 +146,26 @@ public sealed class LegendEntry
     public string Name { get; init; } = "";
     public string Color { get; init; } = "";
 }
+
+/// <summary>Tone labels and picker rows shared by Review and the speaker line list.</summary>
+public static class ToneText
+{
+    public static string Label(string? cue) => Bilgames.Core.Analysis.Tones.Label(cue);
+
+    public static string Source(CueSource from, string? cue) => from switch
+    {
+        _ when cue is null && from != CueSource.User => "No tone detected",
+        CueSource.Tag => "From the dialogue tag",
+        CueSource.Context => "Guessed from context",
+        CueSource.User => "Set by you",
+        _ => "",
+    };
+
+    public static List<PickerItem> Items(string? current)
+    {
+        var id = Bilgames.Core.Analysis.Tones.Normalize(current);
+        var list = new List<PickerItem> { new() { Id = "", Title = "Neutral", Detail = "Normal reading", IsCurrent = id is null } };
+        list.AddRange(Bilgames.Core.Analysis.Tones.All.Select(t => new PickerItem { Id = t.Id, Title = t.Label, Detail = t.Description, IsCurrent = t.Id == id }));
+        return list;
+    }
+}

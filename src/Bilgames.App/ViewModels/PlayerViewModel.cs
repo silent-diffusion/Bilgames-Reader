@@ -706,10 +706,13 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     // ---------- voice preview ----------
 
-    public async Task PreviewAsync(string text, string voiceId)
+    public async Task PreviewAsync(string text, string voiceId, Bilgames.Core.Analysis.Delivery? delivery = null)
     {
         if (IsPlaying) _player.Pause();
-        var pcm = await Task.Run(() => AppServices.Engine.SynthesizeAsync(text, voiceId, 1f, QualityProfile.Balanced, CancellationToken.None));
+        var d = delivery ?? Bilgames.Core.Analysis.Delivery.Neutral;
+        text = SynthesisPlanner.ForSpeechText(text);
+        var pcm = await Task.Run(() => AppServices.Engine.SynthesizeAsync(text, voiceId, d.Speed, QualityProfile.Balanced, CancellationToken.None));
+        pcm = Loudness.Apply(pcm, d.GainDb);
         var path = Path.Combine(AppServices.Store.TempDir, $"preview-{Guid.NewGuid():N}.wav");
         Wav.Write(path, pcm, AppServices.Engine.SampleRate);
         var done = new TaskCompletionSource();

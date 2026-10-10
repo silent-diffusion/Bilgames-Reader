@@ -46,6 +46,23 @@ The Cast tab can **add** a character the analysis missed (they get an unused voi
 kept as user-added, so finding speakers again re-applies both. Typing a new name in Review's
 "Someone else…" or a line's "Reassign…" picker adds that speaker on the spot.
 
+### Tone
+
+Each dialogue line can carry one of ten tones: whispered, soft, sad, hesitant, amused, excited,
+urgent, stern, angry or shouting (`Analysis/Tones.cs`). A tone comes from one of three places:
+
+- **The dialogue tag**, from its verb or adverb ("she whispered", "he said coldly").
+- **Context**, for untagged lines: shouting from capitals, "!!" or "?!"; hesitant from stammers
+  ("I-I"), fillers and trailing ellipses; and action beats in the narration just before the quote
+  (or after it, if it's the paragraph's last quote), such as "glared", "tears", "grinned" or "lowered
+  her voice". Qualified smiles like "a humorless laugh" or "a tight smile" read as stern, not amused.
+- **The reader**, through the tone button in Review and in a speaker's line list. These choices
+  survive re-analysis.
+
+Kokoro has no emotion control, so a tone is performed with speed (at synthesis), loudness (soft-limited
+gain applied when the chapter is assembled, so cached segments are reused) and the pauses around the
+line. Review's **Hear it** plays the line with the chosen speaker and tone.
+
 ### Bookmarks and highlights
 
 In the player, **B** bookmarks the moment being heard and **H** highlights the line being read.
@@ -67,8 +84,8 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.3.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.3.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.4.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.4.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies

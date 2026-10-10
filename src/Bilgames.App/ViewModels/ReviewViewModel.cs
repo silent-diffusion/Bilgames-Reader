@@ -47,6 +47,44 @@ public sealed partial class ReviewViewModel : ObservableObject
     public ObservableCollection<LegendEntry> Legend { get; } = new();
     public ObservableCollection<SpeakerOptionViewModel> Options { get; } = new();
 
+    // ---------- tone ----------
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneLabel), nameof(ToneButtonName), nameof(ToneSource))] private string? _cue;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneSource))] private CueSource _cueFrom;
+    [ObservableProperty] private bool _isHearing;
+
+    public string ToneLabel => ToneText.Label(Cue);
+    public string ToneSource => ToneText.Source(CueFrom, Cue);
+    public string ToneButtonName => $"Tone: {ToneLabel}. Change how this line is delivered";
+
+    public List<Bilgames.App.Controls.PickerItem> ToneItems() => ToneText.Items(Cue);
+
+    public async Task SetToneAsync(string? cue)
+    {
+        if (_current is not { } item || _book.BookId is not { } id) return;
+        cue = string.IsNullOrEmpty(cue) ? null : cue;
+        await Task.Run(() => AppServices.Books.SetCue(id, item.ChapterIndex, item.Line.Id, cue));
+        item.Line.Cue = cue;
+        item.Line.CueFrom = CueSource.User;
+        Cue = cue;
+        CueFrom = CueSource.User;
+        _book.Changed();
+    }
+
+    /// <summary>Plays the line in the selected speaker's voice with its tone (speed, loudness).</summary>
+    [RelayCommand]
+    private async Task HearItAsync()
+    {
+        if (_current is not { } item || IsHearing) return;
+        if (!await CastViewModel.EnsureModel()) return;
+        var speaker = Options.FirstOrDefault(o => o.IsSelected)?.SpeakerId ?? item.Line.SpeakerId;
+        var voice = _cast.Find(speaker)?.VoiceId ?? _cast.Members.FirstOrDefault(m => m.IsNarrator)?.VoiceId ?? Bilgames.Core.Tts.VoiceCatalog.DefaultNarrator;
+        IsHearing = true;
+        try { await _book.Shell.Player.PreviewAsync(item.Line.Text, voice, Bilgames.Core.Analysis.Tones.DeliveryFor(Cue)); }
+        catch (Exception ex) { AppServices.Log("Hear it failed: " + ex.Message); }
+        finally { IsHearing = false; }
+    }
+
     [ObservableProperty] private bool _hasItem;
     [ObservableProperty] private bool _isDone;
     [ObservableProperty] private bool _isAnalyzed;
@@ -108,6 +146,8 @@ public sealed partial class ReviewViewModel : ObservableObject
         ProgressLabel = _fixMode ? $"{item.ChapterTitle} · fixing one line" : $"{item.ChapterTitle} · {item.Position:N0} of {item.Total:N0}";
         Prompt = _fixMode ? "Who says this?" : item.Line.Source == AttributionSource.Fallback && item.Line.Candidates.Count > 0 ? "No dialogue tag · who says this?" : "Who says this?";
         LineText = item.Line.Text;
+        Cue = Bilgames.Core.Analysis.Tones.Normalize(item.Line.Cue);
+        CueFrom = item.Line.CueFrom;
 
         // A few paragraphs either side, as one continuous text with speakers colour-coded.
         _cast = cast;

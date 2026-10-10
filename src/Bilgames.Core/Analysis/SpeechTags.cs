@@ -152,19 +152,21 @@ public static partial class SpeechTags
         return SubjectKind.Name;
     }
 
-    /// <summary>Maps a tag verb or adverb to a short delivery cue.</summary>
+    /// <summary>Maps a tag verb or adverb to one of the delivery tones (see <see cref="Tones"/>).</summary>
     public static string? CueFor(string verb, string? adverb)
     {
-        if (adverb is { Length: > 4 }) return AdverbRoot(adverb);
+        if (adverb is { Length: > 4 } && Tones.Normalize(AdverbRoot(adverb)) is { } fromAdverb) return fromAdverb;
         return verb switch
         {
-            "whispered" or "whispers" or "murmured" or "murmurs" or "breathed" or "muttered" or "mutters" or "mumbled" or "mumbles" => "whispered",
-            "shouted" or "shouts" or "yelled" or "yells" or "screamed" or "screams" or "roared" or "roars" or "bellowed" or "shrieked" => "shouting",
-            "cried" or "cries" or "exclaimed" or "exclaims" => "excited",
-            "sobbed" or "sobs" or "wailed" or "whimpered" or "groaned" or "groans" or "sighed" or "sighs" => "sad",
-            "laughed" or "laughs" or "chuckled" or "chuckles" or "teased" => "amused",
-            "snapped" or "snaps" or "snarled" or "growled" or "growls" or "hissed" or "hisses" or "retorted" => "sharp",
-            "stammered" or "stammers" or "stuttered" or "stutters" or "faltered" or "gasped" or "gasps" => "hesitant",
+            "whispered" or "whispers" or "murmured" or "murmurs" or "breathed" or "muttered" or "mutters" or "mumbled" or "mumbles" => Tones.Whispered,
+            "shouted" or "shouts" or "yelled" or "yells" or "screamed" or "screams" or "roared" or "roars" or "bellowed" or "shrieked" => Tones.Shouting,
+            "cried" or "cries" or "exclaimed" or "exclaims" => Tones.Excited,
+            "sobbed" or "sobs" or "wailed" or "whimpered" or "groaned" or "groans" or "sighed" or "sighs" => Tones.Sad,
+            "laughed" or "laughs" or "chuckled" or "chuckles" or "teased" => Tones.Amused,
+            "snarled" or "growled" or "growls" or "hissed" or "hisses" or "spat" => Tones.Angry,
+            "snapped" or "snaps" or "retorted" => Tones.Stern,
+            "stammered" or "stammers" or "stuttered" or "stutters" or "faltered" or "gasped" or "gasps" => Tones.Hesitant,
+            "pleaded" or "begged" or "urged" => Tones.Urgent,
             _ => null,
         };
     }

@@ -88,7 +88,7 @@ public sealed class ChapterStream : IDisposable
             {
                 var seg = _plan.Segments[i];
                 double s = start + cat.PositionSeconds;
-                cat.AppendFile(_store.SegmentPath(_bookId, seg.Hash));
+                cat.AppendFile(_store.SegmentPath(_bookId, seg.Hash), seg.GainDb);
                 timings.Add(new SegmentTiming { Start = s, End = start + cat.PositionSeconds, BlockId = seg.BlockId, LineId = seg.LineId, SpeakerId = seg.SpeakerId });
                 cat.AppendSilence(seg.PauseAfterMs);
             }

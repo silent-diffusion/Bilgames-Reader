@@ -98,6 +98,17 @@ public sealed partial class BookView : UserControl
             name => _ = Vm.Cast.Detail.ReassignToNewAsync(item, name));
     }
 
+    /// <summary>Review: change how the line is delivered.</summary>
+    private void ReviewTone_Click(object sender, RoutedEventArgs e) =>
+        SearchPicker.Show((FrameworkElement)sender, Vm.Review.ToneItems(), "Search tones", async p => await Vm.Review.SetToneAsync(p.Id));
+
+    /// <summary>A speaker's line: change how it is delivered.</summary>
+    private void LineTone_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not SpeakerLineItem item) return;
+        SearchPicker.Show((FrameworkElement)sender, ToneText.Items(item.Cue), "Search tones", async p => await Vm.Cast.Detail.SetToneAsync(item, p.Id));
+    }
+
     private async void AddSpeaker_Click(object sender, RoutedEventArgs e)
     {
         if (await SpeakerDialogs.AskNewSpeakerAsync() is { } s) await Vm.Cast.AddSpeakerAsync(s.Name, s.Gender);

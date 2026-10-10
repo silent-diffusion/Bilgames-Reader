@@ -26,6 +26,18 @@ public sealed class SpeakerCandidate
     public double Score { get; set; }
 }
 
+/// <summary>How a line's tone was decided.</summary>
+public enum CueSource
+{
+    None,
+    /// <summary>From the dialogue tag: "she whispered", "he said angrily".</summary>
+    Tag,
+    /// <summary>Guessed from the quote itself and the narration around it.</summary>
+    Context,
+    /// <summary>Set by the reader.</summary>
+    User,
+}
+
 /// <summary>One spoken unit: a stretch of narration or a quoted span, in reading order.</summary>
 public sealed class Line
 {
@@ -38,8 +50,9 @@ public sealed class Line
     public double Confidence { get; set; } = 1;
     public AttributionSource Source { get; set; }
     public List<SpeakerCandidate> Candidates { get; set; } = new();
-    /// <summary>Delivery cue inferred from the tag verb, e.g. "whispered", "impatient".</summary>
+    /// <summary>Delivery tone (one of Analysis.Tones, e.g. "whispered", "angry"); null for neutral.</summary>
     public string? Cue { get; set; }
+    public CueSource CueFrom { get; set; }
     /// <summary>Consecutive dialogue paragraphs share a run id; used for back-and-forth propagation.</summary>
     public int RunId { get; set; } = -1;
     /// <summary>Paragraph position within its dialogue run (0-based).</summary>

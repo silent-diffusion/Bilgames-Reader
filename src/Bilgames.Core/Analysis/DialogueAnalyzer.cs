@@ -512,6 +512,22 @@ public sealed class DialogueAnalyzer
         if (recent.Count > 12) recent.RemoveAt(recent.Count - 1);
     }
 
+
+    /// <summary>
+    /// The narration that colours quote <paramref name="i"/>: the narration just before it ("She
+    /// lowered her voice. “…”"), plus the narration after it when no other quote follows ("“…,” she
+    /// said, smiling."). Narration between two quotes belongs to the second.
+    /// </summary>
+    private static string BeatsFor(IReadOnlyList<Span> spans, List<bool> speech, int i)
+    {
+        bool IsSpeech(int k) => spans[k].IsQuote && speech[k];
+        var parts = new List<string>();
+        if (i > 0 && !IsSpeech(i - 1)) parts.Add(spans[i - 1].Text);
+        bool laterSpeech = false;
+        for (int k = i + 1; k < spans.Count; k++) if (IsSpeech(k)) { laterSpeech = true; break; }
+        if (!laterSpeech && i + 1 < spans.Count && !IsSpeech(i + 1)) parts.Add(spans[i + 1].Text);
+        return string.Join(" ", parts);
+    }
     private static void EmitLines(Para p, List<Line> lines)
     {
         var spans = p.Split.Spans;
@@ -553,6 +569,9 @@ public sealed class DialogueAnalyzer
                 }
             }
 
+            var cueFrom = cue is not null ? CueSource.Tag : CueSource.None;
+            if (cue is null && Tones.FromContext(s.Text, BeatsFor(spans, p.Speech, i)) is { } guessed) { cue = guessed; cueFrom = CueSource.Context; }
+
             bool unsure = speaker is null || conf < ConfidentThreshold;
             lines.Add(new Line
             {
@@ -565,6 +584,7 @@ public sealed class DialogueAnalyzer
                 Source = unsure ? AttributionSource.Fallback : src,
                 Candidates = unsure ? p.Candidates.Select(c => new SpeakerCandidate { SpeakerId = c.SpeakerId, Score = c.Score }).ToList() : new(),
                 Cue = cue,
+                CueFrom = cueFrom,
                 RunId = p.RunId,
                 RunPosition = p.RunPos,
                 Unsure = unsure,

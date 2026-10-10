@@ -392,7 +392,7 @@ public sealed class GenerationCoordinator : IDisposable
                 {
                     ct.ThrowIfCancellationRequested();
                     double start = cat.PositionSeconds;
-                    cat.AppendFile(_store.SegmentPath(book.Id, seg.Hash));
+                    cat.AppendFile(_store.SegmentPath(book.Id, seg.Hash), seg.GainDb);
                     timings.Add(new SegmentTiming { Start = start, End = cat.PositionSeconds, BlockId = seg.BlockId, LineId = seg.LineId, SpeakerId = seg.SpeakerId });
                     cat.AppendSilence(seg.PauseAfterMs);
                 }

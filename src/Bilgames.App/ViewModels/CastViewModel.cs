@@ -270,6 +270,12 @@ public sealed partial class SpeakerLineItem : ObservableObject
     [ObservableProperty] private IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>>? _shown;
 
     public string ReassignName => $"Reassign this line: {Text}";
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneLabel), nameof(ToneHint), nameof(ToneButtonName))] private string? _cue;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ToneHint))] private CueSource _cueFrom;
+    public string ToneLabel => ToneText.Label(Cue);
+    public string ToneHint => $"Tone: {ToneLabel} ({ToneText.Source(CueFrom, Cue).ToLowerInvariant()}). Change it";
+    public string ToneButtonName => $"Tone: {ToneLabel}. Change how this line is delivered";
 }
 
 /// <summary>All lines of one speaker, each optionally with its surrounding paragraphs, reassignable.</summary>
@@ -332,6 +338,8 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
                     Text = l.Line.Text,
                     LineOnly = ContextHelpers.Runs(new[] { new[] { l.Line } }, c, null),
                     WithContext = ContextHelpers.Runs(context, c, l.Line.Id),
+                    Cue = Bilgames.Core.Analysis.Tones.Normalize(l.Line.Cue),
+                    CueFrom = l.Line.CueFrom,
                 });
             }
             return (c, list);
@@ -347,6 +355,17 @@ public sealed partial class SpeakerLinesViewModel : ObservableObject
     }
 
     public List<Bilgames.App.Controls.PickerItem> Speakers() => ContextHelpers.SpeakerItems(_cast, SpeakerId);
+
+    public async Task SetToneAsync(SpeakerLineItem item, string? cue)
+    {
+        if (_book.BookId is not { } id) return;
+        cue = string.IsNullOrEmpty(cue) ? null : cue;
+        await Task.Run(() => AppServices.Books.SetCue(id, item.ChapterIndex, item.LineId, cue));
+        item.Cue = cue;
+        item.CueFrom = CueSource.User;
+        Status = $"Tone set to {item.ToneLabel.ToLowerInvariant()}.";
+        _book.Changed();
+    }
 
     /// <summary>Reassign → a name that isn't in the cast yet: add them, then give them the line.</summary>
     public async Task ReassignToNewAsync(SpeakerLineItem item, string name)
