@@ -273,6 +273,28 @@ public sealed partial class PlayerViewModel
         await OpenChapterAsync(item.ChapterIndex, Math.Max(0, item.Seconds), true);
     }
 
+    /// <summary>The global Notes page: play a book from a chapter and time, loading the book if needed.</summary>
+    public async Task PlayAtAsync(string bookId, int chapter, double seconds)
+    {
+        if (_book?.Id != bookId)
+        {
+            Load(bookId, autoplay: true, start: (chapter, seconds));
+            return;
+        }
+        ShowNotes = false;
+        if (chapter == _chapter && HasAudio) { Seek(seconds + 0.01); if (!IsPlaying) TogglePlay(); }
+        else await OpenChapterAsync(chapter, seconds, true);
+    }
+
+    /// <summary>Bookmarks or highlights of a book were changed on the Notes page.</summary>
+    public void NotesChangedElsewhere(string bookId)
+    {
+        if (_book?.Id != bookId) return;
+        LoadNotes();
+        var lines = Transcript.SelectMany(p => p.Runs.SelectMany(r => r)).Select(l => l.LineId).ToList();
+        RefreshMarks(lines);
+    }
+
     // ---------- export ----------
 
     [RelayCommand]

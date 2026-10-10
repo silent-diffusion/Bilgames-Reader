@@ -1,7 +1,7 @@
-# Bilgames Reader
+﻿# Bilgames Reader
 
-On-device EPUB → audiobook app for Windows. Import a DRM-free EPUB, let it find who speaks each
-line, pick a voice per character, and generate a chapter-aware audiobook — entirely offline after a
+On-device EPUB â†’ audiobook app for Windows. Import a DRM-free EPUB, let it find who speaks each
+line, pick a voice per character, and generate a chapter-aware audiobook â€” entirely offline after a
 one-time voice model download. Product spec: [ReadMe.html](ReadMe.html); design handoff:
 [design/README.md](design/README.md).
 
@@ -28,14 +28,14 @@ src/Bilgames.App/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/BilgamesReader
 
 ### CPU and GPU
 
-Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings › Processing), the
+Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings â€º Processing), the
 engine uses the most capable DirectX 12 GPU whenever it has free video memory, falls back to the CPU
-segment-by-segment if memory runs short or the GPU errors, and checks again every 20 s to move back —
+segment-by-segment if memory runs short or the GPU errors, and checks again every 20 s to move back â€”
 generation never stops. DirectML can't run Kokoro's depthwise ConvTranspose layers, so the GPU copy of
 the model is rewritten on first use (`ModelPatcher`: zero-insertion upsample + grouped Conv,
 numerically equivalent) and uses full precision (half precision overflows on DirectML).
 
-When the GPU is preferred but too full, the Generate tab and Settings › Processing list the apps
+When the GPU is preferred but too full, the Generate tab and Settings â€º Processing list the apps
 holding its video memory (largest first), read from the same Windows performance counters Task
 Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
 
@@ -44,7 +44,7 @@ Manager uses (`GpuMemoryUsage`, PDH `\GPU Process Memory(*)\Dedicated Usage`).
 The Cast tab can **add** a character the analysis missed (they get an unused voice and colour) and
 **merge** names that are the same person. Merged names are kept as aliases and added speakers are
 kept as user-added, so finding speakers again re-applies both. Typing a new name in Review's
-"Someone else…" or a line's "Reassign…" picker adds that speaker on the spot.
+"Someone elseâ€¦" or a line's "Reassignâ€¦" picker adds that speaker on the spot.
 
 ### Tone
 
@@ -72,6 +72,11 @@ are stored in `books/{id}/annotations.json` and survive deleting the audio. The 
 the player header lists them, plays from any of them, and exports them as Markdown, plain text or
 CSV (`AnnotationExport`).
 
+The **Notes** section in the main navigation gathers every bookmark, highlight and note from all
+books. You can filter it (all, bookmarks, highlights, with notes), search across text, notes, books and
+chapters, sort it newest first or by book, play from any item (it opens the book at that spot), edit
+notes, delete items, and export whatever is showing as one file grouped by book.
+
 ### Listening while generating
 
 Any chapter can be played immediately: the player asks the job to generate that chapter first and
@@ -84,12 +89,12 @@ without touching your real library. Passing `.epub` paths on the command line im
 ## Releasing an update
 
 ```powershell
-./build/release.ps1 -Version 0.4.0            # builds artifacts/releases/BilgamesReader-win-Setup.exe
-./build/release.ps1 -Version 0.4.0 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
+./build/release.ps1 -Version 0.4.1            # builds artifacts/releases/BilgamesReader-win-Setup.exe
+./build/release.ps1 -Version 0.4.1 -Publish   # also uploads a GitHub release (asks first; uses `gh auth token`)
 ```
 
 `Setup.exe` installs per-user (no admin) with a Start menu entry and an uninstaller. Installed copies
-update from the GitHub Releases of `silent-diffusion/Bilgames-Reader`: Settings → *Check for updates*
+update from the GitHub Releases of `silent-diffusion/Bilgames-Reader`: Settings â†’ *Check for updates*
 (or the opt-in *check when the app starts*, off by default). The app only goes online when the user
 clicks something that needs it (checking for updates, installing one, downloading a voice model), and
 nothing from the user's books is ever sent.

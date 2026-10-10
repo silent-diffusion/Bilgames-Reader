@@ -18,6 +18,7 @@ public enum Section
     Book,
     Player,
     Settings,
+    Notes,
 }
 
 public enum BookTab
@@ -40,6 +41,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Book = new BookViewModel(this);
         Player = new PlayerViewModel(this);
         Settings = new SettingsViewModel(this);
+        Notes = new NotesViewModel(this);
         AppServices.Jobs.ProgressChanged += p => AppServices.RunOnUI(() => OnProgress(p));
     }
 
@@ -47,6 +49,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public BookViewModel Book { get; }
     public PlayerViewModel Player { get; }
     public SettingsViewModel Settings { get; }
+    public NotesViewModel Notes { get; }
 
     [ObservableProperty] private LayoutClass _layout = LayoutClass.Expanded;
     [ObservableProperty] private Section _section = Section.Library;
@@ -72,6 +75,9 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>Settings takes the Book pane's place (right pane in medium, center in expanded).</summary>
     public bool ShowSettings => Section == Section.Settings;
 
+    /// <summary>The Notes page (all bookmarks, highlights and notes) takes the same place as Settings.</summary>
+    public bool ShowNotesPage => Section == Section.Notes;
+
     public bool ShowBook => Layout switch
     {
         LayoutClass.Compact => Section == Section.Book,
@@ -88,6 +94,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public bool NavVoices => Section == Section.Book && Book.Tab != BookTab.Generate;
     public bool NavJobs => Section == Section.Book && Book.Tab == BookTab.Generate;
     public bool NavSettings => Section == Section.Settings;
+    public bool NavNotes => Section == Section.Notes;
 
     partial void OnLayoutChanged(LayoutClass value) => RaiseLayout();
     partial void OnSectionChanged(Section value) => RaiseLayout();
@@ -98,7 +105,7 @@ public sealed partial class ShellViewModel : ObservableObject
                  {
                      nameof(IsCompact), nameof(IsMedium), nameof(IsExpanded), nameof(ShowLibrary), nameof(ShowPlayer), nameof(ShowBook),
                      nameof(ShowSettings), nameof(ShowMini), nameof(NavLibrary), nameof(NavListening), nameof(NavVoices), nameof(NavJobs),
-                     nameof(NavSettings),
+                     nameof(NavSettings), nameof(NavNotes), nameof(ShowNotesPage),
                  })
             OnPropertyChanged(name);
         UpdateSelection();
@@ -130,6 +137,13 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand] public void GoVoices() => GoBookTab(BookTab.Cast);
     [RelayCommand] public void GoJobs() => GoBookTab(BookTab.Generate);
     [RelayCommand] public void GoSettings() => Section = Section.Settings;
+
+    [RelayCommand]
+    public void GoNotes()
+    {
+        Notes.Refresh();
+        Section = Section.Notes;
+    }
 
     private void GoBookTab(BookTab tab)
     {

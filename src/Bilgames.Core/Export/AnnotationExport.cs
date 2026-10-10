@@ -30,6 +30,33 @@ public static class AnnotationExport
         _ => Markdown(book, set, now ?? DateTime.Now),
     };
 
+    /// <summary>Several books in one file (the global Notes page): one section per book, in the given order.</summary>
+    public static string WriteMany(IReadOnlyList<(BookRecord Book, AnnotationSet Set)> books, AnnotationFormat format, DateTime? now = null)
+    {
+        var when = now ?? DateTime.Now;
+        if (format == AnnotationFormat.Csv)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Book,Author,Type,Chapter,Time,Seconds,Text,Note,Color,Created");
+            foreach (var (book, set) in books)
+                foreach (var line in Csv(book, set).Split(Environment.NewLine).Skip(1).Where(l => l.Length > 0))
+                    sb.Append(Cell(book.Title)).Append(',').Append(Cell(book.Author)).Append(',').AppendLine(line);
+            return sb.ToString();
+        }
+        var parts = books.Select(b => format == AnnotationFormat.Markdown
+            ? Demote(Markdown(b.Book, b.Set, when))
+            : PlainText(b.Book, b.Set, when));
+        var head = format == AnnotationFormat.Markdown
+            ? $"# Bookmarks, highlights and notes{Environment.NewLine}{Environment.NewLine}{books.Count} {(books.Count == 1 ? "book" : "books")} · exported {when.ToString("d MMMM yyyy", CultureInfo.InvariantCulture)}{Environment.NewLine}{Environment.NewLine}"
+            : $"BOOKMARKS, HIGHLIGHTS AND NOTES{Environment.NewLine}{Environment.NewLine}";
+        var separator = format == AnnotationFormat.Markdown ? Environment.NewLine : Environment.NewLine + new string('=', 40) + Environment.NewLine + Environment.NewLine;
+        return head + string.Join(separator, parts);
+    }
+
+    /// <summary>"# Title" → "## Title", "## Chapter" → "### Chapter" so books nest under the file title.</summary>
+    private static string Demote(string md) => string.Join(Environment.NewLine,
+        md.Split(Environment.NewLine).Select(l => l.StartsWith('#') ? "#" + l : l));
+
     /// <summary>Bookmarks and highlights merged, sorted by chapter order, then time, then position in the text.</summary>
     private static List<Entry> Entries(BookRecord book, AnnotationSet set)
     {

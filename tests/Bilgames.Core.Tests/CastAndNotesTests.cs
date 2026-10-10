@@ -249,3 +249,24 @@ public class ToneScopeTests
         Assert.Equal(CueSource.Context, quotes[1].CueFrom);
     }
 }
+
+public class AllNotesExportTests
+{
+    [Fact]
+    public void ManyBooksNestUnderOneTitleAndCsvNamesTheBook()
+    {
+        var a = (new BookRecord { Title = "Book A", Author = "One", Chapters = { new ChapterInfo { Index = 0, Title = "Ch 1" } } },
+                 new AnnotationSet { Bookmarks = { new Bookmark { ChapterIndex = 0, Seconds = 5, Excerpt = "Hi." } } });
+        var b = (new BookRecord { Title = "Book, B", Author = "Two", Chapters = { new ChapterInfo { Index = 0, Title = "Start" } } },
+                 new AnnotationSet { Highlights = { new Highlight { ChapterIndex = 0, Seconds = 9, Text = "Yes.", Note = "good" } } });
+        var md = AnnotationExport.WriteMany(new[] { a, b }, AnnotationFormat.Markdown);
+        Assert.StartsWith("# Bookmarks, highlights and notes", md);
+        Assert.Contains("## Book A", md);
+        Assert.Contains("### Ch 1", md);
+        Assert.Contains("## Book, B", md);
+        var csv = AnnotationExport.WriteMany(new[] { a, b }, AnnotationFormat.Csv).Split(Environment.NewLine);
+        Assert.Equal("Book,Author,Type,Chapter,Time,Seconds,Text,Note,Color,Created", csv[0]);
+        Assert.StartsWith("Book A,One,Bookmark,Ch 1,0:05,5,Hi.,", csv[1]);
+        Assert.StartsWith("\"Book, B\",Two,Highlight,Start,0:09,9,Yes.,good,yellow,", csv[2]);
+    }
+}

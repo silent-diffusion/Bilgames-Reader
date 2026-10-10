@@ -29,6 +29,7 @@ public sealed partial class MainWindow : Window
         LibraryPane.Shell = Vm;
         BookPane.Shell = Vm;
         SettingsPane.Shell = Vm;
+        NotesPane.Shell = Vm;
         PlayerPane.Shell = Vm;
 
         SetupWindow();
@@ -116,7 +117,7 @@ public sealed partial class MainWindow : Window
         // Nav items: icon over label (compact/medium) or icon + label in a row (expanded).
         var items = new (SegmentToggle Button, StackPanel Content)[]
         {
-            (NavLibrary, NavLibraryContent), (NavListening, NavListeningContent), (NavVoices, NavVoicesContent), (NavJobs, NavJobsContent),
+            (NavLibrary, NavLibraryContent), (NavListening, NavListeningContent), (NavNotes, NavNotesContent), (NavVoices, NavVoicesContent), (NavJobs, NavJobsContent),
         };
         NavItems.ColumnDefinitions.Clear();
         NavItems.RowDefinitions.Clear();
@@ -140,19 +141,21 @@ public sealed partial class MainWindow : Window
         Grid.SetRowSpan(MainArea, compact ? 1 : 2);
 
         // Pane visibility and widths
-        bool lib = Vm.ShowLibrary, book = Vm.ShowBook && !Vm.ShowSettings, settings = Vm.ShowSettings, player = Vm.ShowPlayer;
-        if (medium && settings) lib = true;
+        bool lib = Vm.ShowLibrary, notes = Vm.ShowNotesPage, settings = Vm.ShowSettings, book = Vm.ShowBook && !settings && !notes, player = Vm.ShowPlayer;
+        if (medium && (settings || notes)) lib = true;
         LibraryPane.Visibility = Ui.Vis(lib);
         BookPane.Visibility = Ui.Vis(book);
         SettingsPane.Visibility = Ui.Vis(settings);
+        NotesPane.Visibility = Ui.Vis(notes);
         PlayerPane.Visibility = Ui.Vis(player);
         LibraryColumn.Width = lib ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        BookColumn.Width = book || settings ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        BookColumn.Width = book || settings || notes ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         PlayerColumn.Width = !player ? new GridLength(0) : expanded ? new GridLength(360) : new GridLength(1, GridUnitType.Star);
 
         LibraryPane.ApplyLayout(layout, showRightBorder: medium);
         BookPane.ApplyLayout(layout);
         SettingsPane.ApplyLayout(layout);
+        NotesPane.ApplyLayout(layout);
         PlayerPane.ApplyLayout(layout);
     }
 

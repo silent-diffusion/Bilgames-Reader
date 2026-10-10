@@ -45,6 +45,12 @@
                             <TextBlock Text="Listening" />
                         </StackPanel>
                     </c:SegmentToggle>
+                    <c:SegmentToggle x:Name="NavNotes" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoNotesCommand}" IsChecked="{x:Bind Vm.NavNotes, Mode=OneWay}" AutomationProperties.Name="Notes: bookmarks, highlights and notes">
+                        <StackPanel x:Name="NavNotesContent">
+                            <c:StrokeIcon Data="M6 3h12v18l-6-4-6 4z" />
+                            <TextBlock Text="Notes" />
+                        </StackPanel>
+                    </c:SegmentToggle>
                     <c:SegmentToggle x:Name="NavVoices" Style="{StaticResource NavButton}" Command="{x:Bind Vm.GoVoicesCommand}" IsChecked="{x:Bind Vm.NavVoices, Mode=OneWay}" AutomationProperties.Name="Voices">
                         <StackPanel x:Name="NavVoicesContent">
                             <c:StrokeIcon Data="M9 6a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v3" />
@@ -96,6 +102,7 @@
                 <v:LibraryView x:Name="LibraryPane" Grid.Column="0" />
                 <v:BookView x:Name="BookPane" Grid.Column="1" />
                 <v:SettingsView x:Name="SettingsPane" Grid.Column="1" />
+                <v:NotesView x:Name="NotesPane" Grid.Column="1" />
                 <v:PlayerView x:Name="PlayerPane" Grid.Column="2" />
             </Grid>
 

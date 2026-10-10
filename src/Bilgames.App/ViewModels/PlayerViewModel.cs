@@ -150,7 +150,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     // ---------- loading ----------
 
     /// <summary>Loads a book. With <paramref name="autoplay"/>, starts listening even if nothing is generated yet.</summary>
-    public void Load(string bookId, bool autoplay = false)
+    public void Load(string bookId, bool autoplay = false, (int Chapter, double Seconds)? start = null)
     {
         SavePosition();
         StopStream();
@@ -172,6 +172,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         var pos = _book.Position;
         var included = _book.IncludedChapters.Select(c => c.Index).ToList();
         int chapter = _ready.Contains(pos.ChapterIndex) ? pos.ChapterIndex : _ready.FirstOrDefault(-1);
+        // Opened from a bookmark or highlight: go straight there (plays as it's generated if not ready).
+        if (start is { } at && _book.Chapters.Any(c => c.Index == at.Chapter)) { _ = OpenChapterAsync(at.Chapter, at.Seconds, autoplay); _shell.RaiseLayout(); return; }
         if (chapter < 0 && autoplay)
         {
             // Nothing finished yet: listen to the chapter being generated (or the first one).
