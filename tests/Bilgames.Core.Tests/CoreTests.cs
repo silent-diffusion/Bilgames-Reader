@@ -227,3 +227,38 @@ public class Mp4MetadataTests
         return -1;
     }
 }
+
+public class ChapterStreamTests
+{
+    [Fact]
+    public void ChunksFollowTheFinalChapterTimeline()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bilgames-stream-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new Bilgames.Core.Storage.LibraryStore(root);
+            var segs = new List<PlannedSegment>();
+            for (int i = 0; i < 6; i++)
+                segs.Add(new PlannedSegment { Hash = "h" + i, Text = "Sentence number " + i + ".", BlockId = "b" + (i / 2), LineId = "l" + i, PauseAfterMs = 200 });
+            var plan = new ChapterPlan { ChapterIndex = 0, Segments = segs };
+            Directory.CreateDirectory(Path.Combine(store.BookDir("bk"), "segments"));
+            void Ready(int i) => Wav.Write(store.SegmentPath("bk", segs[i].Hash), new short[24000], 24000); // 1 s each
+
+            using var stream = new ChapterStream(store, "bk", plan, 24000);
+            Assert.Null(stream.TryBuildNext());             // nothing generated yet
+            Ready(0);
+            var first = stream.TryBuildNext();               // starts with whatever is ready
+            Assert.NotNull(first);
+            Assert.Equal(0.25, first!.Timings[0].Start, 3);   // same 250 ms lead-in as the saved chapter
+            for (int i = 1; i < 6; i++) Ready(i);
+            while (stream.TryBuildNext() is not null) { }
+            Assert.True(stream.Complete);
+            var all = stream.Chunks.SelectMany(c => c.Timings).ToList();
+            Assert.Equal(6, all.Count);
+            for (int i = 1; i < all.Count; i++)
+                Assert.Equal(all[i - 1].End + 0.2, all[i].Start, 3); // contiguous: segment + its pause
+            Assert.Equal(stream.Chunks[^1].Start + stream.Chunks[^1].Duration, stream.BufferedSeconds, 3);
+        }
+        finally { try { Directory.Delete(root, true); } catch { } }
+    }
+}

@@ -227,7 +227,7 @@ public sealed partial class StructureViewModel : ObservableObject
         Footnotes = opts.Footnotes;
         UpdateStats();
         AnalyzeLabel = b.Analysis == AnalysisState.Done ? "Find speakers again" : "Find speakers";
-        AnalyzeHint = "Analysis runs on this device. Usually under a minute.";
+        AnalyzeHint = "Usually under a minute.";
         _refreshing = false;
     }
 
@@ -240,7 +240,7 @@ public sealed partial class StructureViewModel : ObservableObject
         // AAC chapters (~8 KB/s) plus the segment cache used for quick re-generation (~48 KB/s).
         double perSecond = 8_000 + (AppServices.Settings.KeepSegmentCache ? 48_000 : 0);
         Storage = Ui.Size((long)(est.TotalSeconds * perSecond));
-        WordsLabel = $"{words:N0} words";
+        WordsLabel = $"{words:N0}";
     }
 
     private void Save(Action<StructureOptions> change)

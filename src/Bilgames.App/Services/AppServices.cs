@@ -29,7 +29,7 @@ public static class AppServices
         Store = new LibraryStore(root);
         Settings = Store.LoadSettings();
         Books = new BookService(Store);
-        Engine = new KokoroEngine(Store.ModelsDir, Path.Combine(AppContext.BaseDirectory, "voices"));
+        Engine = new KokoroEngine(Store.ModelsDir, Path.Combine(AppContext.BaseDirectory, "voices"), () => Settings.Processor);
         Models = new ModelService(Engine, Store.ModelsDir);
         Jobs = new GenerationCoordinator(Store, Engine, Encoder, Power, () => Settings);
         Updates = new UpdateService();
@@ -87,13 +87,11 @@ public sealed class ModelService
     public bool IsInstalled(ModelInfo m) => _engine.IsInstalled(m);
     public bool IsInstalled(QualityProfile p) => _engine.IsInstalled(p);
 
-    /// <summary>Asks the user, then downloads. Returns true once the model is installed.</summary>
+    /// <summary>Downloads the model (the user's click is the go-ahead). Returns true once installed.</summary>
     public async Task<bool> RequestDownloadAsync(ModelInfo model)
     {
         if (IsInstalled(model)) return true;
         if (Downloading is not null) return false;
-        var ok = await Dialogs.ConfirmNetworkAsync($"download the {model.Label} voice model", "github.com", Controls.Ui.Size(model.Size));
-        if (!ok) return false;
 
         Downloading = model;
         Progress = 0;
@@ -133,6 +131,7 @@ public sealed class ModelService
 
     public void Delete(ModelInfo model)
     {
+        if (model == KokoroModels.Gpu) _engine.ResetGpu();
         ModelDownloader.Delete(model, _dir);
         Changed?.Invoke();
     }

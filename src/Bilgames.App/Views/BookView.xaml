@@ -80,8 +80,8 @@
                         </Border>
                         <Border Grid.Column="2" Style="{StaticResource Card}" Padding="10" CornerRadius="12">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="Uploaded" FontSize="11" Style="{StaticResource CaptionText}" />
-                                <TextBlock Text="Nothing" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource SuccessBrush}" Style="{StaticResource BaseText}" />
+                                <TextBlock Text="Words" FontSize="11" Style="{StaticResource CaptionText}" />
+                                <TextBlock Text="{x:Bind Vm.Structure.WordsLabel, Mode=OneWay}" FontSize="16" FontWeight="ExtraBold" Style="{StaticResource BaseText}" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -137,6 +137,57 @@
 
                 <!-- ============ CAST ============ -->
                 <StackPanel x:Name="CastSection" Spacing="14" MaxWidth="900" HorizontalAlignment="Left" Visibility="{x:Bind c:Ui.Vis(Vm.IsCast), Mode=OneWay}">
+
+                    <!-- One speaker's lines (opened by tapping a name) -->
+                    <StackPanel Spacing="14" Visibility="{x:Bind c:Ui.Vis(Vm.Cast.Detail.IsOpen), Mode=OneWay}">
+                        <Button Style="{StaticResource LinkButton}" Command="{x:Bind Vm.Cast.Detail.CloseCommand}" AutomationProperties.Name="Back to cast">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <c:StrokeIcon Data="M15 5l-7 7 7 7" Width="18" Height="18" StrokeWidth="2.2" />
+                                <TextBlock Text="Cast" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <c:Avatar Size="40" Initials="{x:Bind Vm.Cast.Detail.Initials, Mode=OneWay}" Color="{x:Bind Vm.Cast.Detail.Color, Mode=OneWay}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="{x:Bind Vm.Cast.Detail.Name, Mode=OneWay}" FontSize="18" FontWeight="Bold" Style="{StaticResource BaseText}" AutomationProperties.HeadingLevel="Level2" />
+                                <TextBlock Text="{x:Bind Vm.Cast.Detail.Summary, Mode=OneWay}" Style="{StaticResource CaptionText}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="2" Header="Context" IsOn="{x:Bind Vm.Cast.Detail.ShowContext, Mode=TwoWay}" OnContent="Shown" OffContent="Hidden" MinWidth="0"
+                                          VerticalAlignment="Center" AutomationProperties.Name="Show surrounding text" />
+                        </Grid>
+                        <ProgressBar IsIndeterminate="True" Style="{StaticResource ThinProgress}" Visibility="{x:Bind c:Ui.Vis(Vm.Cast.Detail.IsLoading), Mode=OneWay}" AutomationProperties.Name="Loading lines" />
+                        <TextBlock Text="{x:Bind Vm.Cast.Detail.Status, Mode=OneWay}" Style="{StaticResource CaptionText}" Foreground="{StaticResource AccentBrush}" Visibility="{x:Bind c:Ui.VisText(Vm.Cast.Detail.Status), Mode=OneWay}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Vm.Cast.Detail.Lines}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="10" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SpeakerLineItem">
+                                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="14,10">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind ChapterTitle}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                                                <Button Grid.Column="1" Style="{StaticResource SmallOutlineButton}" Content="Reassign…" Click="Reassign_Click" Tag="{x:Bind}"
+                                                        AutomationProperties.Name="{x:Bind ReassignName}" />
+                                            </Grid>
+                                            <c:LineContextView Paragraphs="{x:Bind Shown, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+
+                    <StackPanel Spacing="14" Visibility="{x:Bind c:Ui.NotVis(Vm.Cast.Detail.IsOpen), Mode=OneWay}">
                     <TextBlock Text="{x:Bind Vm.Cast.Intro, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" />
                     <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Content="Find speakers" Command="{x:Bind Vm.Cast.FindSpeakersCommand}"
                             Visibility="{x:Bind c:Ui.NotVis(Vm.Cast.IsAnalyzed), Mode=OneWay}" />
@@ -173,10 +224,13 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <c:Avatar Size="40" Initials="{x:Bind Initials}" Color="{x:Bind Color}" VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
-                                        <TextBlock Text="{x:Bind LinesLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" />
-                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource RowButton}" Padding="4,6" Click="Member_Click" Tag="{x:Bind}"
+                                            IsEnabled="{x:Bind c:Ui.Not(IsNarrator)}" AutomationProperties.Name="{x:Bind LinesButtonName}" ToolTipService.ToolTip="Show this speaker's lines">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="Bold" TextWrapping="NoWrap" Style="{StaticResource BaseText}" />
+                                            <TextBlock Text="{x:Bind LinesLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </Button>
                                     <Button Grid.Column="2" Style="{StaticResource SmallOutlineButton}" BorderBrush="{StaticResource LineStrongBrush}" Background="{StaticResource SurfaceBrush}"
                                             Foreground="{StaticResource TextBrush}" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" Click="Voice_Click" Tag="{x:Bind}"
                                             AutomationProperties.Name="{x:Bind VoiceButtonName, Mode=OneWay}">
@@ -209,6 +263,7 @@
                             <Button Grid.Column="1" Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Padding="16,0" CornerRadius="12" Content="Check them" Command="{x:Bind Vm.Cast.CheckThemCommand}" />
                         </Grid>
                     </Grid>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- ============ REVIEW ============ -->
@@ -229,21 +284,28 @@
 
                     <StackPanel Spacing="14" Visibility="{x:Bind c:Ui.Vis(Vm.Review.HasItem), Mode=OneWay}">
                         <TextBlock Text="{x:Bind Vm.Review.ProgressLabel, Mode=OneWay}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Style="{StaticResource BaseText}" />
-                        <ItemsControl ItemsSource="{x:Bind Vm.Review.Context}" IsTabStop="False">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ContextLineViewModel">
-                                    <StackPanel Spacing="4" Margin="0,0,0,14">
-                                        <TextBlock Text="{x:Bind Label}" FontSize="11" FontWeight="Bold" CharacterSpacing="40" Foreground="{x:Bind c:Ui.Brush(Color)}" Style="{StaticResource BaseText}" />
-                                        <TextBlock Text="{x:Bind Text}" FontFamily="{StaticResource BookFont}" FontSize="15" LineHeight="23" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource BaseText}" TextTrimming="None" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
                         <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="16" Padding="16">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="{x:Bind c:Ui.Upper(Vm.Review.Prompt), Mode=OneWay}" FontSize="11" FontWeight="ExtraBold" CharacterSpacing="80" Foreground="{StaticResource AccentBrush}" Style="{StaticResource BaseText}" />
-                                <TextBlock Text="{x:Bind Vm.Review.LineText, Mode=OneWay}" FontFamily="{StaticResource BookFont}" FontSize="17" LineHeight="25" Style="{StaticResource BaseText}" TextTrimming="None" />
+                                <!-- Speakers in this passage: colour key for the text below. -->
+                                <ItemsControl ItemsSource="{x:Bind Vm.Review.Legend}" IsTabStop="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="14" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LegendEntry">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Ellipse Width="10" Height="10" Fill="{x:Bind c:Ui.Brush(Color)}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind Name}" FontSize="12" FontWeight="SemiBold" Foreground="{x:Bind c:Ui.Brush(Color)}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <!-- The passage around the line, one continuous text; the line in question is bold and highlighted. -->
+                                <c:LineContextView Paragraphs="{x:Bind Vm.Review.ContextParagraphs, Mode=OneWay}" />
+                                <TextBlock Text="Who says the highlighted line?" Style="{StaticResource CaptionText}" />
                                 <ItemsRepeater ItemsSource="{x:Bind Vm.Review.Options}">
                                     <ItemsRepeater.Layout>
                                         <UniformGridLayout MinItemWidth="180" MinItemHeight="48" MinColumnSpacing="6" MinRowSpacing="6" ItemsStretch="Fill" />
@@ -267,6 +329,12 @@
                                         </DataTemplate>
                                     </ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>
+                                <Button Style="{StaticResource LinkButton}" FontSize="14" Click="SomeoneElse_Click" AutomationProperties.Name="Someone else: search all speakers">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <c:StrokeIcon Data="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM16 16l5 5" Width="16" Height="16" StrokeWidth="2" />
+                                        <TextBlock Text="Someone else…" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Button>
                                 <CheckBox Content="Use this for similar back-and-forth lines" IsChecked="{x:Bind Vm.Review.ApplySimilar, Mode=TwoWay}" Style="{StaticResource AccentCheckBox}" />
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>
@@ -292,7 +360,7 @@
                             </StackPanel>
                             <TextBlock Text="{x:Bind Vm.Generate.ModelText, Mode=OneWay}" Style="{StaticResource SecondaryText}" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Content="Download…" Command="{x:Bind Vm.Generate.DownloadModelCommand}"
+                                <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Content="Download" Command="{x:Bind Vm.Generate.DownloadModelCommand}"
                                         Visibility="{x:Bind c:Ui.NotVis(Vm.Generate.IsDownloading), Mode=OneWay}" />
                                 <Button Style="{StaticResource GhostButton}" MinHeight="44" Content="Cancel download" Command="{x:Bind Vm.Generate.CancelDownloadCommand}"
                                         Visibility="{x:Bind c:Ui.Vis(Vm.Generate.IsDownloading), Mode=OneWay}" />
@@ -315,7 +383,24 @@
                                 <TextBlock Text="{x:Bind Vm.Generate.ChapterLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" />
                                 <TextBlock Text="{x:Bind Vm.Generate.SegmentsLabel, Mode=OneWay}" Style="{StaticResource CaptionText}" HorizontalAlignment="Right" />
                             </Grid>
+                            <!-- Where the work is happening right now (CPU or GPU) -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind c:Ui.VisText(Vm.Generate.DeviceLabel), Mode=OneWay}">
+                                <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Bind Vm.Generate.DeviceLabel, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource BaseText}" />
+                            </StackPanel>
                         </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" Visibility="{x:Bind c:Ui.Vis(Vm.Generate.ShowGpuHint), Mode=OneWay}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind Vm.Generate.GpuHint, Mode=OneWay}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Style="{StaticResource GhostButton}" MinHeight="44" Content="Use GPU" Command="{x:Bind Vm.Generate.DownloadGpuModelCommand}"
+                                    IsEnabled="{x:Bind c:Ui.Not(Vm.Generate.IsDownloading), Mode=OneWay}" />
+                        </Grid>
                     </Border>
 
                     <StackPanel Spacing="8">
@@ -391,7 +476,7 @@
                         </Grid.ColumnDefinitions>
                         <Button x:Name="PrimaryJobButton" Style="{x:Bind JobButtonStyle(Vm.Generate.IsRunning, Vm.Generate.IsComplete), Mode=OneWay}" MinHeight="52" CornerRadius="14" FontSize="15"
                                 Content="{x:Bind Vm.Generate.PrimaryLabel, Mode=OneWay}" Command="{x:Bind Vm.Generate.PrimaryCommand}" IsEnabled="{x:Bind c:Ui.Not(Vm.Generate.IsComplete), Mode=OneWay}" />
-                        <Button Grid.Column="1" Style="{x:Bind ListenButtonStyle(Vm.Generate.IsRunning, Vm.Generate.IsComplete), Mode=OneWay}" MinHeight="52" HorizontalAlignment="Stretch" Content="Listen to ready chapters"
+                        <Button Grid.Column="1" Style="{x:Bind ListenButtonStyle(Vm.Generate.IsRunning, Vm.Generate.IsComplete), Mode=OneWay}" MinHeight="52" HorizontalAlignment="Stretch" Content="Listen now"
                                 Command="{x:Bind Vm.Generate.ListenCommand}" IsEnabled="{x:Bind Vm.Generate.CanListen, Mode=OneWay}" />
                     </Grid>
                 </StackPanel>

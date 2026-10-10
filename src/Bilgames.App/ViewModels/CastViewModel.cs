@@ -33,6 +33,7 @@ public sealed partial class CastMemberViewModel : ObservableObject
 
     public string VoiceButtonName => $"Change voice for {Name}, currently {VoiceName}";
     public string PreviewName => $"Preview {Name}";
+    public string LinesButtonName => $"{Name}: show and reassign lines";
 
     public void Update(CastMember m)
     {
@@ -57,7 +58,13 @@ public sealed partial class CastViewModel : ObservableObject
     private readonly BookViewModel _book;
     private List<MergeSuggestion> _bannerGroup = new();
 
-    public CastViewModel(BookViewModel book) => _book = book;
+    public CastViewModel(BookViewModel book)
+    {
+        _book = book;
+        Detail = new SpeakerLinesViewModel(book);
+    }
+
+    public SpeakerLinesViewModel Detail { get; }
 
     public ObservableCollection<CastMemberViewModel> Members { get; } = new();
 
@@ -168,13 +175,14 @@ public sealed partial class CastViewModel : ObservableObject
     }
 
     /// <summary>Previews and generation need the standard model; offer the (confirmed) download.</summary>
-    public static async Task<bool> EnsureModel()
+    public static async Task<bool> EnsureModel(ModelInfo? model = null)
     {
-        if (AppServices.Models.IsInstalled(KokoroModels.Half)) return true;
+        model ??= KokoroModels.Half;
+        if (AppServices.Models.IsInstalled(model)) return true;
         var go = await Dialogs.ConfirmAsync("Voice model needed",
-            $"Hearing voices needs the {KokoroModels.Half.Label} voice model ({Controls.Ui.Size(KokoroModels.Half.Size)}). It downloads once; after that everything works offline.",
-            "Continue");
-        return go && await AppServices.Models.RequestDownloadAsync(KokoroModels.Half);
+            $"Voices need the {model.Label} model. It's a one-time download.",
+            $"Download ({Controls.Ui.Size(model.Size)})");
+        return go && await AppServices.Models.RequestDownloadAsync(model);
     }
 
     /// <summary>A line this character actually says in the book, so the preview is in context.</summary>
@@ -194,4 +202,109 @@ public sealed partial class CastViewModel : ObservableObject
         }
         return member.IsNarrator ? "This is the narrator's voice for this book." : $"Hello. This is how {member.Name} will sound.";
     }
+}
+
+/// <summary>One of a speaker's lines in the speaker detail list.</summary>
+public sealed partial class SpeakerLineItem : ObservableObject
+{
+    public int ChapterIndex { get; init; }
+    public string ChapterTitle { get; init; } = "";
+    public string LineId { get; init; } = "";
+    public string Text { get; init; } = "";
+    public IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>> LineOnly { get; init; } = Array.Empty<IReadOnlyList<Bilgames.App.Controls.ContextRun>>();
+    public IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>> WithContext { get; init; } = Array.Empty<IReadOnlyList<Bilgames.App.Controls.ContextRun>>();
+
+    [ObservableProperty] private IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>>? _shown;
+
+    public string ReassignName => $"Reassign this line: {Text}";
+}
+
+/// <summary>All lines of one speaker, each optionally with its surrounding paragraphs, reassignable.</summary>
+public sealed partial class SpeakerLinesViewModel : ObservableObject
+{
+    private readonly BookViewModel _book;
+    private CastSheet _cast = new();
+
+    public SpeakerLinesViewModel(BookViewModel book) => _book = book;
+
+    public ObservableCollection<SpeakerLineItem> Lines { get; } = new();
+
+    [ObservableProperty] private bool _isOpen;
+    [ObservableProperty] private string _speakerId = "";
+    [ObservableProperty] private string _name = "";
+    [ObservableProperty] private string _initials = "";
+    [ObservableProperty] private string _color = "#C9CED6";
+    [ObservableProperty] private string _summary = "";
+    [ObservableProperty] private bool _showContext = true;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private string _status = "";
+
+    partial void OnShowContextChanged(bool value)
+    {
+        foreach (var l in Lines) l.Shown = value ? l.WithContext : l.LineOnly;
+    }
+
+    public async Task OpenAsync(CastMemberViewModel member)
+    {
+        if (_book.BookId is not { } id) return;
+        SpeakerId = member.Id;
+        Name = member.Name;
+        Initials = member.Initials;
+        Color = member.Color;
+        Status = "";
+        IsOpen = true;
+        await LoadAsync(id);
+    }
+
+    private async Task LoadAsync(string bookId)
+    {
+        IsLoading = true;
+        Lines.Clear();
+        var speaker = SpeakerId;
+        var (cast, items) = await Task.Run(() =>
+        {
+            var c = AppServices.Store.LoadCast(bookId);
+            var lines = AppServices.Books.LinesBy(bookId, speaker);
+            var analyses = new Dictionary<int, ChapterAnalysis?>();
+            var list = new List<SpeakerLineItem>();
+            foreach (var l in lines)
+            {
+                if (!analyses.TryGetValue(l.ChapterIndex, out var a)) analyses[l.ChapterIndex] = a = AppServices.Store.LoadAnalysis(bookId, l.ChapterIndex);
+                var context = a is null ? new List<List<Line>>() : ContextHelpers.Trim(Bilgames.Core.BookService.ContextBlocks(a, l.Line.Id, 2, 2), l.Line.Id, 260, 200);
+                list.Add(new SpeakerLineItem
+                {
+                    ChapterIndex = l.ChapterIndex,
+                    ChapterTitle = l.ChapterTitle,
+                    LineId = l.Line.Id,
+                    Text = l.Line.Text,
+                    LineOnly = ContextHelpers.Runs(new[] { new[] { l.Line } }, c, null),
+                    WithContext = ContextHelpers.Runs(context, c, l.Line.Id),
+                });
+            }
+            return (c, list);
+        });
+        _cast = cast;
+        foreach (var i in items)
+        {
+            i.Shown = ShowContext ? i.WithContext : i.LineOnly;
+            Lines.Add(i);
+        }
+        Summary = $"{Lines.Count:N0} {(Lines.Count == 1 ? "line" : "lines")}. Pick “Reassign” on any line that belongs to someone else.";
+        IsLoading = false;
+    }
+
+    public List<Bilgames.App.Controls.PickerItem> Speakers() => ContextHelpers.SpeakerItems(_cast, SpeakerId);
+
+    public async Task ReassignAsync(SpeakerLineItem item, string speakerId)
+    {
+        if (_book.BookId is not { } id || speakerId == SpeakerId) return;
+        await Task.Run(() => AppServices.Books.AssignSpeaker(id, item.ChapterIndex, item.LineId, speakerId, false));
+        Lines.Remove(item);
+        var to = _cast.Find(speakerId)?.Name ?? "the narrator";
+        Status = $"Moved a line to {to}.";
+        Summary = $"{Lines.Count:N0} {(Lines.Count == 1 ? "line" : "lines")}.";
+        _book.Changed();
+    }
+
+    [RelayCommand] private void Close() => IsOpen = false;
 }

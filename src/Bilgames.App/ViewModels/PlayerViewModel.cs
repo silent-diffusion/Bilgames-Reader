@@ -3,7 +3,9 @@ using Bilgames.App.Controls;
 using Bilgames.App.Services;
 using Bilgames.Core.Audio;
 using Bilgames.Core.Model;
+using Bilgames.Core.Planning;
 using Bilgames.Core.Tts;
+using Bilgames.Tts.Kokoro;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
@@ -24,9 +26,25 @@ public sealed class PlayerChapterViewModel
     public bool IsCurrent { get; init; }
 }
 
+/// <summary>One paragraph of the scrollable transcript.</summary>
+public sealed partial class TranscriptParagraph : ObservableObject
+{
+    public string BlockId { get; init; } = "";
+    public IReadOnlyList<IReadOnlyList<ContextRun>> Runs { get; init; } = Array.Empty<IReadOnlyList<ContextRun>>();
+    [ObservableProperty] private bool _isCurrent;
+    /// <summary>False while this paragraph hasn't been generated yet (streaming).</summary>
+    [ObservableProperty] private bool _isAvailable = true;
+}
+
+/// <summary>
+/// Plays a book chapter by chapter. A finished chapter plays from its AAC file; a chapter that is
+/// still generating plays as a stream of small chunks (see <see cref="ChapterStream"/>) so listening
+/// can start right away, and switches to the finished file at the same spot once it is saved.
+/// </summary>
 public sealed partial class PlayerViewModel : ObservableObject
 {
     private static readonly double[] Speeds = { 0.8, 1.0, 1.25, 1.5, 2.0 };
+    private static readonly string[] SpeedLabels = { "0.8×", "1.0×", "1.25×", "1.5×", "2.0×" };
 
     private readonly ShellViewModel _shell;
     private readonly MediaPlayer _player = new() { AudioCategory = MediaPlayerAudioCategory.Media };
@@ -34,17 +52,28 @@ public sealed partial class PlayerViewModel : ObservableObject
     private readonly DispatcherQueueTimer _tick;
     private BookRecord? _book;
     private CastSheet _cast = new();
-    private ChapterAudio? _audio;
-    private Dictionary<string, string> _blockText = new();
-    private List<string> _blockOrder = new();
     private List<int> _ready = new();
     private int _chapter = -1;
-    private int _timingIndex = -1;
     private DateTime _lastSave;
     private bool _sleepAtChapterEnd;
     private DateTime? _sleepUntil;
     private double _pendingSeek = -1;
     private bool _autoplayOnOpen;
+    private bool _restoringSpeed;
+    private bool _dragging;
+
+    // What is playing: the finished chapter, or a live stream of it.
+    private ChapterAudio? _audio;
+    private ChapterStream? _stream;
+    private MediaPlaybackList? _list;
+    private int _streamItem;
+    private bool _starved;
+
+    // Transcript state shared by both modes.
+    private List<SegmentTiming> _timings = new();
+    private readonly Dictionary<string, double> _lineStart = new();
+    private readonly Dictionary<string, int> _paragraphIndex = new();
+    private int _timingIndex = -1;
 
     public PlayerViewModel(ShellViewModel shell)
     {
@@ -65,6 +94,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     public string? BookId => _book?.Id;
     public ObservableCollection<PlayerChapterViewModel> Chapters { get; } = new();
+    public ObservableCollection<TranscriptParagraph> Transcript { get; } = new();
 
     [ObservableProperty] private bool _hasBook;
     [ObservableProperty] private bool _hasAudio;
@@ -81,20 +111,18 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private string _remainingText = "−00:00";
     [ObservableProperty] private int _speedIndex = 1;
     [ObservableProperty] private string _sleepLabel = "Sleep";
-    [ObservableProperty] private string _prevText = "";
-    [ObservableProperty] private string _currentText = "";
-    [ObservableProperty] private string _nextText = "";
+    [ObservableProperty] private int _currentParagraph = -1;
     [ObservableProperty] private string _speakerName = "Narrator";
     [ObservableProperty] private string _speakerLabel = "";
     [ObservableProperty] private string _speakerInitials = "N";
     [ObservableProperty] private string _speakerColor = "#C9CED6";
     [ObservableProperty] private string _miniSubtitle = "";
     [ObservableProperty] private string _emptyText = "Pick a book from your library to start listening.";
+    [ObservableProperty] private bool _canStart;
+    [ObservableProperty] private bool _isStreaming;
+    [ObservableProperty] private string _streamStatus = "";
     [ObservableProperty] private bool _isExporting;
     [ObservableProperty] private string _exportLabel = "Export";
-
-    private static readonly string[] SpeedLabels = { "0.8×", "1.0×", "1.25×", "1.5×", "2.0×" };
-    private bool _restoringSpeed;
 
     public string SpeedLabel => SpeedLabels[SpeedIndex];
     public string PlayLabel => IsPlaying ? "Pause" : "Play";
@@ -121,9 +149,11 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     // ---------- loading ----------
 
+    /// <summary>Loads a book. With <paramref name="autoplay"/>, starts listening even if nothing is generated yet.</summary>
     public void Load(string bookId, bool autoplay = false)
     {
         SavePosition();
+        StopStream();
         _book = AppServices.Store.LoadBook(bookId);
         HasBook = _book is not null;
         if (_book is null) return;
@@ -139,19 +169,27 @@ public sealed partial class PlayerViewModel : ObservableObject
         RefreshReady();
 
         var pos = _book.Position;
+        var included = _book.IncludedChapters.Select(c => c.Index).ToList();
         int chapter = _ready.Contains(pos.ChapterIndex) ? pos.ChapterIndex : _ready.FirstOrDefault(-1);
+        if (chapter < 0 && autoplay)
+        {
+            // Nothing finished yet: listen to the chapter being generated (or the first one).
+            int generating = AppServices.Jobs.ActiveBookId == bookId && included.Contains(pos.ChapterIndex) ? pos.ChapterIndex : included.FirstOrDefault(-1);
+            if (generating >= 0) { _ = OpenChapterAsync(generating, 0, true); _shell.RaiseLayout(); return; }
+        }
         if (chapter < 0)
         {
             Clear();
             return;
         }
-        OpenChapter(chapter, chapter == pos.ChapterIndex ? pos.Seconds : 0, autoplay);
+        _ = OpenChapterAsync(chapter, chapter == pos.ChapterIndex ? pos.Seconds : 0, autoplay);
         _shell.RaiseLayout();
     }
 
     public void Unload()
     {
         _player.Pause();
+        StopStream();
         _player.Source = null;
         _book = null;
         HasBook = false;
@@ -166,13 +204,14 @@ public sealed partial class PlayerViewModel : ObservableObject
         _chapter = -1;
         HasAudio = false;
         IsPlaying = false;
+        IsStreaming = false;
         ChapterTitle = "";
         HeaderLabel = "NOW PLAYING";
-        PrevText = NextText = "";
-        CurrentText = "";
+        Transcript.Clear();
+        CanStart = _book is not null && _book.IncludedChapters.Any();
         EmptyText = _book is null
             ? "Pick a book from your library to start listening."
-            : "Nothing to play yet. Generate audio on the book's Generate tab; chapters become playable as soon as each one is ready.";
+            : "Nothing generated yet. Start listening and the first chapter plays as it's being made.";
         MiniSubtitle = _book is null ? "" : "No audio yet";
         Position = 0;
         Duration = 1;
@@ -185,58 +224,64 @@ public sealed partial class PlayerViewModel : ObservableObject
             : _book.IncludedChapters.Where(c => AppServices.Store.LoadChapterAudio(_book.Id, c.Index) is not null).Select(c => c.Index).ToList();
     }
 
-    /// <summary>New chapters finished generating, or speakers/voices changed.</summary>
+    /// <summary>Chapters finished generating, or speakers/voices changed.</summary>
     public void OnChaptersChanged()
     {
         if (_book is null) return;
         _book = AppServices.Store.LoadBook(_book.Id) ?? _book;
         _cast = AppServices.Store.LoadCast(_book.Id);
         RefreshReady();
-        if (!HasAudio && _ready.Count > 0) OpenChapter(_ready[0], 0, false);
-        else if (HasAudio && _chapter >= 0)
+        if (_stream is not null && _ready.Contains(_stream.ChapterIndex))
+        {
+            // The chapter we're streaming has been saved: carry on from the same spot in the final file.
+            bool playing = IsPlaying || _starved;
+            _ = OpenChapterAsync(_stream.ChapterIndex, Position, playing);
+        }
+        else if (_audio is not null && _chapter >= 0)
         {
             // The current chapter may have been regenerated with corrected speakers.
             var fresh = AppServices.Store.LoadChapterAudio(_book.Id, _chapter);
-            if (fresh is not null && _audio is not null && fresh.PlanHash != _audio.PlanHash) OpenChapter(_chapter, Position, IsPlaying);
+            if (fresh is not null && fresh.PlanHash != _audio.PlanHash) _ = OpenChapterAsync(_chapter, Position, IsPlaying);
+        }
+        else if (!HasAudio && _ready.Count > 0 && _stream is null)
+        {
+            _ = OpenChapterAsync(_ready[0], 0, false);
         }
         BuildChapterList();
     }
 
-    private async void OpenChapter(int index, double seconds, bool play)
+    /// <summary>"Start listening" when nothing is generated yet.</summary>
+    [RelayCommand]
+    private async Task StartListeningAsync()
+    {
+        if (_book is null) return;
+        int first = _book.IncludedChapters.Select(c => c.Index).FirstOrDefault(-1);
+        if (first >= 0) await OpenChapterAsync(first, 0, true);
+    }
+
+    private async Task OpenChapterAsync(int index, double seconds, bool play)
     {
         if (_book is null) return;
         var audio = AppServices.Store.LoadChapterAudio(_book.Id, index);
-        if (audio is null) return;
+        if (audio is not null) await OpenFinal(index, audio, seconds, play);
+        else await OpenStream(index, play);
+    }
+
+    private async Task OpenFinal(int index, ChapterAudio audio, double seconds, bool play)
+    {
+        StopStream();
         _audio = audio;
         _chapter = index;
-        _timingIndex = -1;
         HasAudio = true;
-        var info = _book.Chapters[index];
-        ChapterTitle = info.Title;
-        int ordinal = _book.IncludedChapters.ToList().FindIndex(c => c.Index == index) + 1;
-        HeaderLabel = $"NOW PLAYING · {info.Title.ToUpperInvariant()}";
+        IsStreaming = false;
+        StreamStatus = "";
+        SetChapterLabels(index);
         Duration = Math.Max(1, audio.DurationSeconds);
+        BuildTranscript(index, audio.Timings.Select(t => t.BlockId).Distinct().ToList());
+        SetTimings(audio.Timings);
 
-        // Transcript source: the chapter's paragraphs (and notes) in spoken order.
-        var text = AppServices.Store.LoadChapterText(_book.Id, index);
-        _blockText = text.Blocks.Where(b => b.Kind != BlockKind.SceneBreak).ToDictionary(b => b.Id, b => b.Text);
-        foreach (var n in text.Notes) _blockText[n.Id] = "Note: " + n.Text;
-        _blockText["notes"] = "Notes";
-        _blockOrder = audio.Timings.Select(t => t.BlockId).Distinct().ToList();
-
-        var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(AppServices.Store.ChapterAudioPath(_book.Id, index))));
-        var props = item.GetDisplayProperties();
-        props.Type = MediaPlaybackType.Music;
-        props.MusicProperties.Title = info.Title;
-        props.MusicProperties.Artist = _book.Author;
-        props.MusicProperties.AlbumTitle = _book.Title;
-        props.MusicProperties.TrackNumber = (uint)Math.Max(1, ordinal);
-        if (AppServices.Store.CoverPath(_book) is { } cover && File.Exists(cover))
-        {
-            try { props.Thumbnail = RandomAccessStreamReference.CreateFromFile(await StorageFile.GetFileFromPathAsync(cover)); } catch { }
-        }
-        item.ApplyDisplayProperties(props);
-
+        var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(AppServices.Store.ChapterAudioPath(_book!.Id, index))));
+        await ApplyDisplayProperties(item, index);
         _pendingSeek = seconds;
         _autoplayOnOpen = play;
         _player.Source = item;
@@ -248,12 +293,125 @@ public sealed partial class PlayerViewModel : ObservableObject
         SavePosition(force: true);
     }
 
+    /// <summary>Plays a chapter that isn't finished: generation is pointed at it and chunks play as they land.</summary>
+    private async Task OpenStream(int index, bool play)
+    {
+        if (_book is null) return;
+        if (!AppServices.Models.IsInstalled(_book.Quality) && !await CastViewModel.EnsureModel(KokoroModels.For(_book.Quality))) return;
+
+        StopStream();
+        _audio = null;
+        _chapter = index;
+        var cast = AppServices.Store.LoadCast(_book.Id);
+        var plan = AppServices.Jobs.PlanFor(_book, index, cast);
+        AppServices.Jobs.RequestChapter(_book.Id, index);
+
+        _stream = new ChapterStream(AppServices.Store, _book.Id, plan, AppServices.Engine.SampleRate);
+        _list = new MediaPlaybackList();
+        _list.CurrentItemChanged += (l, e) => AppServices.RunOnUI(() =>
+        {
+            if (_list != l) return;
+            _streamItem = (int)l.CurrentItemIndex;
+            ApplyPendingStreamSeek();
+        });
+        _streamItem = 0;
+        _starved = play;
+        _timings = new List<SegmentTiming>();
+        _lineStart.Clear();
+
+        HasAudio = true;
+        IsStreaming = true;
+        CanStart = false;
+        StreamStatus = "Starting…";
+        SetChapterLabels(index);
+        Duration = 1;
+        Position = 0;
+        BuildTranscript(index, plan.Segments.Select(s => s.BlockId).Distinct().ToList());
+        foreach (var p in Transcript) p.IsAvailable = false;
+        _player.Source = _list;
+        _player.PlaybackSession.PlaybackRate = Speeds[SpeedIndex];
+        PumpStream();
+        UpdateClock();
+        BuildChapterList();
+    }
+
+    /// <summary>Adds any newly generated paragraphs to the playlist; resumes if playback was waiting.</summary>
+    private void PumpStream()
+    {
+        if (_stream is null || _list is null) return;
+        bool added = false;
+        while (_stream.TryBuildNext() is { } chunk)
+        {
+            _list.Items.Add(new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(chunk.WavPath))));
+            _timings.AddRange(chunk.Timings);
+            foreach (var t in chunk.Timings)
+            {
+                _lineStart.TryAdd(t.LineId, t.Start);
+                if (_paragraphIndex.TryGetValue(t.BlockId, out var pi)) Transcript[pi].IsAvailable = true;
+            }
+            added = true;
+        }
+        if (!added) return;
+        Duration = Math.Max(1, _stream.BufferedSeconds);
+        if (_starved)
+        {
+            // Either the very first part just arrived, or playback had caught up: continue with the new part.
+            _starved = false;
+            int next = Position <= 0.01 ? 0 : Math.Min(_streamItem + 1, _list.Items.Count - 1);
+            _list.MoveTo((uint)next);
+            _player.Play();
+        }
+        if (_timingIndex < 0) UpdateTranscript(force: true);
+    }
+
+    private void StopStream()
+    {
+        _list = null;
+        _stream?.Dispose();
+        _stream = null;
+        _starved = false;
+        IsStreaming = false;
+    }
+
+    private void SetChapterLabels(int index)
+    {
+        var info = _book!.Chapters[index];
+        ChapterTitle = info.Title;
+        HeaderLabel = $"NOW PLAYING · {info.Title.ToUpperInvariant()}";
+    }
+
+    private async Task ApplyDisplayProperties(MediaPlaybackItem item, int index)
+    {
+        var info = _book!.Chapters[index];
+        var props = item.GetDisplayProperties();
+        props.Type = MediaPlaybackType.Music;
+        props.MusicProperties.Title = info.Title;
+        props.MusicProperties.Artist = _book.Author;
+        props.MusicProperties.AlbumTitle = _book.Title;
+        props.MusicProperties.TrackNumber = (uint)Math.Max(1, _book.IncludedChapters.ToList().FindIndex(c => c.Index == index) + 1);
+        if (AppServices.Store.CoverPath(_book) is { } cover && File.Exists(cover))
+        {
+            try { props.Thumbnail = RandomAccessStreamReference.CreateFromFile(await StorageFile.GetFileFromPathAsync(cover)); } catch { }
+        }
+        item.ApplyDisplayProperties(props);
+    }
+
     private void OnOpened()
     {
+        if (_stream is not null) { ApplyPendingStreamSeek(); return; }
         if (_pendingSeek > 0) _player.PlaybackSession.Position = TimeSpan.FromSeconds(_pendingSeek);
         _pendingSeek = -1;
         _player.PlaybackSession.PlaybackRate = Speeds[SpeedIndex];
         if (_autoplayOnOpen) _player.Play();
+    }
+
+    private void ApplyPendingStreamSeek()
+    {
+        if (_stream is null || _pendingSeek < 0) return;
+        if (_streamItem >= _stream.Chunks.Count) return;
+        var chunk = _stream.Chunks[_streamItem];
+        _player.PlaybackSession.Position = TimeSpan.FromSeconds(Math.Max(0, _pendingSeek - chunk.Start));
+        _pendingSeek = -1;
     }
 
     private void BuildChapterList()
@@ -269,18 +427,85 @@ public sealed partial class PlayerViewModel : ObservableObject
                 Title = c.Title,
                 IsReady = ready,
                 IsCurrent = c.Index == _chapter,
-                Detail = c.Index == _chapter ? "Playing" : ready ? "Ready" : "Not generated yet",
+                Detail = c.Index == _chapter ? (IsStreaming ? "Playing as it's generated" : "Playing") : ready ? "Ready" : "Plays as it's generated",
             });
         }
+    }
+
+    // ---------- transcript ----------
+
+    /// <summary>The whole chapter as paragraphs of lines, in spoken order.</summary>
+    private void BuildTranscript(int index, List<string> blockOrder)
+    {
+        Transcript.Clear();
+        _paragraphIndex.Clear();
+        _timingIndex = -1;
+        CurrentParagraph = -1;
+        var text = AppServices.Store.LoadChapterText(_book!.Id, index);
+        var analysis = AppServices.Store.LoadAnalysis(_book.Id, index);
+        var linesByBlock = analysis?.Lines.GroupBy(l => l.BlockId).ToDictionary(g => g.Key, g => g.ToList());
+        var blocks = text.Blocks.ToDictionary(b => b.Id);
+        var notes = text.Notes.ToDictionary(n => n.Id);
+
+        foreach (var blockId in blockOrder)
+        {
+            List<ContextRun> runs;
+            if (blockId == "notes")
+            {
+                // End-of-chapter notes: one paragraph per note, keyed by note id.
+                var noteRuns = _audioOrPlanLines(blockId).Select(id => notes.TryGetValue(id, out var n)
+                    ? new ContextRun { LineId = id, Text = "Note: " + n.Text } : new ContextRun { LineId = id, Text = "Notes." }).ToList();
+                runs = noteRuns;
+            }
+            else if (linesByBlock is not null && linesByBlock.TryGetValue(blockId, out var lines))
+                runs = lines.Select(l => new ContextRun { LineId = l.Id, Text = l.Text }).ToList();
+            else if (blocks.TryGetValue(blockId, out var b))
+                runs = new List<ContextRun> { new() { LineId = blockId + "l0", Text = b.Text } };
+            else continue;
+            _paragraphIndex[blockId] = Transcript.Count;
+            Transcript.Add(new TranscriptParagraph { BlockId = blockId, Runs = new[] { (IReadOnlyList<ContextRun>)runs } });
+        }
+    }
+
+    private IEnumerable<string> _audioOrPlanLines(string blockId) =>
+        (_audio?.Timings ?? (IEnumerable<SegmentTiming>)(_stream?.Plan.Segments.Select(s => new SegmentTiming { BlockId = s.BlockId, LineId = s.LineId }) ?? Array.Empty<SegmentTiming>()))
+            .Where(t => t.BlockId == blockId).Select(t => t.LineId).Distinct();
+
+    private void SetTimings(List<SegmentTiming> timings)
+    {
+        _timings = timings;
+        _lineStart.Clear();
+        foreach (var t in timings) _lineStart.TryAdd(t.LineId, t.Start);
+    }
+
+    /// <summary>Tapping a line in the transcript jumps playback to it.</summary>
+    public void JumpToLine(string lineId)
+    {
+        if (_lineStart.TryGetValue(lineId, out var start)) Seek(start + 0.01);
+        else if (IsStreaming) StreamStatus = "That part is still being generated.";
     }
 
     // ---------- playback ----------
 
     private void OnTick()
     {
+        if (_stream is not null)
+        {
+            PumpStream();
+            UpdateStreamStatus();
+        }
         if (!HasAudio) return;
-        var pos = _pendingSeek >= 0 ? _pendingSeek : _player.PlaybackSession.Position.TotalSeconds;
-        if (!_dragging) Position = pos;
+        if (!_dragging)
+        {
+            double pos;
+            if (_stream is not null)
+            {
+                var offset = _streamItem < _stream.Chunks.Count ? _stream.Chunks[_streamItem].Start : 0;
+                pos = _pendingSeek >= 0 ? _pendingSeek : offset + _player.PlaybackSession.Position.TotalSeconds;
+            }
+            else pos = _pendingSeek >= 0 ? _pendingSeek : _player.PlaybackSession.Position.TotalSeconds;
+            Position = pos;
+        }
         UpdateClock();
         UpdateTranscript();
         if (_sleepUntil is { } until)
@@ -292,7 +517,14 @@ public sealed partial class PlayerViewModel : ObservableObject
         if (IsPlaying && (DateTime.UtcNow - _lastSave).TotalSeconds > 5) SavePosition();
     }
 
-    private bool _dragging;
+    private void UpdateStreamStatus()
+    {
+        if (_stream is null) return;
+        var device = AppServices.Engine.DeviceLabel.StartsWith("GPU") ? "GPU" : "CPU";
+        StreamStatus = _starved
+            ? $"Generating the next part on the {device}…"
+            : $"Playing as it's generated · {Math.Round(_stream.Fraction * 100)}% of the chapter ready";
+    }
 
     /// <summary>Called by the scrubber while the user drags (no seeking until release).</summary>
     public void BeginScrub() => _dragging = true;
@@ -306,22 +538,24 @@ public sealed partial class PlayerViewModel : ObservableObject
     private void UpdateClock()
     {
         ElapsedText = Ui.Clock(Position);
-        RemainingText = "−" + Ui.Clock(Duration - Position);
+        RemainingText = IsStreaming && _stream is { Complete: false } ? "generating…" : "−" + Ui.Clock(Duration - Position);
     }
 
     private void UpdateTranscript(bool force = false)
     {
-        if (_audio is null || _audio.Timings.Count == 0) return;
+        if (_timings.Count == 0) return;
         var t = Position;
-        int i = _audio.Timings.FindLastIndex(x => x.Start <= t + 0.05);
+        int i = _timings.FindLastIndex(x => x.Start <= t + 0.05);
         if (i < 0) i = 0;
         if (i == _timingIndex && !force) return;
         _timingIndex = i;
-        var timing = _audio.Timings[i];
-        int bi = _blockOrder.IndexOf(timing.BlockId);
-        CurrentText = BlockText(bi);
-        PrevText = BlockText(bi - 1);
-        NextText = BlockText(bi + 1);
+        var timing = _timings[i];
+        if (_paragraphIndex.TryGetValue(timing.BlockId, out var pi) && pi != CurrentParagraph)
+        {
+            if (CurrentParagraph >= 0 && CurrentParagraph < Transcript.Count) Transcript[CurrentParagraph].IsCurrent = false;
+            Transcript[pi].IsCurrent = true;
+            CurrentParagraph = pi;
+        }
 
         var member = _cast.Find(timing.SpeakerId) ?? _cast.Members.FirstOrDefault(m => m.IsNarrator);
         SpeakerName = member?.Name ?? "Narrator";
@@ -330,8 +564,6 @@ public sealed partial class PlayerViewModel : ObservableObject
         SpeakerLabel = $"{SpeakerName} · voice {VoiceCatalog.Name(member?.VoiceId ?? VoiceCatalog.DefaultNarrator)}";
         MiniSubtitle = $"{ChapterTitle} · {(member?.IsNarrator != false ? "Narrator" : SpeakerName)} speaking";
     }
-
-    private string BlockText(int i) => i >= 0 && i < _blockOrder.Count && _blockText.TryGetValue(_blockOrder[i], out var s) ? s : "";
 
     private void SyncPlaying()
     {
@@ -351,6 +583,13 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private void OnEnded()
     {
+        if (_stream is not null && !_stream.Complete)
+        {
+            // Caught up with generation: wait for the next part, then carry on.
+            _starved = true;
+            UpdateStreamStatus();
+            return;
+        }
         if (_sleepAtChapterEnd)
         {
             _sleepAtChapterEnd = false;
@@ -358,8 +597,9 @@ public sealed partial class PlayerViewModel : ObservableObject
             IsPlaying = false;
             return;
         }
-        int next = _ready.FindIndex(i => i > _chapter);
-        if (next >= 0) OpenChapter(_ready[next], 0, true);
+        int at = _book?.IncludedChapters.ToList().FindIndex(c => c.Index == _chapter) ?? -1;
+        var next = _book?.IncludedChapters.Skip(at + 1).FirstOrDefault();
+        if (next is not null) _ = OpenChapterAsync(next.Index, 0, true);
         else { IsPlaying = false; SavePosition(force: true); }
     }
 
@@ -380,10 +620,12 @@ public sealed partial class PlayerViewModel : ObservableObject
         if (!HasAudio)
         {
             if (_book is null && _shell.Library.ContinueItem is { } c) Load(c.Id, autoplay: true);
+            else if (_book is not null) _ = StartListeningAsync();
             return;
         }
         _preview.Pause();
         if (IsPlaying) _player.Pause();
+        else if (_starved) { /* waiting for generation; it resumes on its own */ }
         else _player.Play();
     }
 
@@ -393,9 +635,18 @@ public sealed partial class PlayerViewModel : ObservableObject
     public void Seek(double seconds)
     {
         if (!HasAudio) return;
-        if (seconds < 0 && _chapter > 0 && Position < 2) { Step(-1); return; }
+        if (seconds < 0 && Position < 2) { Step(-1); return; }
         seconds = Math.Clamp(seconds, 0, Duration);
-        _player.PlaybackSession.Position = TimeSpan.FromSeconds(seconds);
+        if (_stream is not null && _list is not null)
+        {
+            int item = _stream.Chunks.FindLastIndex(c => c.Start <= seconds);
+            if (item < 0) return;
+            _pendingSeek = seconds;
+            if (item != _streamItem) _list.MoveTo((uint)item);
+            else ApplyPendingStreamSeek();
+            if (_starved) { _starved = false; _player.Play(); }
+        }
+        else _player.PlaybackSession.Position = TimeSpan.FromSeconds(seconds);
         Position = seconds;
         UpdateClock();
         UpdateTranscript();
@@ -403,20 +654,22 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private void Step(int dir)
     {
-        int at = _ready.IndexOf(_chapter);
-        int target = at + dir;
-        if (target >= 0 && target < _ready.Count) OpenChapter(_ready[target], 0, IsPlaying || dir > 0);
+        if (_book is null) return;
+        var included = _book.IncludedChapters.Select(c => c.Index).ToList();
+        int target = included.IndexOf(_chapter) + dir;
+        if (target >= 0 && target < included.Count) _ = OpenChapterAsync(included[target], 0, IsPlaying || dir > 0);
     }
 
     [RelayCommand] public void CycleSpeed() => SpeedIndex = (SpeedIndex + 1) % Speeds.Length;
 
     public void SpeedStep(int dir) => SpeedIndex = Math.Clamp(SpeedIndex + dir, 0, Speeds.Length - 1);
 
+    /// <summary>Any chapter can be opened: finished ones play at once, others play as they're generated.</summary>
     [RelayCommand]
     private void GoToChapter(PlayerChapterViewModel? c)
     {
-        if (c is null || !c.IsReady) return;
-        OpenChapter(c.Index, 0, true);
+        if (c is null) return;
+        _ = OpenChapterAsync(c.Index, 0, true);
     }
 
     public void SetSleep(int minutes)
@@ -432,14 +685,14 @@ public sealed partial class PlayerViewModel : ObservableObject
     [RelayCommand]
     private async Task FixAsync()
     {
-        if (_book is null || _audio is null || _timingIndex < 0) return;
+        if (_book is null || _timingIndex < 0 || _timingIndex >= _timings.Count) return;
         if (_book.Analysis != AnalysisState.Done)
         {
             await Dialogs.InfoAsync("Find speakers first", "This book hasn't been analyzed for speakers yet, so everything is read by the narrator. Use “Find speakers” on the Structure tab.");
             _shell.OpenBook(_book.Id, BookTab.Structure);
             return;
         }
-        var timing = _audio.Timings[_timingIndex];
+        var timing = _timings[_timingIndex];
         _player.Pause();
         _shell.FixLine(_book.Id, _chapter, timing.LineId);
     }
@@ -464,84 +717,5 @@ public sealed partial class PlayerViewModel : ObservableObject
         _preview.MediaEnded -= Ended;
         _preview.Source = null;
         try { File.Delete(path); } catch { }
-    }
-
-    // ---------- export ----------
-
-    [RelayCommand]
-    private async Task ExportAsync()
-    {
-        if (_book is null || IsExporting) return;
-        RefreshReady();
-        var included = _book.IncludedChapters.ToList();
-        if (_ready.Count == 0)
-        {
-            await Dialogs.InfoAsync("Nothing to export yet", "Generate audio first; you can export once chapters are ready.");
-            return;
-        }
-        if (_ready.Count < included.Count)
-        {
-            var go = await Dialogs.ConfirmAsync("Export ready chapters?",
-                $"{_ready.Count} of {included.Count} chapters are ready. Export those now as an audiobook, or wait until generation finishes.",
-                $"Export {_ready.Count} chapters");
-            if (!go) return;
-        }
-        var safe = string.Concat(_book.Title.Split(Path.GetInvalidFileNameChars()));
-        var dest = await Pickers.PickSaveAsync(safe, "Audiobook with chapters", ".m4b");
-        if (dest is null) return;
-
-        IsExporting = true;
-        var book = _book;
-        var chapters = _ready.ToList();
-        try
-        {
-            await Task.Run(() => Export(book, chapters, dest, p => AppServices.RunOnUI(() => ExportLabel = $"Exporting {p:0}%")));
-            ExportLabel = "Export";
-            await Dialogs.InfoAsync("Audiobook exported", $"Saved “{Path.GetFileName(dest)}” with {chapters.Count} chapter markers.\n\n{Path.GetDirectoryName(dest)}");
-        }
-        catch (Exception ex)
-        {
-            AppServices.Log("Export failed: " + ex);
-            await Dialogs.InfoAsync("Export failed", ex.Message);
-        }
-        finally
-        {
-            IsExporting = false;
-            ExportLabel = "Export";
-        }
-    }
-
-    private static async Task Export(BookRecord book, List<int> chapters, string dest, Action<double> progress)
-    {
-        var store = AppServices.Store;
-        var tmp = Path.Combine(store.TempDir, $"export-{book.Id}");
-        Directory.CreateDirectory(tmp);
-        var bigWav = Path.Combine(tmp, "book.wav");
-        var m4a = Path.Combine(tmp, "book.m4a");
-        var marks = new List<Mp4Chapter>();
-        try
-        {
-            using (var cat = new WavConcatenator(bigWav, AppServices.Engine.SampleRate))
-            {
-                for (int i = 0; i < chapters.Count; i++)
-                {
-                    var chWav = Path.Combine(tmp, $"{chapters[i]}.wav");
-                    await AppServices.Encoder.DecodeToWavAsync(store.ChapterAudioPath(book.Id, chapters[i]), chWav, AppServices.Engine.SampleRate, CancellationToken.None);
-                    marks.Add(new Mp4Chapter(TimeSpan.FromSeconds(cat.PositionSeconds), book.Chapters[chapters[i]].Title));
-                    cat.AppendFile(chWav);
-                    File.Delete(chWav);
-                    progress(70.0 * (i + 1) / chapters.Count);
-                }
-            }
-            await AppServices.Encoder.EncodeAacAsync(bigWav, m4a, CancellationToken.None);
-            progress(95);
-            Mp4Metadata.Write(m4a, marks, book.Title, book.Author);
-            File.Move(m4a, dest, overwrite: true);
-            progress(100);
-        }
-        finally
-        {
-            try { Directory.Delete(tmp, recursive: true); } catch { }
-        }
     }
 }

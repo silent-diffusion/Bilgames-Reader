@@ -44,7 +44,7 @@ public sealed partial class ReviewViewModel : ObservableObject
 
     public ReviewViewModel(BookViewModel book) => _book = book;
 
-    public ObservableCollection<ContextLineViewModel> Context { get; } = new();
+    public ObservableCollection<LegendEntry> Legend { get; } = new();
     public ObservableCollection<SpeakerOptionViewModel> Options { get; } = new();
 
     [ObservableProperty] private bool _hasItem;
@@ -55,6 +55,8 @@ public sealed partial class ReviewViewModel : ObservableObject
     [ObservableProperty] private string _lineText = "";
     [ObservableProperty] private bool _applySimilar = true;
     [ObservableProperty] private string _status = "";
+    [ObservableProperty] private IReadOnlyList<IReadOnlyList<Bilgames.App.Controls.ContextRun>>? _contextParagraphs;
+    private CastSheet _cast = new();
 
     public void Reset()
     {
@@ -94,7 +96,8 @@ public sealed partial class ReviewViewModel : ObservableObject
         _current = item;
         HasItem = item is not null;
         IsDone = item is null && IsAnalyzed;
-        Context.Clear();
+        Legend.Clear();
+        ContextParagraphs = null;
         Options.Clear();
         Status = "";
         if (item is null) return;
@@ -106,14 +109,11 @@ public sealed partial class ReviewViewModel : ObservableObject
         Prompt = _fixMode ? "Who says this?" : item.Line.Source == AttributionSource.Fallback && item.Line.Candidates.Count > 0 ? "No dialogue tag · who says this?" : "Who says this?";
         LineText = item.Line.Text;
 
-        foreach (var l in item.Context)
-        {
-            var m = Member(l.SpeakerId);
-            var label = (m?.Name ?? "Narrator").ToUpperInvariant();
-            if (l.IsDialogue && l.Unsure && !l.Reviewed) label = "UNSURE · NARRATOR FOR NOW";
-            if (!string.IsNullOrEmpty(l.Cue) && l.IsDialogue) label += " · " + l.Cue;
-            Context.Add(new ContextLineViewModel { Label = "● " + label, Color = m?.Color ?? "#C9CED6", Text = l.Text });
-        }
+        // A few paragraphs either side, as one continuous text with speakers colour-coded.
+        _cast = cast;
+        var blocks = ContextHelpers.Trim(AppServices.Books.ContextFor(_book.BookId!, item.ChapterIndex, item.Line.Id, 4, 3), item.Line.Id, 520, 380);
+        ContextParagraphs = ContextHelpers.Runs(blocks, cast, item.Line.Id);
+        foreach (var e in ContextHelpers.Legend(blocks, cast)) Legend.Add(e);
 
         IEnumerable<(string Id, string Conf)> choices;
         if (_fixMode || item.Line.Candidates.Count == 0)
@@ -136,6 +136,22 @@ public sealed partial class ReviewViewModel : ObservableObject
 
         var preselect = _fixMode ? Options.FirstOrDefault(o => o.SpeakerId == item.Line.SpeakerId) : Options.FirstOrDefault();
         if (preselect is not null) preselect.IsSelected = true;
+    }
+
+    /// <summary>"Someone else…": choose any speaker from the searchable list.</summary>
+    public List<Bilgames.App.Controls.PickerItem> AllSpeakers() => ContextHelpers.SpeakerItems(_cast, _current?.Line.SpeakerId);
+
+    public void PickOther(string speakerId)
+    {
+        var existing = Options.FirstOrDefault(o => o.SpeakerId == speakerId);
+        if (existing is null)
+        {
+            var m = _cast.Find(speakerId);
+            if (m is null) return;
+            existing = new SpeakerOptionViewModel { SpeakerId = m.Id, Name = m.Name, Initials = m.Initials, Color = m.Color, Confidence = "Chosen" };
+            Options.Insert(Math.Max(0, Options.Count - 1), existing);
+        }
+        Pick(existing);
     }
 
     [RelayCommand]

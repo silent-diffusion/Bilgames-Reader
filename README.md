@@ -26,6 +26,21 @@ dotnet build src/Bilgames.App
 src/Bilgames.App/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/BilgamesReader.exe
 ```
 
+### CPU and GPU
+
+Speech runs on ONNX Runtime with DirectML. With *Prefer the GPU* on (Settings › Processing), the
+engine uses the most capable DirectX 12 GPU whenever it has free video memory, falls back to the CPU
+segment-by-segment if memory runs short or the GPU errors, and checks again every 20 s to move back —
+generation never stops. DirectML can't run Kokoro's depthwise ConvTranspose layers, so the GPU copy of
+the model is rewritten on first use (`ModelPatcher`: zero-insertion upsample + grouped Conv,
+numerically equivalent) and uses full precision (half precision overflows on DirectML).
+
+### Listening while generating
+
+Any chapter can be played immediately: the player asks the job to generate that chapter first and
+plays it in small chunks as sentences land (`ChapterStream`), on the same timeline as the final file,
+then switches to the saved chapter at the same spot once it's finished.
+
 Data lives in `%LOCALAPPDATA%\BilgamesReader`. Set `BILGAMES_DATA` to another folder to try things
 without touching your real library. Passing `.epub` paths on the command line imports them.
 

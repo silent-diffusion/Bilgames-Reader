@@ -37,6 +37,9 @@ public sealed class GenerationProgress
     public bool Throttled { get; set; }
     public string? Error { get; set; }
     public long AudioBytes { get; set; }
+    /// <summary>"GPU · …" or "CPU" — where segments are being computed right now.</summary>
+    public string Device { get; set; } = "";
+    public string DeviceDetail { get; set; } = "";
 
     public double Fraction => TotalSegments == 0 ? 0 : (double)DoneSegments / TotalSegments;
     public int ReadyChapters => Chapters.Count(c => c.Status == ChapterStatus.Ready);
@@ -76,6 +79,7 @@ public sealed class GenerationCoordinator : IDisposable
         _power = power;
         _settings = settings;
         _worker = Task.Run(WorkLoop);
+        _engine.DeviceChanged += () => { if (_last is { State: JobState.Running } p) Report(p); };
     }
 
     public string? ActiveBookId => _currentBook;
@@ -83,6 +87,16 @@ public sealed class GenerationCoordinator : IDisposable
     /// <summary>Re-queues jobs that were running or queued when the app last closed.</summary>
     public void ResumeInterrupted()
     {
+        // Leftovers from a run that was killed mid-write (atomic writes leave only these behind).
+        foreach (var dir in Directory.EnumerateDirectories(_store.BooksDir))
+            foreach (var sub in new[] { "audio", "segments" })
+            {
+                var path = Path.Combine(dir, sub);
+                if (!Directory.Exists(path)) continue;
+                foreach (var f in Directory.EnumerateFiles(path, "*.part*")) TryDelete(f);
+            }
+        try { foreach (var d in Directory.EnumerateDirectories(_store.TempDir)) Directory.Delete(d, true); } catch { }
+
         foreach (var b in _store.LoadAll().Where(b => b.Generation.State is JobState.Running or JobState.Queued).OrderBy(b => b.Generation.StartedUtc))
             Enqueue(b.Id);
     }
@@ -175,13 +189,16 @@ public sealed class GenerationCoordinator : IDisposable
                 catch (OperationCanceledException) { /* paused or shutting down; state already saved */ }
                 finally
                 {
+                    string? again = null;
                     lock (_gate)
                     {
                         _queued.Remove(bookId);
                         _currentBook = null;
                         _current?.Dispose();
                         _current = null;
+                        if (_requeue == bookId) { again = bookId; _requeue = null; }
                     }
+                    if (again is not null) Enqueue(again);
                 }
             }
         }
@@ -212,9 +229,9 @@ public sealed class GenerationCoordinator : IDisposable
         Directory.CreateDirectory(segDir);
         Directory.CreateDirectory(Path.Combine(_store.BookDir(bookId), "audio"));
 
-        foreach (var chProgress in progress.Chapters)
+        var attempted = new HashSet<int>();
+        while (NextChapter(bookId, progress, attempted) is { } chProgress)
         {
-            if (chProgress.Status == ChapterStatus.Ready) continue;
             ct.ThrowIfCancellationRequested();
             var plan = PlanFor(book, chProgress.Index, cast, modelId);
             chProgress.Status = ChapterStatus.Generating;
@@ -222,20 +239,37 @@ public sealed class GenerationCoordinator : IDisposable
 
             try
             {
+                bool yielded = false;
                 for (int i = 0; i < plan.Segments.Count; i++)
                 {
+                    // The listener asked for another chapter: switch between segments (nothing is lost).
+                    if (_priority.TryGetValue(bookId, out var wanted) && wanted != chProgress.Index
+                        && progress.Chapters.Any(c => c.Index == wanted && c.Status is not (ChapterStatus.Ready or ChapterStatus.Failed)))
+                    {
+                        chProgress.Status = ChapterStatus.Queued;
+                        yielded = true;
+                        break;
+                    }
                     var seg = plan.Segments[i];
                     var path = _store.SegmentPath(bookId, seg.Hash);
                     if (!File.Exists(path))
                     {
                         await SynthesizeSegment(seg, path, book.Quality, progress, ct);
                         progress.DoneSegments++;
+                        SegmentWritten?.Invoke(bookId, chProgress.Index);
                     }
                     chProgress.Fraction = (i + 1.0) / plan.Segments.Count;
                     if (i % 2 == 0 || i == plan.Segments.Count - 1) Report(progress);
                 }
+                if (yielded)
+                {
+                    attempted.Remove(chProgress.Index);
+                    Report(progress);
+                    continue;
+                }
 
                 await AssembleChapter(book, plan, ct);
+                if (_priority.TryGetValue(bookId, out var done) && done == chProgress.Index) _priority.TryRemove(bookId, out _);
                 chProgress.Status = ChapterStatus.Ready;
                 chProgress.Fraction = 1;
                 if (!_settings().KeepSegmentCache) DeleteSegments(bookId, plan, progress);
@@ -261,6 +295,47 @@ public sealed class GenerationCoordinator : IDisposable
         progress.Remaining = TimeSpan.Zero;
         Report(progress);
     }
+
+    /// <summary>The requested chapter first (if any), then the next unfinished chapter in reading order.</summary>
+    private ChapterProgress? NextChapter(string bookId, GenerationProgress progress, HashSet<int> attempted)
+    {
+        bool Pending(ChapterProgress c) => c.Status is not ChapterStatus.Ready && !attempted.Contains(c.Index);
+        ChapterProgress? next = null;
+        if (_priority.TryGetValue(bookId, out var wanted)) next = progress.Chapters.FirstOrDefault(c => c.Index == wanted && Pending(c));
+        next ??= progress.Chapters.FirstOrDefault(Pending);
+        if (next is not null) attempted.Add(next.Index);
+        return next;
+    }
+
+    /// <summary>
+    /// Someone wants to listen to this chapter now: generate it before anything else (switching away
+    /// from the current chapter at the next segment), starting the job if it isn't running.
+    /// </summary>
+    public void RequestChapter(string bookId, int chapterIndex)
+    {
+        _priority[bookId] = chapterIndex;
+        lock (_gate)
+        {
+            if (_currentBook == bookId) return; // already running; it switches at the next segment
+        }
+        Start(bookId);
+        lock (_gate)
+        {
+            // Another book is generating: set it aside (it resumes right after) so this one starts now.
+            if (_currentBook is { } other && other != bookId)
+            {
+                _requeue = other;
+                _current?.Cancel();
+            }
+        }
+    }
+
+    /// <summary>Raised after each newly synthesized segment (bookId, chapterIndex) — lets the player stream.</summary>
+    public event Action<string, int>? SegmentWritten;
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _priority = new();
+    private string? _requeue;
+    private GenerationProgress? _last;
 
     private async Task SynthesizeSegment(PlannedSegment seg, string path, QualityProfile profile, GenerationProgress progress, CancellationToken ct)
     {
@@ -360,6 +435,8 @@ public sealed class GenerationCoordinator : IDisposable
 
     private void Report(GenerationProgress p)
     {
+        p.Device = _engine.DeviceLabel;
+        if (p.State == JobState.Running) _last = p;
         try { ProgressChanged?.Invoke(p); } catch { /* UI handlers must not kill the worker */ }
     }
 

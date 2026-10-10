@@ -39,6 +39,7 @@ public sealed partial class GenerateViewModel : ObservableObject
         Profiles.Add(new ProfileOptionViewModel { Profile = QualityProfile.Balanced, Name = "Balanced", Hint = "Recommended" });
         Profiles.Add(new ProfileOptionViewModel { Profile = QualityProfile.High, Name = "High quality", Hint = "Slower" });
         AppServices.Models.Changed += () => AppServices.RunOnUI(UpdateModelCard);
+        AppServices.Engine.DeviceChanged += () => AppServices.RunOnUI(() => { if (IsRunning) DeviceLabel = "Processing on " + AppServices.Engine.DeviceLabel; });
     }
 
     public ObservableCollection<ProfileOptionViewModel> Profiles { get; } = new();
@@ -63,6 +64,9 @@ public sealed partial class GenerateViewModel : ObservableObject
     [ObservableProperty] private bool _isDownloading;
     [ObservableProperty] private double _downloadPercent;
     [ObservableProperty] private string _downloadLabel = "";
+    [ObservableProperty] private string _deviceLabel = "";
+    [ObservableProperty] private bool _showGpuHint;
+    [ObservableProperty] private string _gpuHint = "";
 
     public void Refresh()
     {
@@ -90,7 +94,9 @@ public sealed partial class GenerateViewModel : ObservableObject
         int current = p.Current is { } cur ? p.Chapters.IndexOf(cur) + 1 : p.ReadyChapters;
         ChapterLabel = p.Chapters.Count == 0 ? "No chapters selected" : $"Chapter {Math.Max(1, Math.Min(current, p.Chapters.Count))} of {p.Chapters.Count}";
         SegmentsLabel = $"{p.DoneSegments:N0} of {p.TotalSegments:N0} segments";
-        CanListen = p.ReadyChapters > 0;
+        // Listening can start immediately: unfinished chapters play as they're generated.
+        CanListen = p.ReadyChapters > 0 || IsRunning;
+        DeviceLabel = IsRunning ? "Processing on " + (p.Device.Length > 0 ? p.Device : AppServices.Engine.DeviceLabel) : "";
         Error = p.Error;
 
         bool changed = p.Chapters.Any(c => c.Status == ChapterStatus.Changed);
@@ -148,7 +154,10 @@ public sealed partial class GenerateViewModel : ObservableObject
         if (b is null) return;
         var model = KokoroModels.For(b.Quality);
         NeedsModel = !AppServices.Models.IsInstalled(model);
-        ModelText = $"{model.Label} · {Ui.Size(model.Size)}. Downloads once from GitHub, then everything runs offline.";
+        ModelText = $"{model.Label} · {Ui.Size(model.Size)}, one-time download.";
+        var engine = AppServices.Engine;
+        ShowGpuHint = engine.Gpu is not null && AppServices.Settings.Processor == Bilgames.Core.Tts.ProcessorPreference.Gpu && !engine.GpuModelInstalled && !NeedsModel;
+        GpuHint = $"Your {engine.Gpu?.Name ?? "GPU"} can generate several times faster. It uses the {KokoroModels.Gpu.Label} model ({Ui.Size(KokoroModels.Gpu.Size)}).";
         IsDownloading = AppServices.Models.Downloading is not null;
         DownloadPercent = Math.Round(AppServices.Models.Progress * 100);
         DownloadLabel = IsDownloading ? $"Downloading… {DownloadPercent:0}%" : AppServices.Models.Error ?? "";
@@ -181,6 +190,13 @@ public sealed partial class GenerateViewModel : ObservableObject
     [RelayCommand] private void CancelDownload() => AppServices.Models.Cancel();
 
     [RelayCommand]
+    private async Task DownloadGpuModelAsync()
+    {
+        await AppServices.Models.RequestDownloadAsync(KokoroModels.Gpu);
+        Refresh();
+    }
+
+    [RelayCommand]
     private async Task PrimaryAsync()
     {
         var b = _book.Record;
@@ -208,6 +224,6 @@ public sealed partial class GenerateViewModel : ObservableObject
     [RelayCommand]
     private void Listen()
     {
-        if (_book.BookId is { } id) _book.Shell.OpenPlayer(id);
+        if (_book.BookId is { } id) _book.Shell.OpenPlayer(id, autoplay: true);
     }
 }

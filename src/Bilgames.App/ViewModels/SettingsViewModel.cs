@@ -47,6 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         foreach (var m in KokoroModels.All) Models.Add(new ModelRowViewModel(m));
         foreach (var v in VoiceCatalog.All) Voices.Add(new VoiceOptionViewModel(v));
         AppServices.Models.Changed += () => AppServices.RunOnUI(Refresh);
+        AppServices.Engine.DeviceChanged += () => AppServices.RunOnUI(RefreshDevice);
         Refresh();
     }
 
@@ -64,6 +65,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _dataFolder = "";
     [ObservableProperty] private string _storageSummary = "";
     [ObservableProperty] private string _downloadStatus = "";
+    [ObservableProperty] private bool _updateAvailable;
+    [ObservableProperty] private string _installLabel = "Install update";
 
     public void Refresh()
     {
@@ -71,36 +74,23 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = AppServices.Settings;
         AutoCheck = s.AutoCheckForUpdates;
         KeepSegmentCache = s.KeepSegmentCache;
+        PreferGpu = s.Processor == Bilgames.Core.Tts.ProcessorPreference.Gpu;
         DefaultNarrator = Voices.FirstOrDefault(v => v.Id == s.DefaultNarratorVoice) ?? Voices[0];
         Version = "Version " + AppServices.Updates.CurrentVersion;
         CanUpdate = AppServices.Updates.CanUpdate;
         if (!CanUpdate && UpdateStatus.Length == 0)
-            UpdateStatus = "Updates work in the installed app (this copy is running from a build folder).";
+            UpdateStatus = "Updates work in the installed app.";
         DataFolder = AppServices.Store.Root;
         StorageSummary = $"Voice models {Ui.Size(AppServices.Store.ModelsSize())} · Audio and caches {Ui.Size(AppServices.Store.AudioSize())}";
         foreach (var m in Models) m.Refresh();
         DownloadStatus = AppServices.Models.Downloading is { } d ? $"Downloading {d.Label}… {AppServices.Models.Progress * 100:0}%" : AppServices.Models.Error ?? "";
         _loading = false;
+        RefreshDevice();
     }
 
-    async partial void OnAutoCheckChanged(bool value)
+    partial void OnAutoCheckChanged(bool value)
     {
         if (_loading) return;
-        if (value)
-        {
-            // Turning this on is consent to a network check at each launch; confirm it explicitly.
-            var ok = await Dialogs.ConfirmAsync("Check for updates automatically?",
-                "Each time Bilgames Reader starts, it will contact github.com to see whether a newer version exists. " +
-                "It never downloads or installs anything without asking you first, and nothing from your books is sent.",
-                "Turn on");
-            if (!ok)
-            {
-                _loading = true;
-                AutoCheck = false;
-                _loading = false;
-                return;
-            }
-        }
         AppServices.Settings.AutoCheckForUpdates = value;
         AppServices.SaveSettings();
     }
@@ -123,14 +113,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task CheckForUpdatesAsync()
     {
         if (!CanUpdate || IsUpdating) return;
-        if (!await Dialogs.ConfirmNetworkAsync("check for a newer version of Bilgames Reader", "github.com")) return;
-        await RunUpdateCheck(confirmDownload: true);
+        await RunUpdateCheck(fromLaunch: false);
     }
 
-    /// <summary>Shared with the launch-time auto check (which the user opted into).</summary>
-    public async Task RunUpdateCheck(bool confirmDownload)
+    /// <summary>Checks GitHub for a newer release. From the launch-time check, offers to install right away.</summary>
+    public async Task RunUpdateCheck(bool fromLaunch)
     {
         IsUpdating = true;
+        UpdateAvailable = false;
         UpdateStatus = "Checking…";
         try
         {
@@ -142,19 +132,13 @@ public sealed partial class SettingsViewModel : ObservableObject
                 UpdateStatus = "You're up to date.";
                 return;
             }
-            UpdateStatus = $"Version {version} is available.";
             var size = AppServices.Updates.PendingSize;
-            var go = await Dialogs.ConfirmAsync($"Update to version {version}?",
-                $"Download the update{(size > 0 ? $" ({Ui.Size(size)})" : "")} from github.com, then restart Bilgames Reader to install it. " +
-                "Your library, voices and audio are kept. Generation in progress resumes after the restart.",
-                "Download and install", "Not now");
-            if (!go) return;
-            UpdateStatus = "Downloading update…";
-            await AppServices.Updates.DownloadAsync(p => AppServices.RunOnUI(() => { UpdateProgress = p; UpdateStatus = $"Downloading update… {p}%"; }));
-            UpdateStatus = "Restarting to install…";
-            _shell.Player.SavePosition(force: true);
-            _shell.Remember();
-            AppServices.Updates.ApplyAndRestart();
+            UpdateStatus = $"Version {version} is available. Your library, voices and audio are kept.";
+            InstallLabel = $"Install version {version}{(size > 0 ? $" ({Ui.Size(size)})" : "")}";
+            UpdateAvailable = true;
+            IsUpdating = false;
+            if (fromLaunch && await Dialogs.ConfirmAsync($"Version {version} is available", "Install it now? Bilgames Reader restarts to finish; anything generating picks up where it left off.", "Install now", "Later"))
+                await InstallUpdateAsync();
         }
         catch (Exception ex)
         {
@@ -165,6 +149,67 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             IsUpdating = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdateAsync()
+    {
+        if (!UpdateAvailable) return;
+        IsUpdating = true;
+        try
+        {
+            UpdateStatus = "Downloading update…";
+            await AppServices.Updates.DownloadAsync(p => AppServices.RunOnUI(() => { UpdateProgress = p; UpdateStatus = $"Downloading update… {p}%"; }));
+            UpdateStatus = "Restarting to install…";
+            _shell.Player.SavePosition(force: true);
+            _shell.Remember();
+            AppServices.Updates.ApplyAndRestart();
+        }
+        catch (Exception ex)
+        {
+            AppServices.Log("Update failed: " + ex.Message);
+            UpdateStatus = "The update couldn't be installed: " + ex.Message;
+        }
+        finally
+        {
+            IsUpdating = false;
+        }
+    }
+
+    // ---------- processing (CPU / GPU) ----------
+
+    [ObservableProperty] private bool _preferGpu;
+    [ObservableProperty] private bool _hasGpu;
+    [ObservableProperty] private string _gpuName = "";
+    [ObservableProperty] private string _deviceNow = "";
+    [ObservableProperty] private string _deviceDetail = "";
+    [ObservableProperty] private bool _gpuNeedsModel;
+
+    public void RefreshDevice()
+    {
+        var engine = AppServices.Engine;
+        HasGpu = engine.Gpu is not null;
+        GpuName = engine.Gpu?.Name ?? "No compatible GPU found";
+        GpuNeedsModel = HasGpu && PreferGpu && !engine.GpuModelInstalled;
+        DeviceNow = engine.DeviceLabel;
+        DeviceDetail = GpuNeedsModel
+            ? $"GPU processing uses the {KokoroModels.Gpu.Label} model ({Ui.Size(KokoroModels.Gpu.Size)})."
+            : engine.DeviceDetail;
+    }
+
+    partial void OnPreferGpuChanged(bool value)
+    {
+        if (_loading) return;
+        AppServices.Settings.Processor = value ? Bilgames.Core.Tts.ProcessorPreference.Gpu : Bilgames.Core.Tts.ProcessorPreference.Cpu;
+        AppServices.SaveSettings();
+        RefreshDevice();
+    }
+
+    [RelayCommand]
+    private async Task DownloadGpuModelAsync()
+    {
+        await AppServices.Models.RequestDownloadAsync(KokoroModels.Gpu);
+        Refresh();
     }
 
     [RelayCommand]

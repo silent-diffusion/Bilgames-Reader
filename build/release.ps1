@@ -14,6 +14,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$Version,
     [switch]$Publish,
+    [switch]$Yes,          # skip the upload confirmation (for unattended releases)
     [string]$Repo = "https://github.com/silent-diffusion/Bilgames-Reader"
 )
 $ErrorActionPreference = "Stop"
@@ -51,8 +52,10 @@ try {
     Write-Host "Installer: $(Join-Path $releaseDir 'BilgamesReader-win-Setup.exe')" -ForegroundColor Green
 
     if ($Publish) {
-        $answer = Read-Host "Upload version $Version to $Repo as a GitHub release? (y/N)"
-        if ($answer -ne "y") { Write-Host "Not uploaded."; return }
+        if (-not $Yes) {
+            $answer = Read-Host "Upload version $Version to $Repo as a GitHub release? (y/N)"
+            if ($answer -ne "y") { Write-Host "Not uploaded."; return }
+        }
         $token = (gh auth token)
         if (-not $token) { throw "Log in with 'gh auth login' first." }
         dotnet vpk upload github --repoUrl $Repo --token $token --publish --releaseName "Bilgames Reader $Version" --tag "v$Version" -o $releaseDir

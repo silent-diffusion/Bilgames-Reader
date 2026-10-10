@@ -45,6 +45,7 @@ public sealed class AppSettings
     public bool AutoCheckForUpdates { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
     public bool KeepSegmentCache { get; set; } = true;
+    public Tts.ProcessorPreference Processor { get; set; } = Tts.ProcessorPreference.Gpu;
     public string? LastSection { get; set; }
     public string? LastBookId { get; set; }
 }

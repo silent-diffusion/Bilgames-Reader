@@ -14,6 +14,19 @@ public interface ITtsEngine
 
     /// <summary>Synthesizes one segment to 16-bit mono PCM at <see cref="SampleRate"/>.</summary>
     Task<short[]> SynthesizeAsync(string text, string voiceId, float speed, QualityProfile profile, CancellationToken ct);
+
+    /// <summary>Where the last segment was computed, e.g. "GPU · NVIDIA GeForce RTX 3060" or "CPU".</summary>
+    string DeviceLabel { get; }
+
+    /// <summary>Raised (on a background thread) when processing moves between CPU and GPU.</summary>
+    event Action? DeviceChanged;
+}
+
+public enum ProcessorPreference
+{
+    /// <summary>Use the GPU when it has room; fall back to the CPU and return when memory frees up.</summary>
+    Gpu,
+    Cpu,
 }
 
 /// <summary>Platform audio encoding (Media Foundation on Windows).</summary>

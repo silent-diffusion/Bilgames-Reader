@@ -20,19 +20,6 @@ public static class Dialogs
         return await Show(dialog) == ContentDialogResult.Primary;
     }
 
-    /// <summary>
-    /// The single gate in front of every network request. The app is offline-first, so the user
-    /// always sees where it will connect, what for, and that no book content is sent.
-    /// </summary>
-    public static Task<bool> ConfirmNetworkAsync(string purpose, string host, string? size = null)
-    {
-        var body = $"Bilgames Reader will connect to {host} to {purpose}" +
-                   (size is null ? "." : $" ({size}).") +
-                   "\n\nNothing from your books — text, analysis or audio — is sent. Everything else stays offline.";
-        // Offline-first: Enter/Escape keep the app offline; connecting takes a deliberate click.
-        return ConfirmAsync("Connect to the internet?", body, "Connect", destructive: true);
-    }
-
     public static async Task InfoAsync(string title, string body)
     {
         if (Root is null || _open) return;

@@ -69,24 +69,31 @@ public sealed partial class BookView : UserControl
         if ((sender as FrameworkElement)?.Tag is CastMemberViewModel m) Vm.Cast.PreviewCommand.Execute(m);
     }
 
-    /// <summary>Voice picker: every installed voice, grouped by accent, current one checked.</summary>
+    /// <summary>Voice picker: search or scroll through every voice (name, gender, accent, grade).</summary>
     private void Voice_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not CastMemberViewModel member) return;
-        var flyout = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedRight };
-        foreach (var group in VoiceCatalog.All.GroupBy(v => (v.Accent, v.Gender)))
-        {
-            var sub = new MenuFlyoutSubItem { Text = $"{group.Key.Accent} {(group.Key.Gender == Gender.Female ? "female" : "male")}" };
-            foreach (var v in group)
-            {
-                var item = new ToggleMenuFlyoutItem { Text = $"{v.DisplayName}  ·  grade {v.Grade}", IsChecked = v.Id == member.VoiceId };
-                var id = v.Id;
-                item.Click += (_, _) => Vm.Cast.SetVoice(member, id);
-                sub.Items.Add(item);
-            }
-            flyout.Items.Add(sub);
-        }
-        flyout.ShowAt(button);
+        SearchPicker.Show(button, ContextHelpers.VoiceItems(member.VoiceId), "Search voices (e.g. British, male, Emma)",
+            v => Vm.Cast.SetVoice(member, v.Id));
+    }
+
+    /// <summary>Review: "Someone else…" — any speaker in the book, searchable.</summary>
+    private void SomeoneElse_Click(object sender, RoutedEventArgs e)
+    {
+        SearchPicker.Show((FrameworkElement)sender, Vm.Review.AllSpeakers(), "Search speakers", p => Vm.Review.PickOther(p.Id));
+    }
+
+    /// <summary>Cast: tap a speaker to see (and reassign) all of their lines.</summary>
+    private async void Member_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is CastMemberViewModel m) await Vm.Cast.Detail.OpenAsync(m);
+    }
+
+    private void Reassign_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not SpeakerLineItem item) return;
+        SearchPicker.Show((FrameworkElement)sender, Vm.Cast.Detail.Speakers(), "Who says this line?",
+            async p => await Vm.Cast.Detail.ReassignAsync(item, p.Id));
     }
 
     /// <summary>"Preview extracted text": exactly what will be read, chapter by chapter.</summary>

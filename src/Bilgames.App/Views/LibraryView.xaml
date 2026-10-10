@@ -120,7 +120,7 @@
                     <StackPanel Spacing="10">
                         <TextBlock Text="Your library is empty" Style="{StaticResource SectionText}" />
                         <TextBlock Style="{StaticResource SecondaryText}" FontSize="14"
-                                   Text="Import a DRM-free EPUB and Bilgames Reader turns it into an audiobook with a voice for each character. Reading, analysis and speech all happen on this device." />
+                                   Text="Import a DRM-free EPUB and Bilgames Reader turns it into an audiobook with a voice for each character." />
                         <Button Style="{StaticResource AccentButton}" Content="Import EPUB" Command="{x:Bind Vm.ImportCommand}" Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>

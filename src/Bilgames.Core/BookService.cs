@@ -15,6 +15,14 @@ public sealed class ReviewItem
     public int Total { get; init; }
 }
 
+/// <summary>One of a character's lines, for the per-speaker line list.</summary>
+public sealed class SpeakerLine
+{
+    public int ChapterIndex { get; init; }
+    public string ChapterTitle { get; init; } = "";
+    public Line Line { get; init; } = null!;
+}
+
 /// <summary>Speaker analysis and every user correction to it. All edits persist immediately.</summary>
 public sealed class BookService
 {
@@ -134,6 +142,43 @@ public sealed class BookService
         cast.DismissedSuggestions.Add(SuggestionKey(s));
         cast.Suggestions.RemoveAll(x => SuggestionKey(x) == SuggestionKey(s));
         _store.SaveCast(bookId, cast);
+    }
+
+    /// <summary>The paragraphs surrounding a line: <paramref name="before"/> paragraphs before, <paramref name="after"/> after.</summary>
+    public static List<List<Line>> ContextBlocks(ChapterAnalysis analysis, string lineId, int before = 3, int after = 2)
+    {
+        var blocks = new List<List<Line>>();
+        foreach (var l in analysis.Lines)
+        {
+            if (blocks.Count == 0 || blocks[^1][0].BlockId != l.BlockId) blocks.Add(new List<Line>());
+            blocks[^1].Add(l);
+        }
+        int at = blocks.FindIndex(b => b.Any(l => l.Id == lineId));
+        if (at < 0) return new();
+        int from = Math.Max(0, at - before), to = Math.Min(blocks.Count - 1, at + after);
+        return blocks.GetRange(from, to - from + 1);
+    }
+
+    public List<List<Line>> ContextFor(string bookId, int chapterIndex, string lineId, int before = 3, int after = 2)
+    {
+        var a = _store.LoadAnalysis(bookId, chapterIndex);
+        return a is null ? new() : ContextBlocks(a, lineId, before, after);
+    }
+
+    /// <summary>Every dialogue line currently assigned to a speaker, in reading order.</summary>
+    public List<SpeakerLine> LinesBy(string bookId, string speakerId)
+    {
+        var book = _store.LoadBook(bookId);
+        var list = new List<SpeakerLine>();
+        if (book is null) return list;
+        foreach (var info in book.Chapters)
+        {
+            var a = _store.LoadAnalysis(bookId, info.Index);
+            if (a is null) continue;
+            foreach (var l in a.Lines.Where(l => l.IsDialogue && l.SpeakerId == speakerId && !(l.Unsure && !l.Reviewed)))
+                list.Add(new SpeakerLine { ChapterIndex = info.Index, ChapterTitle = info.Title, Line = l });
+        }
+        return list;
     }
 
     /// <summary>Every unsure, unreviewed dialogue line in reading order, with a little context.</summary>

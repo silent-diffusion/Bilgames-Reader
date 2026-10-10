@@ -239,7 +239,7 @@ public sealed partial class MainWindow : Window
         // Opt-in only (off by default); enabling it was confirmed in Settings.
         if (!AppServices.Settings.AutoCheckForUpdates || !AppServices.Updates.CanUpdate) return;
         await Task.Delay(TimeSpan.FromSeconds(4));
-        await Vm.Settings.RunUpdateCheck(confirmDownload: true);
+        await Vm.Settings.RunUpdateCheck(fromLaunch: true);
     }
 
     private void OnClosed(object sender, WindowEventArgs args)

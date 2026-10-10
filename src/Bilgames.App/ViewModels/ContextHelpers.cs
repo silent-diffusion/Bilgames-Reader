@@ -1,0 +1,148 @@
+using Bilgames.App.Controls;
+using Bilgames.Core.Model;
+using Bilgames.Core.Tts;
+
+namespace Bilgames.App.ViewModels;
+
+/// <summary>Turns analysis lines and cast data into what the context views and pickers show.</summary>
+public static class ContextHelpers
+{
+    /// <summary>
+    /// Keeps only a few sentences around the target line: up to <paramref name="before"/> characters
+    /// before it and <paramref name="after"/> after, cut at sentence boundaries ("…" marks a cut).
+    /// </summary>
+    public static List<List<Line>> Trim(List<List<Line>> blocks, string targetLineId, int before, int after)
+    {
+        var flat = blocks.SelectMany((b, bi) => b.Select(l => (Block: bi, Line: l))).ToList();
+        int t = flat.FindIndex(x => x.Line.Id == targetLineId);
+        if (t < 0) return blocks;
+        var keep = new Dictionary<int, Line>(); // index → (possibly shortened) line
+        keep[t] = flat[t].Line;
+        int budget = before;
+        for (int i = t - 1; i >= 0 && budget > 0; i--)
+        {
+            var l = flat[i].Line;
+            if (l.Text.Length <= budget) { keep[i] = l; budget -= l.Text.Length; continue; }
+            keep[i] = WithText(l, "… " + TailSentences(l.Text, budget));
+            break;
+        }
+        budget = after;
+        for (int i = t + 1; i < flat.Count && budget > 0; i++)
+        {
+            var l = flat[i].Line;
+            if (l.Text.Length <= budget) { keep[i] = l; budget -= l.Text.Length; continue; }
+            keep[i] = WithText(l, HeadSentences(l.Text, budget) + " …");
+            break;
+        }
+        return flat.Select((x, i) => (x.Block, Line: keep.GetValueOrDefault(i)))
+            .Where(x => x.Line is not null)
+            .GroupBy(x => x.Block).Select(g => g.Select(x => x.Line!).ToList()).ToList();
+    }
+
+    private static Line WithText(Line l, string text) => new()
+    {
+        Id = l.Id, BlockId = l.BlockId, Text = text, IsDialogue = l.IsDialogue, SpeakerId = l.SpeakerId,
+        Unsure = l.Unsure, Reviewed = l.Reviewed, Cue = l.Cue,
+    };
+
+    private static readonly System.Text.RegularExpressions.Regex SentenceEnd = new(@"(?<=[.!?…][”’""']?)\s+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static string TailSentences(string text, int budget)
+    {
+        var sentences = SentenceEnd.Split(text);
+        var picked = new List<string>();
+        int used = 0;
+        for (int i = sentences.Length - 1; i >= 0; i--)
+        {
+            if (picked.Count > 0 && used + sentences[i].Length > budget) break;
+            picked.Insert(0, sentences[i]);
+            used += sentences[i].Length;
+        }
+        return string.Join(" ", picked);
+    }
+
+    private static string HeadSentences(string text, int budget)
+    {
+        var sentences = SentenceEnd.Split(text);
+        var picked = new List<string>();
+        int used = 0;
+        foreach (var s in sentences)
+        {
+            if (picked.Count > 0 && used + s.Length > budget) break;
+            picked.Add(s);
+            used += s.Length;
+        }
+        return string.Join(" ", picked);
+    }
+
+    /// <summary>Paragraphs of lines → coloured runs. Unsure lines (read by the narrator for now) stay neutral.</summary>
+    public static IReadOnlyList<IReadOnlyList<ContextRun>> Runs(IEnumerable<IEnumerable<Line>> blocks, CastSheet cast, string? targetLineId)
+    {
+        var result = new List<IReadOnlyList<ContextRun>>();
+        foreach (var block in blocks)
+        {
+            var runs = new List<ContextRun>();
+            foreach (var l in block)
+            {
+                var member = l.IsDialogue && !(l.Unsure && !l.Reviewed) ? cast.Find(l.SpeakerId) : null;
+                bool narrator = member is null || member.IsNarrator;
+                runs.Add(new ContextRun
+                {
+                    LineId = l.Id,
+                    Text = l.Text,
+                    Color = l.Id == targetLineId ? null : narrator ? (l.IsDialogue ? "#ECEEF1" : null) : member!.Color,
+                    Speaker = narrator ? (l.IsDialogue && l.Unsure && !l.Reviewed ? "Unsure" : "Narrator") : member!.Name,
+                    IsTarget = l.Id == targetLineId,
+                });
+            }
+            result.Add(runs);
+        }
+        return result;
+    }
+
+    /// <summary>The speakers that appear in a context, for the colour legend.</summary>
+    public static List<LegendEntry> Legend(IEnumerable<IEnumerable<Line>> blocks, CastSheet cast)
+    {
+        var seen = new List<LegendEntry>();
+        foreach (var l in blocks.SelectMany(b => b).Where(l => l.IsDialogue && !(l.Unsure && !l.Reviewed)))
+        {
+            var m = cast.Find(l.SpeakerId);
+            if (m is null) continue;
+            var name = m.IsNarrator ? "Narrator (speaking)" : m.Name;
+            var color = m.IsNarrator ? "#ECEEF1" : m.Color;
+            if (seen.Any(s => s.Name == name)) continue;
+            seen.Add(new LegendEntry { Name = name, Color = color });
+        }
+        return seen;
+    }
+
+    public static List<PickerItem> SpeakerItems(CastSheet cast, string? currentId) =>
+        cast.Members
+            .OrderByDescending(m => m.IsNarrator).ThenByDescending(m => m.LineCount)
+            .Select(m => new PickerItem
+            {
+                Id = m.Id,
+                Title = m.Name,
+                Detail = m.IsNarrator ? "Narration and unknown speakers" : $"{m.LineCount:N0} lines · voice {VoiceCatalog.Name(m.VoiceId)}",
+                Color = m.Color,
+                Initials = m.Initials,
+                IsCurrent = m.Id == currentId,
+                Keywords = string.Join(" ", m.Aliases),
+            }).ToList();
+
+    public static List<PickerItem> VoiceItems(string? currentVoiceId) =>
+        VoiceCatalog.All.Select(v => new PickerItem
+        {
+            Id = v.Id,
+            Title = v.DisplayName,
+            Detail = $"{v.Description} · grade {v.Grade}",
+            IsCurrent = v.Id == currentVoiceId,
+            Keywords = v.Id,
+        }).ToList();
+}
+
+public sealed class LegendEntry
+{
+    public string Name { get; init; } = "";
+    public string Color { get; init; } = "";
+}

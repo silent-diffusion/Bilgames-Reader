@@ -24,7 +24,7 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="Updates" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
                     <TextBlock Style="{StaticResource SecondaryText}" FontSize="14"
-                               Text="New versions are published on GitHub (silent-diffusion/Bilgames-Reader). Bilgames Reader only goes online when you ask it to." />
+                               Text="New versions are published on GitHub (silent-diffusion/Bilgames-Reader)." />
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -32,17 +32,52 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="Check for updates when the app starts" Style="{StaticResource BodyText}" />
-                            <TextBlock Text="Off by default. Asks before downloading anything." Style="{StaticResource CaptionText}" />
+                            <TextBlock Text="Off by default." Style="{StaticResource CaptionText}" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsOn="{x:Bind Vm.AutoCheck, Mode=TwoWay}" OnContent="" OffContent="" MinWidth="0" IsEnabled="{x:Bind Vm.CanUpdate, Mode=OneWay}"
                                       AutomationProperties.Name="Check for updates when the app starts" />
                     </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Content="Check for updates…" Command="{x:Bind Vm.CheckForUpdatesCommand}"
+                        <Button Style="{StaticResource GhostButton}" MinHeight="44" FontSize="14" Content="Check for updates" Command="{x:Bind Vm.CheckForUpdatesCommand}"
                                 IsEnabled="{x:Bind Vm.CanUpdate, Mode=OneWay}" />
+                        <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" Content="{x:Bind Vm.InstallLabel, Mode=OneWay}" Command="{x:Bind Vm.InstallUpdateCommand}"
+                                Visibility="{x:Bind c:Ui.Vis(Vm.UpdateAvailable), Mode=OneWay}" />
                         <ProgressRing IsActive="{x:Bind Vm.IsUpdating, Mode=OneWay}" Width="20" Height="20" Foreground="{StaticResource AccentBrush}" />
                     </StackPanel>
                     <TextBlock Text="{x:Bind Vm.UpdateStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.UpdateStatus), Mode=OneWay}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Processing: CPU or GPU -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Processing" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Prefer the GPU" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="Uses the graphics card when it has free memory. If it runs short, work moves to the CPU and returns to the GPU once memory frees up — without stopping." Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsOn="{x:Bind Vm.PreferGpu, Mode=TwoWay}" OnContent="GPU" OffContent="CPU" MinWidth="0" IsEnabled="{x:Bind Vm.HasGpu, Mode=OneWay}"
+                                      AutomationProperties.Name="Prefer the GPU" />
+                    </Grid>
+                    <Grid ColumnSpacing="12" Padding="12,10" CornerRadius="10" Background="{StaticResource InfoBgBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Top" Margin="0,6,0,0" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Style="{StaticResource BaseText}"><Run Text="Processing on " /><Run Text="{x:Bind Vm.DeviceNow, Mode=OneWay}" /></TextBlock>
+                            <TextBlock Style="{StaticResource CaptionText}"><Run Text="Graphics card: " /><Run Text="{x:Bind Vm.GpuName, Mode=OneWay}" /></TextBlock>
+                            <TextBlock Text="{x:Bind Vm.DeviceDetail, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.DeviceDetail), Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+                    <Button Style="{StaticResource AccentButton}" MinHeight="44" FontSize="14" HorizontalAlignment="Left" Content="Download GPU model" Command="{x:Bind Vm.DownloadGpuModelCommand}"
+                            Visibility="{x:Bind c:Ui.Vis(Vm.GpuNeedsModel), Mode=OneWay}" />
                 </StackPanel>
             </Border>
 
@@ -51,7 +86,7 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="Voice models" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
                     <TextBlock Style="{StaticResource SecondaryText}" FontSize="14"
-                               Text="Kokoro 82M (Apache-2.0) runs entirely on this device. Each model downloads once; after that, generation works in airplane mode." />
+                               Text="Kokoro 82M voice models (Apache-2.0). Each is a one-time download." />
                     <ItemsControl ItemsSource="{x:Bind Vm.Models}" IsTabStop="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ModelRowViewModel">
@@ -65,7 +100,7 @@
                                         <TextBlock Style="{StaticResource CaptionText}"><Run Text="{x:Bind Detail, Mode=OneWay}" /><Run Text=" · " /><Run Text="{x:Bind Use}" /></TextBlock>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource GhostButton}" MinHeight="40" Content="Download…" Click="DownloadModel_Click" Tag="{x:Bind}" Visibility="{x:Bind c:Ui.NotVis(Installed), Mode=OneWay}" />
+                                        <Button Style="{StaticResource GhostButton}" MinHeight="40" Content="Download" Click="DownloadModel_Click" Tag="{x:Bind}" Visibility="{x:Bind c:Ui.NotVis(Installed), Mode=OneWay}" />
                                         <Button Style="{StaticResource GhostButton}" MinHeight="40" Content="Delete" Click="DeleteModel_Click" Tag="{x:Bind}" Visibility="{x:Bind c:Ui.Vis(Installed), Mode=OneWay}" />
                                     </StackPanel>
                                 </Grid>
@@ -131,7 +166,7 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="Privacy" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
                     <TextBlock Style="{StaticResource SecondaryText}" FontSize="14" LineHeight="21"
-                               Text="Books, their text, speaker analysis, voice choices, generated audio and listening history stay on this device. The only network requests are the ones you confirm: voice model downloads and update checks. No analytics or crash reports are sent. Only import books you're entitled to use; DRM-protected EPUBs are refused." />
+                               Text="Books, their text, speaker analysis, voice choices, generated audio and listening history stay on this device. The app only goes online when you click a Download or Check for updates button (or turn on automatic update checks). No analytics or crash reports are sent. Only import books you're entitled to use; DRM-protected EPUBs are refused." />
                 </StackPanel>
             </Border>
         </StackPanel>

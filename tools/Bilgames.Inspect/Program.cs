@@ -5,7 +5,7 @@ using Bilgames.Core.Model;
 // Usage: Bilgames.Inspect <file.epub> [structure|text <chapter>]
 var path = args[0];
 var mode = args.Length > 1 ? args[1] : "structure";
-var book = mode == "m4b" ? new ImportedBook() : EpubImporter.Import(path);
+var book = mode is "m4b" or "engine" ? new ImportedBook() : EpubImporter.Import(path);
 await Task.CompletedTask;
 Console.WriteLine($"{book.Title} — {book.Author} [{book.Language}] cover={(book.Cover?.Length ?? 0)} bytes");
 if (mode == "structure")
@@ -56,7 +56,7 @@ else if (mode == "pipeline")
     var sw = System.Diagnostics.Stopwatch.StartNew();
     rec = svc.Analyze(rec.Id);
     Console.WriteLine($"analyzed {sw.ElapsedMilliseconds} ms; unsure={rec.UnsureCount} voices={rec.VoiceCount}");
-    var engine = new Bilgames.Tts.Kokoro.KokoroEngine(store.ModelsDir, Path.Combine(AppContext.BaseDirectory, "voices"));
+    var engine = new Bilgames.Tts.Kokoro.KokoroEngine(store.ModelsDir, Path.Combine(AppContext.BaseDirectory, "voices"), () => Bilgames.Core.Tts.ProcessorPreference.Gpu);
     var body = rec.Chapters.Where(c => c.Kind == SectionKind.Body).ToList();
     var info = body[int.Parse(args[4])];
     var cast = store.LoadCast(rec.Id);
@@ -82,4 +82,20 @@ else if (mode == "pipeline")
 else if (mode == "m4b")
 {
     foreach (var c in Bilgames.Core.Audio.Mp4Metadata.ReadChapters(args[2])) Console.WriteLine($"{c.Start.TotalSeconds,8:F2}s  {c.Title}");
+}
+
+else if (mode == "engine")
+{
+    // engine <x> <modelsDir> <count> : synthesize repeatedly, report device per segment
+    var engine = new Bilgames.Tts.Kokoro.KokoroEngine(args[2], Path.Combine(AppContext.BaseDirectory, "voices"), () => Bilgames.Core.Tts.ProcessorPreference.Gpu);
+    Console.WriteLine($"GPU: {engine.Gpu?.Name ?? "none"} ({Bilgames.Tts.Kokoro.GpuMonitor.ProbeError}) model installed: {engine.GpuModelInstalled}");
+    for (int i = 0; i < int.Parse(args[3]); i++)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var text = Environment.GetEnvironmentVariable("ENGINE_TEXT") ?? "The river ran behind us and the town had been captured very handsomely, but the mountains beyond it could not be taken.";
+        var pcm = await engine.SynthesizeAsync(text, "bf_emma", 1f, QualityProfile.Balanced, CancellationToken.None);
+        Console.WriteLine($"{i}: {sw.ElapsedMilliseconds,5} ms  {pcm.Length / 24000.0:F1}s  on {engine.DeviceLabel}  {engine.DeviceDetail}");
+        if (args.Length > 4) await Task.Delay(int.Parse(args[4]));
+        if (args.Length > 5 && i == 1) { engine.GpuBytesNeeded = long.Parse(args[5]) * 1048576; Console.WriteLine("   (GPU memory freed up)"); }
+    }
 }

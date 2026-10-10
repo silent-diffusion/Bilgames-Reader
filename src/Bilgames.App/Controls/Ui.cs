@@ -28,6 +28,9 @@ public static class Ui
     public static double Percent(double fraction) => Math.Round(fraction * 100, 1);
     public static string Upper(string? s) => (s ?? "").ToUpperInvariant();
 
+    /// <summary>Transcript paragraphs: current fully visible, others dimmed, not-yet-generated faint.</summary>
+    public static double TranscriptOpacity(bool current, bool available) => current ? 1.0 : available ? 0.5 : 0.25;
+
     public static string Duration(TimeSpan t)
     {
         if (t.TotalMinutes < 1) return "under a minute";

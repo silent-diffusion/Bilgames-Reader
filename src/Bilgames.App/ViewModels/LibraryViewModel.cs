@@ -181,7 +181,7 @@ public sealed partial class LibraryViewModel : ObservableObject
     public void RefreshSummary()
     {
         IsEmpty = Books.Count == 0;
-        CountLabel = $"{Books.Count} {(Books.Count == 1 ? "book" : "books")} · nothing leaves this device";
+        CountLabel = $"{Books.Count} {(Books.Count == 1 ? "book" : "books")}";
 
         // Continue listening: most recently played book with audio, else whatever is generating.
         var cont = Books.Where(b => b.Record.LastPlayedUtc is not null && b.ReadyChapters > 0).OrderByDescending(b => b.Record.LastPlayedUtc).FirstOrDefault()

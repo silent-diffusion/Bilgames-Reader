@@ -151,9 +151,9 @@ public sealed partial class ShellViewModel : ObservableObject
         RaiseLayout();
     }
 
-    public void OpenPlayer(string? bookId = null)
+    public void OpenPlayer(string? bookId = null, bool autoplay = false)
     {
-        if (bookId is not null && Player.BookId != bookId) Player.Load(bookId);
+        if (bookId is not null && (Player.BookId != bookId || (autoplay && !Player.HasAudio))) Player.Load(bookId, autoplay);
         GoListening();
     }
 
@@ -171,11 +171,18 @@ public sealed partial class ShellViewModel : ObservableObject
         UpdateSelection();
     }
 
+    private readonly Dictionary<string, int> _readySeen = new();
+
     private void OnProgress(GenerationProgress p)
     {
         Library.Refresh(p.BookId, p);
         if (Book.BookId == p.BookId) Book.Generate.Apply(p);
-        if (Player.BookId == p.BookId) Player.OnChaptersChanged();
+        // Only when a chapter finished (or the job stopped): the player may switch from streaming to the saved file.
+        if (Player.BookId == p.BookId && (_readySeen.GetValueOrDefault(p.BookId, -1) != p.ReadyChapters || p.State != Bilgames.Core.Model.JobState.Running))
+        {
+            _readySeen[p.BookId] = p.ReadyChapters;
+            Player.OnChaptersChanged();
+        }
         UpdateSelection();
     }
 

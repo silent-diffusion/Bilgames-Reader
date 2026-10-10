@@ -4,7 +4,9 @@
     <RootNamespace>Bilgames.Tts.Kokoro</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="KokoroSharp.CPU" Version="0.8.4" />
+    <PackageReference Include="KokoroSharp.DirectML" Version="0.8.4" />
+    <PackageReference Include="OnnxSharp" Version="0.3.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bilgames.Core\Bilgames.Core.csproj" />

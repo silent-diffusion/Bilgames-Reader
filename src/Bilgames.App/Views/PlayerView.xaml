@@ -81,15 +81,34 @@
             </Border>
 
             <!-- Live transcript -->
-            <StackPanel x:Name="Transcript" Grid.Row="3" Spacing="12" Visibility="{x:Bind c:Ui.Vis(Vm.HasAudio), Mode=OneWay}" AutomationProperties.LiveSetting="Off">
-                <TextBlock Text="{x:Bind Vm.PrevText, Mode=OneWay}" Style="{StaticResource ReadingText}" Foreground="{StaticResource TextDimBrush}" MaxLines="3" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{x:Bind Vm.CurrentText, Mode=OneWay}" Style="{StaticResource ReadingText}" />
-                <TextBlock Text="{x:Bind Vm.NextText, Mode=OneWay}" Style="{StaticResource ReadingText}" Foreground="{StaticResource TextDimBrush}" MaxLines="3" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
+            <!-- The whole chapter: scroll freely; tap a line to jump there. Follows the reading again after 5 s idle. -->
+            <Grid Grid.Row="3" RowSpacing="8" Visibility="{x:Bind c:Ui.Vis(Vm.HasAudio), Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="{x:Bind Vm.StreamStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" Foreground="{StaticResource AccentBrush}"
+                           Visibility="{x:Bind c:Ui.VisText(Vm.StreamStatus), Mode=OneWay}" />
+                <ScrollViewer x:Name="TranscriptScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              AutomationProperties.Name="Chapter text" Padding="0,0,10,0">
+                    <ItemsRepeater x:Name="TranscriptList" ItemsSource="{x:Bind Vm.Transcript}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="14" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TranscriptParagraph">
+                                <c:LineContextView Paragraphs="{x:Bind Runs}" TextSize="17" Emphasized="{x:Bind IsCurrent, Mode=OneWay}"
+                                                   Opacity="{x:Bind c:Ui.TranscriptOpacity(IsCurrent, IsAvailable), Mode=OneWay}" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </Grid>
 
             <!-- Nothing to play -->
             <StackPanel Grid.Row="3" Spacing="12" VerticalAlignment="Center" Visibility="{x:Bind c:Ui.NotVis(Vm.HasAudio), Mode=OneWay}">
                 <TextBlock Text="{x:Bind Vm.EmptyText, Mode=OneWay}" Style="{StaticResource SecondaryText}" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center" MaxWidth="300" />
+                <Button Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Content="Start listening" Command="{x:Bind Vm.StartListeningCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.CanStart), Mode=OneWay}" />
                 <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Center" Content="Open Generate" Command="{x:Bind Vm.OpenGenerateCommand}" Visibility="{x:Bind c:Ui.Vis(Vm.HasBook), Mode=OneWay}" />
             </StackPanel>
 
