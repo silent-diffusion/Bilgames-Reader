@@ -152,7 +152,7 @@ public sealed partial class PlayerViewModel
             await AppServices.Encoder.EncodeAacAsync(bigWav, m4a, ct, new Inline(p => progress(DecodeShare + EncodeShare * p / 100)));
             progress(DecodeShare + EncodeShare);
             ct.ThrowIfCancellationRequested();
-            Mp4Metadata.Write(m4a, marks, book.Title, book.Author);
+            Mp4Metadata.Write(m4a, new AudiobookInfo(book.Title, book.Author, marks, await CoverForAudiobookAsync(store.CoverPath(book))));
             File.Move(m4a, dest, overwrite: true);
             progress(100);
         }
@@ -166,6 +166,40 @@ public sealed partial class PlayerViewModel
     private static void RemovePlaceholder(string dest)
     {
         try { if (new FileInfo(dest) is { Exists: true, Length: 0 }) File.Delete(dest); } catch { }
+    }
+
+    /// <summary>
+    /// The book's cover as JPEG or PNG (the only formats audiobook players read); other formats
+    /// (GIF, WebP, …) are converted to PNG. Null when there is no usable cover.
+    /// </summary>
+    private static async Task<byte[]?> CoverForAudiobookAsync(string? path)
+    {
+        if (path is null || !File.Exists(path)) return null;
+        try
+        {
+            var bytes = await File.ReadAllBytesAsync(path);
+            bool jpeg = bytes.Length > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+            bool png = bytes.Length > 8 && bytes[0] == 0x89 && bytes[1] == (byte)'P';
+            if (jpeg || png) return bytes;
+            using var input = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+            await input.WriteAsync(System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.AsBuffer(bytes));
+            input.Seek(0);
+            var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(input);
+            using var output = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+            var bitmap = await decoder.GetSoftwareBitmapAsync(Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied);
+            var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, output);
+            encoder.SetSoftwareBitmap(bitmap);
+            await encoder.FlushAsync();
+            var converted = new byte[output.Size];
+            output.Seek(0);
+            await output.ReadAsync(System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.AsBuffer(converted), (uint)converted.Length, Windows.Storage.Streams.InputStreamOptions.None);
+            return converted;
+        }
+        catch (Exception ex)
+        {
+            AppServices.Log("Cover for audiobook skipped: " + ex.Message);
+            return null;
+        }
     }
 
     /// <summary>Reports straight through on the worker thread (Progress&lt;T&gt; would queue and reorder).</summary>
