@@ -11,7 +11,7 @@ planner against the fixtures in `tests/Bilgames.Core.Tests/Golden/`.
 | `sherlock-holmes.epub` | The Adventures of Sherlock Holmes, Arthur Conan Doyle | 1661 | https://www.gutenberg.org/ebooks/1661 |
 | `frankenstein.epub` | Frankenstein; or, The Modern Prometheus, Mary Wollstonecraft Shelley | 84 | https://www.gutenberg.org/ebooks/84 |
 
-All four are in the public domain in the United States. The files are unmodified Project Gutenberg
+These books are not covered by the repository's MIT License. All four are in the public domain in the United States. The files are unmodified Project Gutenberg
 EPUB3 downloads (renamed only); the Project Gutenberg header and licence inside each file are kept
 intact, which is what permits redistributing them here. Check copyright law in your own country
 before using them elsewhere.

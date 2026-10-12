@@ -1,6 +1,8 @@
 Bilgames Reader — third-party notices
 =====================================
 
+Bilgames Reader itself is released under the MIT License (LICENSE.txt, beside this file).
+
 Bilgames Reader includes or downloads the components below. Each is used under the licence
 named; the full licence texts are at the links given (and, for the fonts, in the files shipped
 beside them in Assets\Fonts).

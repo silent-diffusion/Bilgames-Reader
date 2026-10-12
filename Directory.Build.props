@@ -6,5 +6,6 @@
     <Version>0.5.2</Version>
     <Company>Bilgames</Company>
     <Product>Bilgames Reader</Product>
+    <Copyright>Copyright (c) 2026 silent-diffusion. MIT License.</Copyright>
   </PropertyGroup>
 </Project>

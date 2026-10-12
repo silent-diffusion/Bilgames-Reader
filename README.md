@@ -11,6 +11,12 @@ connection is needed and nothing from your books ever leaves your computer.
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 ![Offline](https://img.shields.io/badge/runs-100%25%20on--device-2E7D32)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+![How Bilgames Reader works: import an EPUB, find the speakers, give every character a voice, review the unsure lines, generate on the GPU or CPU, and listen with a live transcript](docs/intro/bilgames-intro.gif)
+
+*[The same introduction with sound](docs/intro/bilgames-intro.html), read by the app's own voices,
+and as a [video](docs/intro/bilgames-intro.mp4).*
 
 ![Bilgames Reader with the cast of Alice's Adventures in Wonderland and the player's live transcript](docs/images/player.png)
 
@@ -439,10 +445,17 @@ Please include your Windows version, whether generation runs on the GPU or CPU, 
   GUIDs or timestamps in anything hashed.
 - Run the tests before opening a pull request, and regenerate golden files only for intended changes.
 
+By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
+
 ## License and credits
 
-No open-source license has been chosen for Bilgames Reader yet, so the source is published for reference
-and all rights are reserved by the author.
+Bilgames Reader is open source under the [MIT License](LICENSE): you're free to use, copy, modify and
+distribute it, provided the copyright and license notice are kept.
+
+The MIT License covers Bilgames Reader's own code and documentation. Components it uses keep their own
+licenses: the voice model, libraries and fonts below (all permissive: MIT, Apache-2.0, BSD-3-Clause, the
+SIL Open Font License, or Microsoft's redistributable runtime terms), and the public-domain test books in
+`tests/corpus/`, which also carry Project Gutenberg's terms.
 
 Bilgames Reader is built on:
 
