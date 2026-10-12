@@ -3,7 +3,7 @@
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.5.2</Version>
+    <Version>0.5.3</Version>
     <Company>Bilgames</Company>
     <Product>Bilgames Reader</Product>
     <Copyright>Copyright (c) 2026 silent-diffusion. MIT License.</Copyright>
