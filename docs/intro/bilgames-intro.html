@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilgames Reader</title>
+<meta name="description" content="A motion introduction to Bilgames Reader: DRM-free EPUBs turned into full-cast audiobooks, entirely on your own PC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens (design/tokens.json) ---------- */
+:root{
+  --bg:#0E1116; --navBg:#0B0E12; --surface:#171B22; --raised:#1F242D; --chip:#232934; --playerBg:#12161C; --infoBg:#141820;
+  --line:#1F242D; --lineStrong:#2A303A; --lineDashed:#3A414D;
+  --text:#ECEEF1; --text2:#C9CED6; --muted:#9AA3AF; --dim:#6B7482;
+  --accent:#F0A848; --accentHover:#F7C47E; --onAccent:#1A1205;
+  --success:#9BD39A; --successBg:#1E3324; --warning:#F0C27A; --warningBg:#2A2312; --warningBorder:#4A3B17; --warningText:#F3E3C3;
+  --coverText:#F3E9D7; --onSpeaker:#10141A;
+  --ui:Manrope,system-ui,sans-serif; --book:Literata,Georgia,serif;
+}
+.stage[data-theme="light"]{
+  --bg:#F4F1EB; --navBg:#EFEBE3; --surface:#FFFFFF; --raised:#F1EDE5; --chip:#ECE7DE; --playerBg:#F8F6F1; --infoBg:#F1EDE5;
+  --line:#E6E1D7; --lineStrong:#D9D3C7; --lineDashed:#C9C2B4;
+  --text:#1A1A1A; --text2:#3A3A3A; --muted:#6B6B6B; --dim:#9A9A9A;
+  --accent:#8B5A0F; --accentHover:#A56D14; --onAccent:#FFF7E8;
+  --success:#2E7D32; --successBg:#E3F1E2; --warning:#8B5A0F; --warningBg:#FBF1DE; --warningBorder:#E8D3A6; --warningText:#5A3B06;
+}
+html,body{margin:0;height:100%;background:#0E1116;}
+body{display:flex;align-items:center;justify-content:center;font-family:var(--ui);color:var(--text);-webkit-font-smoothing:antialiased;}
+.frame{position:relative;width:100%;max-width:1600px;aspect-ratio:16/9;overflow:hidden;background:#0E1116;}
+.stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--ui);}
+.scene{position:absolute;inset:0;display:none;}
+.scene.on{display:block;}
+*{box-sizing:border-box;}
+.tab{font-variant-numeric:tabular-nums;}
+
+/* ---------- caption block ---------- */
+.cap{position:absolute;left:96px;top:56px;width:1408px;}
+.eyebrow{font-size:15px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+.h1{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.08;margin:0;}
+.sub{font-size:20px;font-weight:500;color:var(--muted);margin-top:10px;line-height:1.4;max-width:1180px;}
+.sub b{color:var(--text2);font-weight:600;}
+
+/* ---------- common UI atoms ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;}
+.pill{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:999px;background:var(--accent);color:var(--onAccent);font-weight:700;font-size:17px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:14px;background:var(--raised);border:1px solid var(--line);color:var(--text);font-weight:600;font-size:15px;}
+.btn.primary{background:var(--accent);color:var(--onAccent);border-color:transparent;}
+.chipx{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:6px;background:var(--chip);color:var(--text2);font-size:13px;font-weight:600;}
+.badge{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;}
+.badge.ok{background:var(--successBg);color:var(--success);} .badge.warn{background:var(--warningBg);color:var(--warning);} .badge.grey{background:var(--chip);color:var(--muted);}
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;font-weight:800;font-size:14px;color:var(--onSpeaker);flex:none;}
+.cover{position:relative;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;color:var(--coverText);font-family:var(--book);}
+.cover .ct{font-weight:600;line-height:1.1;} .cover .ca{font-family:var(--ui);font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.85;margin-top:6px;}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:34px;padding:0 10px;border-radius:8px;background:var(--raised);border:1px solid var(--lineStrong);border-bottom-width:3px;font-size:14px;font-weight:700;color:var(--text2);}
+.book{font-family:var(--book);}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;}
+.seg div{flex:1;text-align:center;padding:12px 0;border-radius:9px;font-weight:600;font-size:15px;color:var(--muted);}
+.seg div.sel{background:var(--raised);color:var(--text);}
+.wave{display:flex;align-items:center;gap:3px;height:28px;}
+.wave i{display:block;width:3px;border-radius:2px;background:var(--accent);height:6px;}
+.ca-wave i{opacity:0;}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--lineDashed);display:inline-block;}
+.bar{height:8px;border-radius:999px;background:var(--raised);overflow:hidden;} .bar b{display:block;height:100%;background:var(--accent);width:0;}
+.hl{background:var(--warningBg);color:var(--warningStrong,#FFF1D6);border-radius:4px;padding:0 4px;}
+.a{opacity:0;will-change:opacity,transform;}
+
+/* ---------- app shell (expanded layout) ---------- */
+.shell{position:absolute;left:96px;top:252px;width:1408px;height:564px;border-radius:18px;overflow:hidden;background:var(--bg);border:1px solid var(--lineStrong);display:flex;}
+.side{width:248px;background:var(--navBg);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:17px;margin-bottom:26px;padding-left:4px;}
+.brand .ic{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;}
+.nav{display:flex;align-items:center;gap:14px;height:48px;padding:0 14px;border-radius:12px;color:var(--muted);font-weight:600;font-size:15px;}
+.nav.sel{background:var(--surface);color:var(--accent);}
+.nav svg{width:22px;height:22px;}
+.side .storage{margin-top:auto;background:var(--surface);border-radius:12px;padding:12px;font-size:12px;color:var(--muted);}
+.main{flex:1;padding:28px 32px;position:relative;overflow:hidden;}
+.np{width:360px;background:var(--playerBg);border-left:1px solid var(--line);padding:22px 20px;position:relative;}
+.bh{display:flex;gap:18px;align-items:center;margin-bottom:18px;}
+.bh .t{font-family:var(--book);font-size:28px;font-weight:600;line-height:1.1;}
+.bh .s{font-size:14px;color:var(--muted);margin-top:4px;}
+
+/* ---------- chapter bar ---------- */
+.chapters{position:absolute;left:96px;right:96px;bottom:34px;display:flex;gap:8px;align-items:flex-end;}
+.chapters .c{flex:1;cursor:pointer;}
+.chapters .c span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;white-space:nowrap;}
+.chapters .c.cur span{color:var(--text2);}
+.chapters .c .tr{height:4px;border-radius:2px;background:var(--raised);overflow:hidden;}
+.chapters .c .tr b{display:block;height:100%;background:var(--accent);width:0;}
+
+/* ---------- controls ---------- */
+.ctl{position:absolute;right:96px;top:28px;display:flex;gap:8px;z-index:5;}
+.ctl button{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--lineStrong);background:rgba(23,27,34,.9);color:var(--text2);font:600 13px var(--ui);cursor:pointer;display:inline-flex;align-items:center;gap:8px;}
+.ctl button:hover{border-color:var(--accent);color:var(--text);}
+.ctl button svg{width:16px;height:16px;}
+.hidectl .ctl{display:none;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+<div class="stage" id="stage">
+
+<!-- ================= 0 · HOOK ================= -->
+<section class="scene" id="s-hook">
+  <div class="a" id="hk-icon" style="position:absolute;left:96px;top:300px;width:88px;height:88px;border-radius:24px;background:var(--accent);display:flex;align-items:center;justify-content:center;">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6.5A1.5 1.5 0 0 0 12 6.5V19a1.5 1.5 0 0 1 1.5-1.5H20z"/><path d="M12 19v1.5"/></svg>
+  </div>
+  <div class="a" id="hk-name" style="position:absolute;left:212px;top:306px;font-size:60px;font-weight:800;letter-spacing:-.03em;">Bilgames Reader</div>
+  <div class="a" id="hk-ver" style="position:absolute;left:216px;top:380px;font-size:16px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">For Windows 10 and 11 · Free</div>
+  <div class="a book" id="hk-tag" style="position:absolute;left:96px;top:462px;width:900px;font-size:40px;line-height:1.3;color:var(--text);">Turn your DRM-free EPUBs into <em style="color:var(--accent);font-style:normal;">full-cast audiobooks</em>, on your own PC.</div>
+  <div class="a" id="hk-sub" style="position:absolute;left:96px;top:600px;font-size:22px;color:var(--muted);line-height:1.5;width:900px;">A voice for every character, found automatically.<br>Nothing from your books ever leaves your computer.</div>
+  <!-- the book that will be transformed -->
+  <div class="a cover" id="hk-cover" style="position:absolute;left:1120px;top:250px;width:300px;height:420px;background:#4A3A5E;padding:22px;">
+    <div class="ct" style="font-size:34px;">Alice's Adventures in Wonderland</div><div class="ca" style="font-size:12px;">Lewis Carroll</div>
+  </div>
+  <div class="a" id="hk-epub" style="position:absolute;left:1420px;top:225px;height:30px;padding:0 10px;display:inline-flex;align-items:center;border-radius:6px;background:var(--chip);color:var(--text2);font-size:12px;font-weight:700;">.EPUB</div>
+  <div class="a" id="hk-cast" style="position:absolute;left:1120px;top:700px;display:flex;gap:-8px;"></div>
+</section>
+
+<!-- ================= 1 · IMPORT ================= -->
+<section class="scene" id="s-import">
+  <div class="cap"><div class="eyebrow">1 · Import</div><h1 class="h1">Drop in a DRM-free EPUB.<br>Choose what gets read.</h1>
+  <div class="sub">The book is parsed <b>without ever being extracted to disk</b>. Chapters, front matter, back matter and footnotes are found automatically.</div></div>
+  <div class="shell">
+    <div class="side"><div class="brand"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6.5A1.5 1.5 0 0 0 12 6.5V19a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span>Bilgames Reader</div>
+      <div class="nav sel" id="im-nav-lib">Library</div><div class="nav">Listening</div><div class="nav">Notes</div><div class="nav">Voices</div><div class="nav">Jobs</div>
+      <div class="storage">Storage<div class="bar" style="margin:8px 0 6px;height:4px;"><b style="width:38%"></b></div>Models 777 MB · Audio 0 MB</div></div>
+    <div class="main" id="im-main">
+      <div id="im-lib">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-size:30px;font-weight:800;letter-spacing:-.03em;">Library</div><div style="font-size:14px;color:var(--muted);margin-top:4px;">0 books · nothing leaves this device</div></div>
+          <div style="display:flex;gap:12px;align-items:center;"><div class="btn" style="width:280px;justify-content:flex-start;color:var(--muted);font-weight:500;">Search books and characters<span class="chipx" style="margin-left:auto;height:24px;font-size:11px;">Ctrl K</span></div><div class="pill" id="im-pill">+ Import EPUB</div></div>
+        </div>
+        <div class="a" id="im-file" style="position:absolute;left:300px;top:200px;width:360px;padding:16px 18px;display:flex;gap:14px;align-items:center;background:var(--raised);border:1px solid var(--lineStrong);border-radius:14px;">
+          <div class="chipx" style="background:var(--chip);">.EPUB</div><div><div style="font-weight:700;">alice.epub</div><div style="font-size:13px;color:var(--muted);">Project Gutenberg · 191 KB</div></div>
+        </div>
+      </div>
+      <div id="im-book" class="a">
+        <div class="bh"><div class="cover" style="width:52px;height:72px;background:#4A3A5E;padding:6px;"><div class="ct" style="font-size:8px;">Alice's Adventures in Wonderland</div></div>
+          <div><div class="t">Alice's Adventures in Wonderland</div><div class="s">Lewis Carroll · <span id="im-chap">12 chapters</span> · 3 h 10 min estimated · 26,000 words</div></div></div>
+        <div class="seg" style="width:560px;"><div class="sel">Structure</div><div>Cast</div><div>Review</div><div>Generate</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">What to read aloud</div>
+            <div id="im-checks"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Footnotes</div>
+            <div class="seg"><div>Inline</div><div class="sel">End of chapter</div><div>Skip</div></div>
+            <div class="card a" id="im-preview" style="margin-top:16px;padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.5;"><b style="color:var(--text2);">Preview extracted text</b><br><span class="book" style="color:var(--text2);">CHAPTER I. Down the Rabbit-Hole</span><br><span class="book">Alice was beginning to get very tired of sitting by her sister on the bank…</span></div>
+            <div class="btn primary a" id="im-find" style="margin-top:16px;height:52px;font-size:16px;">Find speakers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="np"><div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Now playing</div><div style="margin-top:160px;text-align:center;color:var(--dim);font-size:14px;">Nothing playing yet</div></div>
+  </div>
+</section>
+
+<!-- ================= 2 · FIND SPEAKERS ================= -->
+<section class="scene" id="s-find">
+  <div class="cap"><div class="eyebrow">2 · Find speakers</div><h1 class="h1">It works out who says every line.</h1>
+  <div class="sub">From dialogue tags, pronouns, action beats and the back-and-forth of a conversation. <b>Chapter 1 is done in about a second</b>; the rest follows in the background.</div></div>
+  <div class="card" style="position:absolute;left:96px;top:252px;width:920px;height:564px;padding:30px 36px;overflow:hidden;">
+    <div id="fs-lines" class="book" style="font-size:21px;line-height:1.62;color:var(--text2);"></div>
+  </div>
+  <div style="position:absolute;left:1048px;top:252px;width:456px;">
+    <div class="card" style="padding:22px 24px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Clues it reads</div>
+      <div id="fs-clues" style="margin-top:14px;display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <div class="card a" id="fs-stats" style="padding:22px 24px;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Chapter 1</div><div class="tab" style="font-size:13px;color:var(--success);font-weight:700;" id="fs-ms">0 ms</div></div>
+      <div style="display:flex;gap:28px;margin-top:10px;">
+        <div><div class="tab" id="fs-n1" style="font-size:34px;font-weight:800;letter-spacing:-.03em;">0</div><div style="font-size:13px;color:var(--muted);">dialogue lines</div></div>
+        <div><div class="tab" id="fs-n2" style="font-size:34px;font-weight:800;letter-spacing:-.03em;">0</div><div style="font-size:13px;color:var(--muted);">speakers</div></div>
+        <div><div class="tab" id="fs-n3" style="font-size:34px;font-weight:800;letter-spacing:-.03em;color:var(--warning);">0</div><div style="font-size:13px;color:var(--muted);">to review</div></div>
+      </div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted);">Chapters 2–12 <span id="fs-bg" style="color:var(--text2);font-weight:600;">analysing in the background…</span></div>
+      <div class="bar" style="margin-top:8px;height:4px;"><b id="fs-bgbar"></b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3 · CAST ================= -->
+<section class="scene" id="s-cast">
+  <div class="cap"><div class="eyebrow">3 · Cast</div><h1 class="h1">Every character gets their own voice.</h1>
+  <div class="sub"><b>28 natural English voices</b>, American and British. Preview any voice with the character's own line. Add, merge, rename or remove characters.</div></div>
+  <div class="card" style="position:absolute;left:96px;top:252px;width:1408px;height:564px;padding:26px 32px;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:15px;color:var(--muted);"><span id="ca-count">16</span> speakers found in Alice's Adventures in Wonderland. Pick a voice to change it.</div>
+      <div style="display:flex;gap:10px;"><div class="btn">+ Add speaker</div><div class="btn">⑂ Merge speakers</div></div>
+    </div>
+    <div id="ca-grid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:40px;"></div>
+    <!-- voice dropdown -->
+    <div class="card a" id="ca-dd" style="position:absolute;left:560px;top:118px;width:330px;padding:10px;background:var(--raised);border-color:var(--lineStrong);box-shadow:0 0 0 1px var(--line);">
+      <div class="btn" style="width:100%;justify-content:flex-start;height:40px;background:var(--surface);"><span style="color:var(--muted);">🔍</span><span id="ca-q" style="font-weight:600;"></span><span id="ca-cursor" style="display:inline-block;width:2px;height:18px;background:var(--accent);margin-left:2px;"></span></div>
+      <div id="ca-dd-list" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4 · REVIEW ================= -->
+<section class="scene" id="s-review">
+  <div class="cap"><div class="eyebrow">4 · Review</div><h1 class="h1">Confirm the lines it wasn't sure about.</h1>
+  <div class="sub">A short queue of uncertain lines, with ranked suggestions and as much context as you need. <b>Your fixes are kept</b> when the book is analysed again, and only the changed lines are regenerated.</div></div>
+  <div style="position:absolute;left:96px;top:252px;width:860px;">
+    <div style="font-size:14px;color:var(--muted);margin-bottom:12px;">CHAPTER II. The Pool of Tears · <span class="tab">7 of 289</span> · <span class="tab" id="rv-left">282 left</span></div>
+    <div class="card" id="rv-card" style="padding:22px 26px;border:1.5px solid var(--accent);">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">No dialogue tag · Who says this?</div>
+      <div class="book" style="margin-top:12px;font-size:20px;line-height:1.6;color:var(--text2);">
+        <div style="color:var(--dim);">As she said this she looked down at her hands, and was surprised to see that she had put on one of the Rabbit's little white kid gloves while she was talking.</div>
+        <div style="margin-top:8px;"><span class="hl" id="rv-hl">“How can I have done that?”</span> she thought. <span class="hl">“I must be growing small again.”</span></div>
+      </div>
+      <div style="margin-top:18px;font-size:14px;color:var(--muted);">Who says the highlighted line?</div>
+      <div style="display:flex;gap:10px;margin-top:10px;" id="rv-choices">
+        <div class="btn" data-c="0" style="flex:1;justify-content:space-between;height:52px;padding:0 16px;"><span style="display:flex;align-items:center;gap:10px;"><span class="avatar" style="width:30px;height:30px;font-size:12px;background:#9BD39A;">A</span>Alice</span><span class="tab" style="color:var(--muted);font-size:13px;">39% likely</span></div>
+        <div class="btn" data-c="1" style="flex:1;justify-content:space-between;height:52px;padding:0 16px;"><span style="display:flex;align-items:center;gap:10px;"><span class="avatar" style="width:30px;height:30px;font-size:12px;background:#7FB2F0;">R</span>Rabbit</span><span class="tab" style="color:var(--muted);font-size:13px;">51% likely</span></div>
+        <div class="btn" data-c="2" style="flex:1;justify-content:space-between;height:52px;padding:0 16px;"><span style="display:flex;align-items:center;gap:10px;"><span class="avatar" style="width:30px;height:30px;font-size:12px;background:#C9CED6;">N</span>Narrator</span><span style="color:var(--muted);font-size:13px;">Fallback</span></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;background:var(--raised);border-radius:12px;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:12px;"><span class="btn" style="height:36px;">+ More context</span><span style="font-size:13px;color:var(--muted);">Someone else…</span></div>
+        <div style="display:flex;gap:8px;"><span class="btn" style="height:36px;">▶ Hear it</span><span class="btn primary a" id="rv-confirm" style="height:36px;">Confirm · next line</span></div>
+      </div>
+    </div>
+    <div class="a" id="rv-cursor" style="position:absolute;width:22px;height:22px;pointer-events:none;"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 3l14 8-6 1.5L16.5 21l-3-1.2L10.7 14 5 18z" fill="#fff" stroke="#000" stroke-width="1.2"/></svg></div>
+  </div>
+  <div style="position:absolute;left:1000px;top:252px;width:504px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Merge suggestion</div>
+    <div class="card a" id="rv-merge" style="margin-top:12px;padding:16px 18px;background:var(--warningBg);border-color:var(--warningBorder);color:var(--warningText);">
+      <div style="display:flex;align-items:center;gap:10px;"><span class="avatar" style="width:30px;height:30px;font-size:12px;background:#E8C468;">R</span><span class="avatar" style="width:30px;height:30px;font-size:12px;background:#E8C468;margin-left:-14px;border:2px solid var(--warningBg);">WR</span>
+        <div style="font-size:15px;line-height:1.4;"><b>“White Rabbit”</b> and <b>“Rabbit”</b> look like the same character.</div></div>
+      <div style="display:flex;gap:8px;margin-top:12px;"><span class="btn primary" id="rv-mbtn" style="height:36px;">Merge</span><span class="btn" style="height:36px;">Keep apart</span></div>
+    </div>
+    <div class="card a" id="rv-merged" style="margin-top:12px;padding:14px 18px;display:none;align-items:center;gap:12px;background:var(--successBg);border-color:transparent;color:var(--success);font-weight:700;font-size:15px;">
+      <span class="avatar" style="width:30px;height:30px;font-size:12px;background:#E8C468;">R</span>Merged into Rabbit · 22 lines
+    </div>
+    <div class="card a" id="rv-keep" style="margin-top:20px;padding:18px 22px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Kept when you run Find speakers again</div>
+      <div id="rv-kept" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5 · GENERATE ================= -->
+<section class="scene" id="s-gen">
+  <div class="cap"><div class="eyebrow">5 · Generate</div><h1 class="h1">Listen in seconds, not hours.</h1>
+  <div class="sub">Any chapter plays while it's still being made. Runs on your <b>graphics card</b> when there's room, and carries on on the <b>processor</b> when there isn't. Only what changed is ever redone.</div></div>
+  <div class="card" style="position:absolute;left:96px;top:252px;width:620px;height:564px;padding:28px 32px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div class="tab" id="gn-pct" style="font-size:72px;font-weight:800;letter-spacing:-.04em;line-height:1;">0%</div><div style="font-size:14px;color:var(--muted);margin-top:8px;" id="gn-eta">Preparing…</div></div>
+      <div id="gn-dev" class="badge ok" style="height:34px;padding:0 14px;font-size:13px;">GPU · NVIDIA GeForce RTX 3060</div>
+    </div>
+    <div class="bar" style="margin-top:22px;"><b id="gn-bar"></b></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted);"><span id="gn-seg" class="tab">0 of 1,742 segments</span><span class="tab">Balanced · 24 kHz</span></div>
+    <div style="margin-top:22px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Quality</div>
+    <div class="seg" style="margin-top:8px;"><div>Fast</div><div class="sel">Balanced</div><div>High quality</div></div>
+    <div class="card a" id="gn-warn" style="margin-top:18px;padding:12px 16px;background:var(--warningBg);border-color:var(--warningBorder);color:var(--warningText);font-size:13px;line-height:1.5;"><b>GPU memory is short</b> · using the processor for now. Apps using the GPU: <span style="font-weight:600;">Chrome (2.1 GB)</span>, <span style="font-weight:600;">Blender (1.4 GB)</span>. It'll move back when memory frees up.</div>
+    <div style="display:flex;gap:10px;margin-top:20px;"><div class="btn">Pause</div><div class="btn primary a" id="gn-listen">▶ Listen now</div></div>
+    <div style="margin-top:14px;font-size:13px;color:var(--dim);">Resumes if the app closes · Battery-aware</div>
+  </div>
+  <div class="card" style="position:absolute;left:748px;top:252px;width:756px;height:564px;padding:28px 32px;overflow:hidden;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Chapters</div>
+    <div id="gn-chaps" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+</section>
+
+<!-- ================= 6 · LISTEN ================= -->
+<section class="scene" id="s-listen">
+  <div class="cap"><div class="eyebrow">6 · Listen</div><h1 class="h1" id="ls-h1">A live transcript follows the reading.</h1>
+  <div class="sub" id="ls-sub">Tap any line to jump there. <b>Now speaking</b> shows who's talking, with a Fix button if it's wrong. Bookmarks, highlights and notes with one key.</div></div>
+  <div class="shell" id="ls-shell">
+    <div class="side"><div class="brand"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6.5A1.5 1.5 0 0 0 12 6.5V19a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span>Bilgames Reader</div>
+      <div class="nav">Library</div><div class="nav sel">Listening</div><div class="nav">Notes</div><div class="nav">Voices</div><div class="nav">Jobs</div>
+      <div class="storage">Storage<div class="bar" style="margin:8px 0 6px;height:4px;"><b style="width:42%"></b></div>Models 777 MB · Audio 40 MB</div></div>
+    <div class="main" style="padding:26px 36px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Now playing · Chapter I. Down the Rabbit-Hole</div><div style="display:flex;gap:8px;"><span class="chipx">☾ Sleep · 30 min</span><span class="chipx">☰ Chapters</span></div></div>
+      <div style="display:flex;gap:16px;align-items:center;margin-top:16px;">
+        <div class="cover" style="width:48px;height:66px;background:#4A3A5E;padding:6px;"><div class="ct" style="font-size:7px;">Alice's Adventures in Wonderland</div></div>
+        <div><div class="book" style="font-size:22px;font-weight:600;">Alice's Adventures in Wonderland</div><div style="font-size:13px;color:var(--muted);">Lewis Carroll</div></div>
+        <div class="card" id="ls-now" style="margin-left:auto;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--raised);">
+          <span class="avatar" id="ls-av" style="width:34px;height:34px;font-size:13px;background:#C9CED6;">N</span>
+          <div><div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Now speaking</div><div style="font-size:14px;font-weight:600;" id="ls-who">Narrator · voice Heart</div></div>
+          <span class="btn" style="height:34px;padding:0 12px;">Fix</span>
+        </div>
+      </div>
+      <div id="ls-tx" class="book" style="margin-top:20px;font-size:22px;line-height:1.65;color:var(--dim);height:250px;overflow:hidden;position:relative;"></div>
+      <div style="margin-top:14px;">
+        <div class="bar" style="height:6px;"><b id="ls-bar" style="width:12%"></b></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px;" class="tab"><span id="ls-el">00:00</span><span>−10:31</span></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:36px;margin-top:10px;">
+        <span style="font-size:13px;color:var(--text2);font-weight:600;">↺ 15</span>
+        <span style="width:60px;height:60px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1A1205"><path d="M7 5v14l11-7z"/></svg></span>
+        <span style="font-size:13px;color:var(--text2);font-weight:600;">30 ↻</span>
+        <span class="btn" style="height:38px;">1.25×</span><span class="btn" style="height:38px;">⤓ Export</span>
+      </div>
+    </div>
+    <div class="np" style="padding:22px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Bookmarks and notes</div>
+      <div id="ls-marks" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="card a" id="ls-keys" style="position:absolute;left:22px;right:22px;bottom:22px;padding:14px;background:var(--raised);">
+        <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);"><span class="kbd" id="k-b">B</span>Bookmark this moment</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px;"><span class="kbd" id="k-h">H</span>Highlight the line being read</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px;"><span class="kbd">Space</span>Play / pause</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px;"><span class="kbd">[</span><span class="kbd">]</span>Slower / faster</div>
+      </div>
+    </div>
+  </div>
+  <!-- Windows media overlay -->
+  <div class="a" id="ls-smtc" style="position:absolute;left:96px;top:252px;width:360px;padding:14px;border-radius:14px;background:rgba(32,32,32,.92);border:1px solid #3a3a3a;display:flex;gap:12px;align-items:center;color:#fff;backdrop-filter:blur(10px);">
+    <div class="cover" style="width:44px;height:60px;background:#4A3A5E;padding:5px;"><div class="ct" style="font-size:6px;">Alice's Adventures in Wonderland</div></div>
+    <div style="flex:1;"><div style="font-size:14px;font-weight:600;">Alice's Adventures in Wonderland</div><div style="font-size:12px;color:#bbb;">Chapter I · Bilgames Reader</div></div>
+    <div style="display:flex;gap:10px;color:#ddd;font-size:14px;">⏮ ⏸ ⏭</div>
+  </div>
+  <div class="a" id="ls-theme" style="position:absolute;right:96px;top:252px;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--lineStrong);font-size:14px;font-weight:600;color:var(--text2);"><span id="ls-theme-ic">☀</span><span id="ls-theme-t">Light · dark · same as Windows</span></div>
+</section>
+
+<!-- ================= 7 · CLOSE ================= -->
+<section class="scene" id="s-close">
+  <div class="cap"><div class="eyebrow">Everything stays on your PC</div><h1 class="h1">Private, offline, yours.</h1></div>
+  <div id="cl-grid" style="position:absolute;left:96px;top:250px;width:1408px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;"></div>
+  <div class="a" id="cl-cta" style="position:absolute;left:96px;top:690px;display:flex;align-items:center;gap:26px;">
+    <div class="pill" style="height:60px;padding:0 28px;font-size:19px;">⤓ Download for Windows</div>
+    <div style="font-size:16px;color:var(--muted);line-height:1.5;">Free · Windows 10 and 11 · one-click updates<br><span style="color:var(--text2);font-weight:600;">github.com/silent-diffusion/Bilgames-Reader</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px;"><span style="width:40px;height:40px;border-radius:11px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6.5A1.5 1.5 0 0 0 12 6.5V19a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span><span style="font-size:20px;font-weight:800;letter-spacing:-.02em;">Bilgames Reader</span></div>
+  </div>
+</section>
+
+<!-- chapter bar + controls -->
+<div class="chapters" id="chapters"></div>
+<div class="ctl">
+  <button id="btn-audio" title="Hear a sample made by the app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span>Hear a sample</span></button>
+  <button id="btn-play" title="Pause"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+</div>
+<audio id="sample" preload="auto" src="sample.mp3"></audio>
+</div>
+</div>
+
+<script>
+/* =====================================================================
+   Deterministic timeline: everything on screen is a pure function of t.
+   window.__seek(ms) renders one exact frame (used to record the video).
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const eo = x => x<=0?0:x>=1?1:1-Math.pow(1-x,3);           // ease-out cubic
+const ei = x => x<=0?0:x>=1?1:x*x*x;
+const io = x => x<=0?0:x>=1?1:(x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2);
+const seg = (p,t0,d)=>eo((p-t0)/d);                          // 0→1 over [t0,t0+d]
+const lin = (p,t0,d)=>clamp((p-t0)/d,0,1);
+const on  = (p,t0)=>p>=t0;
+const fade=(el,k,dy=24)=>{el.style.opacity=k;el.style.transform=`translateY(${(1-k)*dy}px)`;};
+const stag=(p,t0,i,gap=90,d=380)=>seg(p,t0+i*gap,d);
+const fmt=n=>n.toLocaleString('en-US');
+const COLORS=["#9BD39A","#7FB2F0","#F4A3B5","#7FD6CF","#C7A6F2","#E8C468","#F2A07B","#A3C4F3","#B5E48C","#FFB4A2","#CDB4DB","#90DBF4"];
+const NARR="#C9CED6";
+const stage=$('#stage');
+
+/* ---------------- data (Alice's Adventures in Wonderland, analysed by the app) ---------------- */
+const CAST=[
+ ["Narrator","All non-dialogue text","Heart",NARR,"N"],["Alice","447 lines · mostly confident","Bella",COLORS[0],"A"],
+ ["Hatter","76 lines · some unsure","Fenrir",COLORS[1],"H"],["Mock Turtle","45 lines · some unsure","Michael",COLORS[2],"MT"],
+ ["Gryphon","45 lines · mostly confident","Puck",COLORS[3],"G"],["Cat","27 lines · mostly confident","George",COLORS[4],"C"],
+ ["Rabbit","22 lines · some unsure","Emma",COLORS[5],"R"],["Dormouse","19 lines · some unsure","Nicole",COLORS[6],"D"],
+ ["Mouse","18 lines · some unsure","Fable",COLORS[7],"M"],["Footman","14 lines · mostly confident","Lewis",COLORS[8],"F"],
+ ["The Cook","7 lines · some unsure","Aoede",COLORS[9],"C"],["Five","7 lines · confident","Kore",COLORS[10],"F"],
+];
+const SPK={Alice:[COLORS[0],"A"],Rabbit:[COLORS[5],"R"],Cat:[COLORS[4],"C"],Hatter:[COLORS[1],"H"],Narrator:[NARR,"N"]};
+// scene 2: passage with per-line speaker + the clue that attributed it
+const PASSAGE=[
+ {s:null,t:"There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself,"},
+ {s:"Rabbit",t:"“Oh dear! Oh dear! I shall be late!”",clue:"the Rabbit say to itself",kind:"Dialogue tag"},
+ {s:null,t:"But when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on, Alice started to her feet."},
+ {s:"Alice",t:"“Curiouser and curiouser!”",clue:"cried Alice",kind:"Dialogue tag"},
+ {s:null,t:"cried Alice (she was so much surprised, that for the moment she quite forgot how to speak good English)."},
+ {s:"Alice",t:"“I'm sure I'm not Ada,”",clue:"she said",kind:"Pronoun"},
+ {s:null,t:"she said,"},
+ {s:"Alice",t:"“for her hair goes in such long ringlets, and mine doesn't go in ringlets at all.”",clue:"same speaker continues",kind:"Alternation"},
+ {s:"Cat",t:"“We're all mad here. I'm mad. You're mad.”",clue:"the Cat grinned",kind:"Action beat"},
+];
+const CLUES=[["Dialogue tag","“said Alice”, “the Rabbit shouted”"],["Pronoun","“she said” after Alice's last line"],["Alternation","two characters taking turns"],["Action beat","“The Cat grinned.” before a line"]];
+const KEPT=["Speakers you added","Merges and renames","Lines you confirmed","Voices you picked"];
+const CHAPTERS=["Opening pages","I. Down the Rabbit-Hole","II. The Pool of Tears","III. A Caucus-Race and a Long Tale","IV. The Rabbit Sends in a Little Bill","V. Advice from a Caterpillar","VI. Pig and Pepper","VII. A Mad Tea-Party","VIII. The Queen's Croquet-Ground","IX. The Mock Turtle's Story","X. The Lobster Quadrille","XI. Who Stole the Tarts?","XII. Alice's Evidence"];
+// scene 6 transcript: matches sample.mp3 (lines synthesised by the app's engine); start times in ms filled from sample.json if present
+let SAMPLE=[
+ {s:"Narrator",v:"Heart",t:"Alice was beginning to get very tired of sitting by her sister on the bank, when suddenly a White Rabbit with pink eyes ran close by her.",at:0},
+ {s:"Rabbit",v:"Emma",t:"“Oh dear! Oh dear! I shall be too late!”",at:8467},
+ {s:"Narrator",v:"Heart",t:"said the Rabbit. Down the rabbit-hole she went.",at:10796},
+ {s:"Alice",v:"Bella",t:"“Curiouser and curiouser!”",at:13556},
+ {s:"Narrator",v:"Heart",t:"cried Alice.",at:15085},
+ {s:"Cat",v:"George",t:"“We're all mad here. I'm mad. You're mad.”",at:16290},
+ {s:"Narrator",v:"Heart",t:"said the Cat, and vanished, grin last.",at:19122},
+ {s:"Hatter",v:"Fenrir",t:"“Your hair wants cutting.”",at:21648},
+ {s:"Narrator",v:"Heart",t:"said the Hatter.",at:23085},
+ {s:"Alice",v:"Bella",t:"“I wonder how many miles I've fallen by this time?”",at:24170},
+];
+/*SAMPLE_TIMINGS*/
+
+/* ---------------- scene list ---------------- */
+const SCENES=[
+ {id:'hook',   label:'Bilgames Reader', len:6500},
+ {id:'import', label:'Import',          len:10000},
+ {id:'find',   label:'Find speakers',   len:11000},
+ {id:'cast',   label:'Cast and voices', len:10000},
+ {id:'review', label:'Review', len:10000},
+ {id:'gen',    label:'Generate',        len:10500},
+ {id:'listen', label:'Listen',          len:27000},
+ {id:'close',  label:'Private and offline', len:8000},
+];
+let acc=0; for(const s of SCENES){ s.start=acc; acc+=s.len; s.el=$('#s-'+s.id); }
+const DURATION=acc; const XF=400;
+
+/* ---------------- build static DOM ---------------- */
+const av=(c,i,sz=40)=>`<span class="avatar" style="background:${c};width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.36)}px;">${i}</span>`;
+// hook: cast stack
+$('#hk-cast').innerHTML=CAST.slice(1,8).map((c,i)=>`<span class="avatar a" style="background:${c[3]};width:48px;height:48px;font-size:16px;margin-left:${i?-10:0}px;border:2px solid var(--bg);">${c[4]}</span>`).join('')+`<span class="a" style="margin-left:14px;align-self:center;font-size:15px;color:var(--muted);font-weight:600;">16 voices</span>`;
+// import: checklist
+$('#im-checks').innerHTML=[["Front matter","Title, contents, preface · 2 min",false],["Chapter headings","“CHAPTER I. Down the Rabbit-Hole”",true],["Main text","12 chapters · 3 h 05 min",true],["Back matter","Gutenberg licence · 8 min",false]].map((r,i)=>`<div class="a im-row" style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);margin-bottom:8px;"><span class="ck" style="width:22px;height:22px;border-radius:6px;border:1.8px solid var(--lineDashed);display:inline-flex;align-items:center;justify-content:center;flex:none;"></span><div><div style="font-weight:600;font-size:15px;">${r[0]}</div><div style="font-size:13px;color:var(--muted);">${r[1]}</div></div></div>`).join('');
+// find: passage
+$('#fs-lines').innerHTML=PASSAGE.map((l,i)=>`<div class="fl" style="position:relative;padding-left:22px;margin-bottom:6px;"><span class="mk" style="position:absolute;left:0;top:6px;bottom:6px;width:4px;border-radius:2px;background:${l.s?SPK[l.s][0]:'transparent'};opacity:0;"></span><span class="lt" style="${l.s?'':'color:var(--muted);'}">${l.t}</span><span class="tg a" style="margin-left:10px;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;font-family:var(--ui);font-size:12px;font-weight:700;color:var(--text2);">${l.s?av(SPK[l.s][0],SPK[l.s][1],22)+l.s:''}</span></div>`).join('');
+$('#fs-clues').innerHTML=CLUES.map(c=>`<div class="a cl" style="display:flex;gap:12px;align-items:center;"><span class="chipx" style="width:110px;justify-content:center;">${c[0]}</span><span class="book" style="font-size:14px;color:var(--muted);">${c[1]}</span></div>`).join('');
+// cast grid
+$('#ca-grid').innerHTML=CAST.map((c,i)=>`<div class="a ca-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);">${av(c[3],c[4])}<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:15px;">${c[0]}</div><div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c[1]}</div></div><span class="btn ca-voice" style="height:38px;min-width:96px;">${c[2]} ▾</span><span class="btn ca-play" style="width:38px;height:38px;padding:0;border-radius:50%;"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7z"/></svg></span><span class="wave ca-wave" style="width:60px;"></span><span style="color:var(--muted);">⋯</span></div>`).join('');
+document.querySelectorAll('.ca-wave').forEach(w=>{w.innerHTML='<i></i>'.repeat(10);});
+const DD=[["Emma","British · Female",true],["Isabella","British · Female · In use: Seven",false],["Alice","British · Female",false],["Lily","British · Female",false]];
+$('#ca-dd-list').innerHTML=DD.map(d=>`<div class="a ddr" style="display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;"><span><b style="font-size:14px;">${d[0]}</b><span style="font-size:12px;color:var(--muted);margin-left:8px;">${d[1]}</span></span><span style="width:26px;height:26px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7z"/></svg></span></div>`).join('');
+// review: what survives re-analysis
+$('#rv-kept').innerHTML=KEPT.map(k=>`<div class="a rv-k" style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;"><span style="width:22px;height:22px;border-radius:6px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg></span>${k}</div>`).join('');
+// generate: chapters
+$('#gn-chaps').innerHTML=CHAPTERS.map((c,i)=>`<div class="gc" style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2);height:38px;"><span class="dot"></span><span style="width:300px;">${c}</span><span class="bar" style="flex:1;height:4px;"><b></b></span><span class="st tab" style="width:92px;text-align:right;color:var(--muted);font-size:12px;">queued</span></div>`).join('');
+// listen: transcript + bookmarks
+$('#ls-tx').innerHTML=`<div id="ls-roll">`+SAMPLE.map((l,i)=>`<p class="tl" style="margin:0 0 8px;">${l.t}</p>`).join('')+`</div>`;
+const MARKS=[["🔖","Bookmark","Chapter I · 00:14"],["▮","Highlight","“Curiouser and curiouser!”"],["✎","Note","“Ask the kids what ‘curiouser’ means.”"]];
+$('#ls-marks').innerHTML=MARKS.map(m=>`<div class="a mk" style="display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);"><span style="color:var(--accent);">${m[0]}</span><div><div style="font-size:12px;font-weight:700;color:var(--muted);">${m[1]}</div><div class="book" style="font-size:14px;">${m[2]}</div></div></div>`).join('');
+// close: fact cards
+const FACTS=[
+ ["100% on-device","No account, no cloud, no analytics. The app goes online only when you ask it to download a voice model or an update."],
+ ["A real audiobook file","Export an .m4b with a chapter list, cover art, title and author, for Apple Books, iOS and any audiobook player."],
+ ["Notes across all your books","Bookmarks, highlights and notes in one place, searchable, exportable as Markdown, text or CSV."],
+ ["Only what changed is redone","Fix a speaker or swap a voice and only the affected lines are regenerated. Generation resumes if the app closes."],
+ ["Phone-width to full screen","Bottom tabs when narrow, a rail at tablet width, three panes on a desktop. Light, dark, or the same as Windows."],
+ ["Backup and move","Back up your whole library to one file, or export a single book as a .bilgames file and open it on another PC."],
+];
+$('#cl-grid').innerHTML=FACTS.map(f=>`<div class="card a cf" style="padding:22px 24px;height:198px;"><div style="font-size:21px;font-weight:800;letter-spacing:-.02em;">${f[0]}</div><div style="font-size:15px;color:var(--muted);line-height:1.5;margin-top:10px;">${f[1]}</div></div>`).join('');
+// chapter bar
+$('#chapters').innerHTML=SCENES.map((s,i)=>`<div class="c" data-i="${i}"><span>${s.label}</span><div class="tr"><b></b></div></div>`).join('');
+document.querySelectorAll('#chapters .c').forEach(c=>c.addEventListener('click',()=>{T=SCENES[+c.dataset.i].start;}));
+
+/* ---------------- scene renderers (p = ms into the scene) ---------------- */
+const R={};
+R.hook=p=>{
+  fade($('#hk-icon'),seg(p,200,600),0); $('#hk-icon').style.transform=`scale(${.8+.2*seg(p,200,600)})`;
+  fade($('#hk-name'),seg(p,350,600),14); fade($('#hk-ver'),seg(p,700,500),10);
+  fade($('#hk-tag'),seg(p,1300,700),20); fade($('#hk-sub'),seg(p,2000,600),16);
+  const k=seg(p,900,900); const c=$('#hk-cover'); c.style.opacity=k; c.style.transform=`translateX(${(1-k)*120}px) rotate(${(1-k)*6-2}deg)`;
+  fade($('#hk-epub'),seg(p,1700,400),8);
+  document.querySelectorAll('#hk-cast .a').forEach((e,i)=>fade(e,stag(p,3200,i,110),12));
+};
+R.import=p=>{
+  const file=$('#im-file'); const k=seg(p,600,700);
+  const toPill=seg(p,1500,700);
+  file.style.opacity=k*(1-lin(p,2200,200));
+  file.style.transform=`translate(${(1-k)*-60+toPill*520}px,${(1-k)*40+toPill*-170}px) scale(${1-toPill*.5})`;
+  $('#im-pill').style.transform=`scale(${1+.08*Math.sin(clamp((p-2000)/350,0,1)*Math.PI)})`;
+  const out=lin(p,2300,350), sw=seg(p,2750,500); $('#im-lib').style.opacity=1-out; $('#im-lib').style.display=out>=1?'none':'block';
+  fade($('#im-book'),sw,20); $('#im-book').style.display=sw>0?'block':'none';
+  document.querySelectorAll('.im-row').forEach((r,i)=>{fade(r,stag(p,3200,i,120),12);
+    const ck=r.querySelector('.ck'); const wants=[false,true,true,false][i]; const t0=4400+i*450; const on_=p>=t0;
+    const chk=wants?on_:false; ck.style.background=chk?'var(--accent)':'transparent'; ck.style.borderColor=chk?'var(--accent)':'var(--lineDashed)';
+    ck.innerHTML=chk?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1205" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg>':'';
+    if(!wants&&on_){ck.style.borderColor='var(--muted)';}
+  });
+  fade($('#im-preview'),seg(p,5600,500),12);
+  fade($('#im-find'),seg(p,7000,500),10);
+  $('#im-find').style.transform+=` scale(${1+.06*Math.sin(clamp((p-8600)/350,0,1)*Math.PI)})`;
+};
+R.find=p=>{
+  const lines=document.querySelectorAll('#fs-lines .fl');
+  let k=0;
+  lines.forEach((l,i)=>{ fade(l,stag(p,100,i,70,300),8);
+    const d=PASSAGE[i]; if(!d.s) return; const t0=1500+k*800; k++;
+    const a=seg(p,t0,350); l.querySelector('.mk').style.opacity=a; l.querySelector('.lt').style.color=a>0?SPK[d.s][0]:''; fade(l.querySelector('.tg'),seg(p,t0+150,350),4);
+  });
+  document.querySelectorAll('#fs-clues .cl').forEach((c,i)=>fade(c,stag(p,1000,i,500,400),8));
+  fade($('#fs-stats'),seg(p,6400,500),14);
+  const n=seg(p,6600,900); $('#fs-ms').textContent=Math.round(903*n)+' ms'; $('#fs-n1').textContent=fmt(Math.round(1047*n)); $('#fs-n2').textContent=Math.round(16*n); $('#fs-n3').textContent=fmt(Math.round(289*n));
+  const bg=lin(p,7200,3400); $('#fs-bgbar').style.width=(bg*100)+'%'; $('#fs-bg').textContent=bg>=1?'done':`analysing in the background… ${Math.round(bg*100)}%`;
+};
+R.cast=p=>{
+  document.querySelectorAll('.ca-row').forEach((r,i)=>fade(r,stag(p,100,i,80,350),10));
+  // preview Alice's voice (row 1) at 2.0s
+  const w=document.querySelectorAll('.ca-wave')[1]; const pl=p>=2000&&p<4200;
+  w.querySelectorAll('i').forEach((b,i)=>{b.style.height=(pl?6+18*Math.abs(Math.sin(p/90+i*.9))*Math.abs(Math.sin(p/430+i)):6)+'px'; b.style.opacity=pl?1:0;});
+  document.querySelectorAll('.ca-play')[1].style.background=pl?'var(--accent)':''; document.querySelectorAll('.ca-play')[1].style.color=pl?'#1A1205':'';
+  // open the Rabbit's voice dropdown (row 6) at 4.6s and type "brit fem"
+  const dd=$('#ca-dd'); const o=seg(p,4600,350); fade(dd,o,-8); dd.style.display=o>0?'block':'none';
+  const q="brit fem"; const n=Math.floor(lin(p,5300,1100)*q.length); $('#ca-q').textContent=q.slice(0,n); $('#ca-cursor').style.opacity=(Math.floor(p/450)%2)?0:1;
+  document.querySelectorAll('.ddr').forEach((r,i)=>{fade(r,stag(p,6500,i,110,300),6); r.style.background=(i===0&&p>=7900)?'var(--chip)':'';});
+  const voice=document.querySelectorAll('.ca-voice')[6]; voice.style.borderColor=o>0?'var(--accent)':''; if(p>=8600){voice.textContent='Emma ▾';} else voice.textContent='Nova ▾';
+  if(p>=8600){dd.style.opacity=1-seg(p,8600,250);}
+};
+R.review=p=>{
+  const cur=$('#rv-cursor'); const choices=document.querySelectorAll('#rv-choices .btn');
+  // cursor travels to "Rabbit" (middle choice) and clicks at 2.6s
+  const k=seg(p,1200,1200); fade(cur,seg(p,800,400),0); cur.style.left=(440+(1-k)*240)+'px'; cur.style.top=(272+(1-k)*130)+'px';
+  const clicked=p>=2600; choices.forEach((c,i)=>{c.style.borderColor=(i===1&&clicked)?'var(--accent)':''; c.style.background=(i===1&&clicked)?'var(--raised)':'';});
+  cur.style.transform=`scale(${clicked&&p<2800?.85:1})`;
+  fade($('#rv-confirm'),seg(p,2800,400),6); $('#rv-confirm').style.display=p>=2800?'inline-flex':'none';
+  if(p>=4000){fade(cur,1-seg(p,4000,300),0);}
+  $('#rv-left').textContent=p>=4200?'281 left':'282 left';
+  if(p>=4200){ $('#rv-card').style.transform=`translateY(${-6*(1-seg(p,4200,500))}px)`; }
+  // merge suggestion: appears at 0.6s, Merge pressed at 6.0s, then the merged confirmation
+  const mg=$('#rv-merge'), md=$('#rv-merged');
+  fade(mg,seg(p,600,450)*(1-lin(p,6300,250)),8); mg.style.display=p<6550?'block':'none';
+  const mb=$('#rv-mbtn'); const down=p>=6000&&p<6250; mb.style.transform=down?'scale(.94)':''; mb.style.background=down?'var(--accentHover)':'';
+  md.style.display=p>=6550?'flex':'none'; fade(md,seg(p,6550,400),-6);
+  fade($('#rv-keep'),seg(p,1400,450),12);
+  document.querySelectorAll('.rv-k').forEach((k,i)=>fade(k,stag(p,1900,i,260,350),6));
+};
+R.gen=p=>{
+  // progress 0→38% over the scene, GPU → CPU at 4.0s → GPU at 8.0s, Listen now appears at 4%
+  const pct=lin(p,500,10500)*38; $('#gn-pct').textContent=Math.round(pct)+'%'; $('#gn-bar').style.width=pct+'%';
+  $('#gn-seg').textContent=fmt(Math.round(1742*pct/100))+' of 1,742 segments'; $('#gn-eta').textContent=p<500?'Preparing…':`About ${Math.max(1,Math.round(46-(pct*1.2)))} min left · chapter ${Math.min(12,1+Math.floor(pct/8))} of 12`;
+  const cpu=p>=4000&&p<8000; const dev=$('#gn-dev'); dev.textContent=cpu?'CPU · 8 cores':'GPU · NVIDIA GeForce RTX 3060'; dev.className='badge '+(cpu?'warn':'ok');
+  fade($('#gn-warn'),cpu?seg(p,4000,400):1-seg(p,8000,400),8); $('#gn-warn').style.display=(p>=4000&&p<8500)?'block':'none';
+  const lst=seg(p,1700,500); fade($('#gn-listen'),lst,6); $('#gn-listen').style.transform+=` scale(${1+.06*Math.sin(clamp((p-2300)/350,0,1)*Math.PI)})`;
+  document.querySelectorAll('.gc').forEach((c,i)=>{
+    // chapter i completes when pct crosses its share; the chapter being listened to (1) is first
+    const order=[1,0,2,3,4,5,6,7,8,9,10,11,12]; const pos=order.indexOf(i); const start=pos*2.9, end=start+2.9; const f=clamp((pct-start)/(end-start),0,1);
+    c.querySelector('b').style.width=(f*100)+'%'; const d=c.querySelector('.dot'); const st=c.querySelector('.st');
+    d.style.background=f>=1?'var(--success)':f>0?'var(--accent)':'var(--lineDashed)'; st.textContent=f>=1?'ready':f>0?(cpu?'generating · CPU':'generating · GPU'):'queued'; st.style.color=f>=1?'var(--success)':f>0?'var(--accent)':'var(--muted)';
+    c.style.fontWeight=(i===1)?'700':'400';
+  });
+};
+R.listen=p=>{
+  // transcript follows the sample timings
+  let cur=-1; for(let i=0;i<SAMPLE.length;i++) if(p>=SAMPLE[i].at+600) cur=i;
+  const ps=document.querySelectorAll('#ls-tx .tl');
+  ps.forEach((el,i)=>{el.style.color=i===cur?'var(--text)':'var(--dim)'; el.style.opacity=i<cur-1?.35:1;});
+  // scroll so the current line sits near the top
+  let off=0; for(let i=0;i<Math.max(0,cur-1);i++) off+=ps[i].offsetHeight+8;
+  $('#ls-roll').style.transform=`translateY(${-off}px)`; $('#ls-roll').style.transition='';
+  const spk=cur>=0?SAMPLE[cur]:SAMPLE[0]; $('#ls-who').textContent=`${spk.s} · voice ${spk.v}`; $('#ls-av').textContent=SPK[spk.s][1]; $('#ls-av').style.background=SPK[spk.s][0];
+  const el=Math.floor(p/1000); $('#ls-el').textContent=`${String(Math.floor(el/60)).padStart(2,'0')}:${String(el%60).padStart(2,'0')}`; $('#ls-bar').style.width=(2+p/27000*8)+'%';
+  // bookmarks appear on key presses: B at 3.5s, H at 6.5s, note at 9.5s
+  fade($('#ls-keys'),seg(p,800,500),8);
+  const press=(id,t0)=>{const k=$(id); const d=p>=t0&&p<t0+260; k.style.background=d?'var(--accent)':''; k.style.color=d?'#1A1205':''; k.style.transform=d?'translateY(2px)':'';};
+  press('#k-b',9000); press('#k-h',12500);
+  document.querySelectorAll('#ls-marks .mk').forEach((m,i)=>fade(m,seg(p,[9200,12700,15700][i],400),8));
+  // Windows media overlay at 1.5–5s
+  const sm=$('#ls-smtc'); const so=Math.min(seg(p,3000,400),1-seg(p,7800,400)); fade(sm,so,-10); sm.style.display=so>0?'flex':'none';
+  // theme switch beat at 10.5s → light, back to dark at 13.5s
+  const light=p>=19000&&p<24000; stage.dataset.theme=light?'light':'';
+  const th=$('#ls-theme'); const to=Math.min(seg(p,18500,400),1-seg(p,25000,400)); fade(th,to,-10); th.style.display=to>0?'flex':'none';
+  $('#ls-theme-ic').textContent=light?'☀':'☾'; $('#ls-theme-t').textContent=light?'Light theme':'Dark theme · or the same as Windows';
+  if(p>=19000){ $('#ls-h1').textContent='Light, dark, or the same as Windows.'; $('#ls-sub').innerHTML='Windows contrast themes are followed automatically. Media keys, the Windows media overlay, the lock screen and Bluetooth headphones all work, with the book\'s title, chapter and cover.'; }
+  else { $('#ls-h1').textContent='A live transcript follows the reading.'; $('#ls-sub').innerHTML='Tap any line to jump there. <b>Now speaking</b> shows who\'s talking, with a Fix button if it\'s wrong. Bookmarks, highlights and notes with one key.'; }
+};
+R.close=p=>{
+  document.querySelectorAll('.cf').forEach((c,i)=>fade(c,stag(p,300,i,140,450),16));
+  fade($('#cl-cta'),seg(p,1700,600),12);
+};
+
+/* ---------------- master render ---------------- */
+let T=0, playing=true, last=performance.now(), audioOn=false;
+const audio=$('#sample'); const LISTEN=SCENES.find(s=>s.id==='listen');
+function render(t){
+  T=t;
+  for(const s of SCENES){
+    const p=t-s.start; const vis=p>=0&&p<s.len; s.el.classList.toggle('on',vis);
+    if(!vis) continue;
+    const a=Math.min(lin(p,0,XF),1-lin(p,s.len-XF,XF)); s.el.style.opacity=a;
+    R[s.id](Math.max(0,p));
+  }
+  if(!(t-LISTEN.start>=0&&t-LISTEN.start<LISTEN.len)) stage.dataset.theme='';
+  document.querySelectorAll('#chapters .c').forEach((c,i)=>{const s=SCENES[i]; const f=lin(t,s.start,s.len); c.querySelector('b').style.width=(f*100)+'%'; c.classList.toggle('cur',t>=s.start&&t<s.start+s.len);});
+}
+function syncAudio(){
+  if(!audioOn){ if(!audio.paused) audio.pause(); return; }
+  const p=T-LISTEN.start; const inScene=playing&&p>=0&&p<LISTEN.len;
+  if(inScene){ const want=p/1000; if(Math.abs(audio.currentTime-want)>.35) audio.currentTime=want; if(audio.paused) audio.play().catch(()=>{}); }
+  else if(!audio.paused) audio.pause();
+}
+function loop(now){
+  if(playing){ T=(T+(now-last))%DURATION; }
+  last=now; render(T); syncAudio(); requestAnimationFrame(loop);
+}
+// layout: scale the 1600×900 stage into the frame
+function fit(){ const f=$('#frame'); const k=f.clientWidth/1600; stage.style.transform=`scale(${k})`; f.style.height=(900*k)+'px'; }
+addEventListener('resize',fit); fit();
+// controls
+$('#btn-play').addEventListener('click',()=>{playing=!playing; $('#btn-play').innerHTML=playing?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7z"/></svg>';});
+$('#btn-audio').addEventListener('click',()=>{audioOn=!audioOn; $('#btn-audio').style.borderColor=audioOn?'var(--accent)':''; $('#btn-audio').querySelector('span').textContent=audioOn?'Sample on · plays in “Listen”':'Hear a sample'; if(audioOn){T=LISTEN.start; playing=true;}});
+// recording API
+window.__duration=DURATION;
+window.__seek=ms=>{playing=false; document.body.classList.add('hidectl'); render(ms);};
+document.fonts?.ready.then(()=>{last=performance.now(); requestAnimationFrame(loop);}) ?? requestAnimationFrame(loop);
+</script>
+</body>
+</html>
