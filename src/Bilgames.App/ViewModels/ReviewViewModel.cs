@@ -228,6 +228,7 @@ public sealed partial class ReviewViewModel : ObservableObject
 
         var preselect = _fixMode ? Options.FirstOrDefault(o => o.SpeakerId == item.Line.SpeakerId) : Options.FirstOrDefault();
         if (preselect is not null) preselect.IsSelected = true;
+        ShowAssistantOpinion(item);
     }
 
     /// <summary>"Someone else…": choose any speaker from the searchable list.</summary>

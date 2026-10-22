@@ -91,6 +91,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         });
         foreach (var m in Models) m.Refresh();
         DownloadStatus = AppServices.Models.Downloading is { } d ? $"Downloading {d.Label}… {AppServices.Models.Progress * 100:0}%" : AppServices.Models.Error ?? "";
+        RefreshAssistant();
         _loading = false;
         RefreshDevice();
     }

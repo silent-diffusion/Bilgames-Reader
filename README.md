@@ -40,6 +40,8 @@ and as a [video](docs/intro/bilgames-intro.mp4).*
 
 - **A voice for every character.** Speakers are found automatically; you can review uncertain lines,
   add, merge and rename characters, and choose from 28 natural English voices.
+- **An optional review assistant** for powerful PCs: a large language model, running offline on your
+  own machine, that settles uncertain lines, re-reads whole books to fix who speaks, and suggests voices.
 - **Lines performed in tone.** Whispers, shouts, sad or amused lines are read with matching pace,
   loudness and pauses.
 - **Listen in seconds, not hours.** The first chapter is ready almost immediately, and any chapter
@@ -108,6 +110,27 @@ but off by default. Your library, voices and audio are kept across updates.
   - **Hear it** plays the line with the chosen speaker and tone.
 - Your corrections are kept when you run **Find speakers again**: added speakers, merges, renames and
   confirmed lines all survive.
+
+### Review assistant (optional)
+
+For desktops and laptops with plenty of memory, Bilgames Reader can use a large language model,
+[Qwen3.5-35B-A3B](https://huggingface.co/Qwen/Qwen3.5-35B-A3B), running entirely on your PC through
+[llama.cpp](https://github.com/ggml-org/llama.cpp). It's off by default: turn it on in
+**Settings → Review assistant** and download it there (22 GB, resumable).
+
+- **Ask the assistant** on any line in Review. It reads the passage, the cast and the app's current
+  guess, and if the passage isn't enough it asks for more of the surrounding text, up to three times.
+- **Let the assistant review all** goes through every line waiting in Review, a passage at a time, then
+  looks closer at the ones it's still unsure about.
+- **Read the whole book with the assistant** (book page → ⋯) reads the book again with the first
+  analysis as suggestions, correcting who speaks wherever it's sure, then suggests a voice for each
+  main character. Long books take a while; it shows its progress and can be paused and continued.
+- **You stay in charge.** It changes a line only when it's at least as sure as you choose (90%, 80% or
+  70%); otherwise it leaves its suggestion, with its reason, in Review. It never changes a line you've
+  confirmed, voice suggestions are applied only when you tick them, and every change it makes can be
+  undone from the ⋯ menu.
+- **Uses your hardware sensibly.** It puts as much of the model as fits on the graphics card and keeps
+  the rest in RAM, starts only when it's needed, and frees the memory again after a few idle minutes.
 
 ### Voices
 
@@ -229,15 +252,21 @@ urgent, stern, angry or shouting.
 | **Graphics** | Not required | DirectX 12 GPU with about 1.5 GB of free video memory |
 | **Disk** | About 500 MB for the app and standard voice model | Plus about 30 MB per hour of finished audio (and about 170 MB per hour while the segment cache is on) |
 | **Internet** | Only to download the app, its voice model (156 MB, or 310 MB for High quality) and updates | |
+| **Review assistant** (optional) | About 26 GB of memory in all (RAM plus graphics memory) and 23 GB of disk | 32 GB+ RAM and a graphics card with 8 GB+ |
 
-Generation is much faster on a GPU, but every feature works on the processor alone.
+Generation is much faster on a GPU, but every feature works on the processor alone. The review
+assistant also works without a graphics card, only more slowly; on a laptop with a 6 GB card it takes
+about two and a half minutes per passage of a book.
 
 ## Privacy
 
 - Books, their text, speaker analysis, voices, audio, bookmarks and listening history **stay on your
   device**.
-- The app goes online **only** when you click something that needs it: downloading a voice model,
-  checking for or installing an update (or if you turn on update checks at start-up).
+- The app goes online **only** when you click something that needs it: downloading a voice model or
+  the review assistant, checking for or installing an update (or if you turn on update checks at
+  start-up).
+- The review assistant runs **on your PC**. Its server listens only on this computer, with a key made
+  for each session, so nothing else (not even a web page) can use it.
 - **No accounts, analytics, telemetry or crash reports.**
 - Only import books you're entitled to use; DRM-protected EPUBs are refused.
 
@@ -252,10 +281,11 @@ books/{id}/             one folder per book: the original EPUB, text, analysis, 
                         bookmarks and highlights, finished audio and the segment cache
 backups/                automatic backups taken before a format upgrade or a restore
 models/                 voice models
+assistant/              the review assistant's model and llama.cpp (if downloaded)
 logs/app.log            diagnostics (no book text)
 ```
 
-**Uninstalling** removes the voice models, caches and logs but keeps your library, so reinstalling
+**Uninstalling** removes the voice models, the review assistant, caches and logs but keeps your library, so reinstalling
 picks up where you left off. Delete the folder above to remove everything.
 
 ## Troubleshooting
@@ -294,6 +324,15 @@ the **Cast** tab. Only the changed lines are regenerated. Merging duplicate char
 
 Make sure you're on version 0.5.2 or later; earlier versions wrote chapters in an older format that most
 players ignore. Export the book again after updating.
+</details>
+
+<details>
+<summary><b>The review assistant is slow, or says the model didn't fit</b></summary>
+
+The model needs about 26 GB of memory between RAM and the graphics card. Close other large programs
+(games, browsers with many tabs) and avoid generating audio at the same time. It keeps going on the
+processor if there's no suitable graphics card, but much more slowly. Its server log is
+`logs\assistant-server.log`.
 </details>
 
 <details>
@@ -349,6 +388,7 @@ the running window).
 |---|---|
 | `src/Bilgames.Core` | Platform-free engine (plain `net10.0`): EPUB import, chapter detection, speaker and tone analysis, synthesis planning, the generation job, chapter streaming, audio retention, storage, format migrations, backups and M4B writing. |
 | `src/Bilgames.Tts.Kokoro` | Kokoro-82M text-to-speech on ONNX Runtime with DirectML (via KokoroSharp), GPU memory monitoring, and the model downloader. |
+| `src/Bilgames.Assist.Llama` | The review assistant's runtime: downloads and verifies the model and llama.cpp, runs `llama-server` as a child process (local-only, per-session key, ended with the app), and talks to it with JSON-schema-constrained requests. |
 | `src/Bilgames.App` | WinUI 3 app (Windows App SDK 1.8): adaptive layout, player, settings, updates (Velopack). |
 | `tests/Bilgames.Core.Tests` | xUnit tests, including golden-file conformance tests. |
 | `tests/corpus` | Public-domain Project Gutenberg books used by the tests. |
@@ -378,6 +418,11 @@ flowchart LR
 - **The GPU path** rewrites Kokoro's depthwise ConvTranspose layers for DirectML on first use
   (`ModelPatcher`, numerically equivalent) and runs at full precision; any GPU error or memory shortage
   falls back to the CPU segment by segment.
+- **The review assistant** (`Core/Assist`) is engine-independent: `ReviewAssistant` talks to any
+  `IChatModel`, every request carries a JSON schema that only allows real cast ids, and
+  `BookService.ApplyAssistant` applies answers by confidence and logs each change for undo
+  (`books/{id}/assistant.json`). Voices are matched by `VoiceCaster` from the model's descriptions of
+  each character, not chosen by the model directly.
 - **Text anchors:** positions and bookmarks are stored as a line plus a fraction through it
   (`TextAnchors`); seconds are only a cache.
 - **Voices** come from the engine (`ITtsEngine.Voices`); a saved voice another engine lacks is played by

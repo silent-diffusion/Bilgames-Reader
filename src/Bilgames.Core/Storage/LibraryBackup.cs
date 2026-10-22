@@ -130,7 +130,7 @@ public static class LibraryBackup
     {
         var dir = store.BookDir(book.Id);
         var prefix = $"books/{book.Id}/";
-        foreach (var name in new[] { "book.json", "cast.json", "annotations.json" })
+        foreach (var name in new[] { "book.json", "cast.json", "annotations.json", "assistant.json" })
             if (File.Exists(Path.Combine(dir, name))) yield return (Path.Combine(dir, name), prefix + name, true);
         if (book.CoverFile is { } cover && IsPlainName(cover) && File.Exists(Path.Combine(dir, cover)))
             yield return (Path.Combine(dir, cover), prefix + cover, false);

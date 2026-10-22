@@ -57,6 +57,18 @@ public enum KeepAudio
     UntilListened,
 }
 
+/// <summary>The optional review assistant: a local language model that helps decide who speaks.</summary>
+public sealed class AssistantSettings
+{
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
+    public bool Enabled { get; set; }
+    /// <summary>How sure the assistant must be (0..1) before it changes a speaker or tone itself; below that it only suggests.</summary>
+    public double ApplyThreshold { get; set; } = 0.8;
+    /// <summary>The graphics card to run on (its name), or null to pick the one with the most video memory.</summary>
+    public string? Device { get; set; }
+}
+
 public enum AppTheme
 {
     System,
@@ -75,6 +87,7 @@ public sealed class AppSettings
     public DateTime? LastUpdateCheckUtc { get; set; }
     public bool KeepSegmentCache { get; set; } = true;
     public KeepAudio KeepFinishedAudio { get; set; } = KeepAudio.All;
+    public AssistantSettings Assistant { get; set; } = new();
     /// <summary>Light, dark, or follow Windows. Windows contrast themes always win.</summary>
     public AppTheme Theme { get; set; } = AppTheme.System;
     /// <summary>Size of book text in the player and context views, relative to the default.</summary>

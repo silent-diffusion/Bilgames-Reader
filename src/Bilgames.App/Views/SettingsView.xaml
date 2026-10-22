@@ -172,6 +172,78 @@
                 </StackPanel>
             </Border>
 
+            <!-- Review assistant -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Review assistant" Style="{StaticResource SectionText}" AutomationProperties.HeadingLevel="Level2" />
+                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="14" TextWrapping="Wrap"
+                               Text="A large language model that runs on this PC to decide who speaks the lines the app isn't sure about, read whole books again to correct speakers, and suggest a voice for each character. It works offline and needs a powerful PC: it uses the graphics card and spills over into memory." />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Use the review assistant" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="{x:Bind Vm.AssistantMemory, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="Wrap"
+                                       Foreground="{x:Bind c:Ui.Brush(Vm.AssistantMemoryColor), Mode=OneWay}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsOn="{x:Bind Vm.AssistantEnabled, Mode=TwoWay}" OnContent="" OffContent="" MinWidth="0" AutomationProperties.Name="Use the review assistant" />
+                    </Grid>
+
+                    <StackPanel Spacing="10" Visibility="{x:Bind Vm.AssistantEnabled, Mode=OneWay}">
+                        <!-- Not installed yet: one-click download (resumable) -->
+                        <Grid ColumnSpacing="12" Visibility="{x:Bind c:Ui.NotVis(Vm.Assistant.Installed), Mode=OneWay}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind Vm.AssistantSizeText}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                <ProgressBar Style="{StaticResource ThinProgress}" Maximum="100" Value="{x:Bind Vm.Assistant.DownloadPercent, Mode=OneWay}"
+                                             Visibility="{x:Bind Vm.Assistant.IsDownloading, Mode=OneWay}" AutomationProperties.Name="{x:Bind Vm.Assistant.DownloadStatus, Mode=OneWay}" />
+                                <TextBlock Text="{x:Bind Vm.Assistant.DownloadStatus, Mode=OneWay}" Style="{StaticResource CaptionText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind c:Ui.VisText(Vm.Assistant.DownloadStatus), Mode=OneWay}" AutomationProperties.LiveSetting="Polite" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource AccentButton}" MinHeight="44" Content="Download" VerticalAlignment="Center"
+                                    Command="{x:Bind Vm.DownloadAssistantCommand}" Visibility="{x:Bind c:Ui.NotVis(Vm.Assistant.IsDownloading), Mode=OneWay}" />
+                            <Button Grid.Column="1" Style="{StaticResource GhostButton}" MinHeight="44" Content="Pause" VerticalAlignment="Center"
+                                    Command="{x:Bind Vm.PauseAssistantDownloadCommand}" Visibility="{x:Bind Vm.Assistant.IsDownloading, Mode=OneWay}" />
+                        </Grid>
+
+                        <!-- Installed -->
+                        <StackPanel Spacing="10" Visibility="{x:Bind Vm.Assistant.Installed, Mode=OneWay}">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Text="Change a speaker when the assistant is" Style="{StaticResource BodyText}" />
+                                    <TextBlock Text="Below this it only suggests, and the line stays in Review for you. It never changes lines you've confirmed." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" MinWidth="180" VerticalAlignment="Center" SelectedIndex="{x:Bind Vm.AssistantThresholdIndex, Mode=TwoWay}" AutomationProperties.Name="Change a speaker when the assistant is">
+                                    <ComboBoxItem Content="Very sure (90%)" />
+                                    <ComboBoxItem Content="Sure (80%)" />
+                                    <ComboBoxItem Content="Fairly sure (70%)" />
+                                </ComboBox>
+                            </Grid>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Style="{StaticResource BodyText}"><Run Text="{x:Bind Vm.Assistant.ModelLabel}" /><Run Text=" · installed" /></TextBlock>
+                                    <TextBlock Text="{x:Bind Vm.Assistant.ServerState, Mode=OneWay}" Style="{StaticResource CaptionText}" Visibility="{x:Bind c:Ui.VisText(Vm.Assistant.ServerState), Mode=OneWay}" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource GhostButton}" MinHeight="44" Content="Remove…" Command="{x:Bind Vm.DeleteAssistantCommand}" VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Backup -->
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="12">

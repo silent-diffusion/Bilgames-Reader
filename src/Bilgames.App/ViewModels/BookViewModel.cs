@@ -94,6 +94,7 @@ public sealed partial class BookViewModel : ObservableObject
         Structure.Refresh();
         Cast.Refresh();
         Generate.Refresh();
+        RefreshAssistant();
     }
 
     public void Changed()

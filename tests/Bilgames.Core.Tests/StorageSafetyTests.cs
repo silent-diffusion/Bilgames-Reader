@@ -259,12 +259,15 @@ public sealed class StorageSafetyTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_store.BookDir("bk"), "segments"));
         File.WriteAllText(Path.Combine(_store.BookDir("bk"), "segments", "x.wav"), "cache");
         File.WriteAllText(Path.Combine(_store.ModelsDir, "kokoro.onnx"), "model");
+        Directory.CreateDirectory(Path.Combine(_root, "assistant", "models"));
+        File.WriteAllText(Path.Combine(_root, "assistant", "models", "big.gguf"), "llm");
         Directory.CreateDirectory(Path.Combine(_root, "logs"));
         _store.SaveSettings(new AppSettings());
 
         LibraryStore.CleanForUninstall(_root);
 
         Assert.False(Directory.Exists(_store.ModelsDir));
+        Assert.False(Directory.Exists(Path.Combine(_root, "assistant")));
         Assert.False(Directory.Exists(Path.Combine(_root, "logs")));
         Assert.False(Directory.Exists(Path.Combine(_store.BookDir("bk"), "segments")));
         Assert.NotNull(_store.LoadBook("bk"));

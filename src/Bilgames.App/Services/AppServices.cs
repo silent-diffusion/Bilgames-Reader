@@ -18,6 +18,8 @@ public static class AppServices
     public static PowerMonitor Power { get; } = new();
     public static UpdateService Updates { get; private set; } = null!;
     public static ModelService Models { get; private set; } = null!;
+    /// <summary>The optional review assistant (a local language model).</summary>
+    public static AssistantService Assistant { get; private set; } = null!;
     public static AppSettings Settings { get; private set; } = new();
     public static DispatcherQueue UI { get; private set; } = null!;
 
@@ -53,6 +55,7 @@ public static class AppServices
         Jobs = new GenerationCoordinator(Store, Engine, Encoder, Power, () => Settings);
         Updates = new UpdateService();
         Jobs.ResumeInterrupted();
+        Assistant = new AssistantService();
         // Books whose first chapter was analysed but the app closed before the rest was.
         foreach (var b in Store.LoadAll().Where(b => b.AnalyzingRest)) _ = AnalyzeRestAsync(b.Id);
     }
@@ -107,6 +110,8 @@ public static class AppServices
 
     public static void Shutdown()
     {
+        // Stops llama.cpp if it's running, so its memory is given back with the app.
+        try { Assistant?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(10)); } catch { }
         Jobs?.Dispose();
         Engine?.Dispose();
     }

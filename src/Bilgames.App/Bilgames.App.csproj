@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Bilgames.Core\Bilgames.Core.csproj" />
     <ProjectReference Include="..\Bilgames.Tts.Kokoro\Bilgames.Tts.Kokoro.csproj" />
+    <ProjectReference Include="..\Bilgames.Assist.Llama\Bilgames.Assist.Llama.csproj" />
   </ItemGroup>
 
   <ItemGroup>

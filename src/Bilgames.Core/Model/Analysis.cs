@@ -21,6 +21,8 @@ public enum AttributionSource
     Alternation,
     Fallback,
     User,
+    /// <summary>Decided by the review assistant (a local language model) with enough confidence.</summary>
+    Assistant,
 }
 
 public sealed class SpeakerCandidate
@@ -39,6 +41,27 @@ public enum CueSource
     Context,
     /// <summary>Set by the reader.</summary>
     User,
+    /// <summary>Chosen by the review assistant.</summary>
+    Assistant,
+}
+
+/// <summary>What the review assistant thinks about a line, kept when it wasn't sure enough to change it.</summary>
+public sealed class AssistantOpinion
+{
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
+    /// <summary>A cast member's id, or empty when <see cref="NewName"/> is someone not in the cast yet.</summary>
+    public string SpeakerId { get; set; } = "";
+    public string? NewName { get; set; }
+    public double Confidence { get; set; }
+    public string? Cue { get; set; }
+    /// <summary>How sure it is of the tone (separately from the speaker).</summary>
+    public double CueConfidence { get; set; }
+    public string Reason { get; set; } = "";
+    /// <summary>How many times it asked for more of the surrounding text.</summary>
+    public int ContextRequests { get; set; }
+    /// <summary>The assistant run that formed it (so a paused run resumes where it stopped).</summary>
+    public string? RunId { get; set; }
 }
 
 /// <summary>One spoken unit: a stretch of narration or a quoted span, in reading order.</summary>
@@ -65,6 +88,8 @@ public sealed class Line
     public int RunPosition { get; set; } = -1;
     public bool Unsure { get; set; }
     public bool Reviewed { get; set; }
+    /// <summary>The review assistant's opinion, when it gave one (applied or not).</summary>
+    public AssistantOpinion? Assistant { get; set; }
 }
 
 public sealed class ChapterAnalysis

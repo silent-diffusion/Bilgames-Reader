@@ -28,6 +28,7 @@ public enum DeleteMode
 /// books/{id}/analysis/{n}.json ChapterAnalysis
 /// books/{id}/cast.json         CastSheet
 /// books/{id}/annotations.json  bookmarks and highlights
+/// books/{id}/assistant.json    what the review assistant changed (for undo) and its voice suggestions
 /// books/{id}/segments/{h}.wav  synthesized segment cache (content-addressed)
 /// books/{id}/audio/{n}.m4a     assembled chapter audio + {n}.json timing index
 /// </code>
@@ -61,12 +62,13 @@ public sealed class LibraryStore
 
     /// <summary>
     /// Run by the uninstaller: removes what can be rebuilt or downloaded again (voice models, the
-    /// segment caches, temp files and logs) and keeps the library itself (books, edits, generated
+    /// review assistant, the segment caches, temp files and logs) and keeps the library itself (books, edits, generated
     /// audio, notes, backups, settings), so reinstalling picks up where the user left off.
     /// </summary>
     public static void CleanForUninstall(string root)
     {
         TryDeleteDir(Path.Combine(root, "models"));
+        TryDeleteDir(Path.Combine(root, "assistant")); // the review assistant's model and llama.cpp
         TryDeleteDir(Path.Combine(root, "tmp"));
         TryDeleteDir(Path.Combine(root, "logs"));
         var books = Path.Combine(root, "books");
@@ -203,6 +205,14 @@ public sealed class LibraryStore
     public void SaveAnnotations(string id, AnnotationSet set)
     {
         lock (LockFor(id)) Write(Path.Combine(BookDir(id), "annotations.json"), set);
+    }
+
+    /// <summary>What the review assistant did to this book (books/{id}/assistant.json).</summary>
+    public Assist.AssistantLog LoadAssistantLog(string id) => Read<Assist.AssistantLog>(Path.Combine(BookDir(id), "assistant.json")) ?? new Assist.AssistantLog();
+
+    public void SaveAssistantLog(string id, Assist.AssistantLog log)
+    {
+        lock (LockFor(id)) Write(Path.Combine(BookDir(id), "assistant.json"), log);
     }
 
     public void ClearSegmentCache(string id)

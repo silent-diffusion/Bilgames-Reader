@@ -24,7 +24,7 @@ public sealed class SpeakerLine
 }
 
 /// <summary>Speaker analysis and every user correction to it. All edits persist immediately.</summary>
-public sealed class BookService
+public sealed partial class BookService
 {
     private readonly LibraryStore _store;
 
