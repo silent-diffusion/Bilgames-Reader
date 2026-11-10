@@ -18,20 +18,28 @@ or an audiobook to a place you choose.
 
 ### The voice, and the assistant, run on your device
 
-- **Voice.** The narration is made by a voice model that runs on your device. The app sends no book
-  text anywhere to make audio.
+- **Voice.** The narration is made by voice models that run on your device, the standard ones or,
+  if you choose them, the expressive ones. The app sends no book text anywhere to make audio. With
+  expressive voices, each character's voice is made on your device from a short description, and
+  kept as a short audio clip with the book.
 - **Assistant.** The optional assistant that helps decide who is speaking uses **Apple Intelligence
   on your device** (Apple's on-device model). It sees a few paragraphs around the line it is asked
   about, the book's title and its main characters' names. Nothing goes to a server, and what it says
   is kept only in the book's own files.
 
-### The one download: the voice model, from GitHub
+### Downloads: the voice models, from GitHub
 
-The first time you generate audio, the app downloads the voice model and its voices (about 800 MB,
-once per device) from **GitHub** (`github.com`, `raw.githubusercontent.com` and GitHub's download
-servers), where the open-source model is published. Like any download, GitHub sees your IP address
-and the time. The app sends no cookies, no account and nothing about you or your books. It doesn't
-go online for anything else: there are no update checks, ads or analytics.
+The first time you generate audio, the app downloads the standard voice model and its voices (about
+800 MB, once per device) from **GitHub** (`github.com`, `raw.githubusercontent.com` and GitHub's
+download servers), where the open-source model is published.
+
+On a Mac or an iPad with enough memory, you can also choose **Expressive voices** in Settings. Only
+then, and only when you ask, the app downloads the expressive voice models (about 4.4 GB, once per
+device) from the same GitHub servers. You can delete them in Settings.
+
+Like any download, GitHub sees your IP address and the time. The app sends no cookies, no account
+and nothing about you or your books. It doesn't go online for anything else: there are no update
+checks, ads or analytics.
 
 ### iCloud sync (optional, off by default)
 
@@ -43,7 +51,7 @@ Apple Account can read it. The developer can't see it, and Apple stores it under
 What syncs:
 
 - in **iCloud Drive** (the app's own folder, not shown in the Files app): each book's EPUB, cover,
-  text, speakers, voices, notes, bookmarks, highlights, listening position and the finished audio;
+  text, speakers, voices, the characters' voice clips, notes, bookmarks, highlights, listening position and the finished audio;
 - in **iCloud's key-value storage** (small and fast): the latest listening position and speed,
   bookmarks and highlights, and which device is generating which chapter.
 
