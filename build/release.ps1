@@ -34,6 +34,10 @@ try {
     dotnet publish src/Bilgames.App/Bilgames.App.csproj -c Release -r win-x64 --self-contained true `
         -p:Platform=x64 -p:Version=$Version -p:PublishReadyToRun=false -o $publishDir --nologo
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
+    # Our own binaries must not contain this machine's folders (see PathMap in Directory.Build.props).
+    $leaks = Get-ChildItem $publishDir -Recurse -File -Include "Bilgames*.dll", "BilgamesReader.dll", "BilgamesReader.exe", "*.pdb" |
+        Select-String -SimpleMatch -Pattern $root, $env:USERPROFILE -List
+    if ($leaks) { $leaks | ForEach-Object { Write-Host $_.Path -ForegroundColor Red }; throw "Build paths found in the published binaries." }
 
     Write-Host "== Velopack CLI" -ForegroundColor Cyan
     if (-not (Test-Path (Join-Path $root ".config\dotnet-tools.json"))) { dotnet new tool-manifest | Out-Null }

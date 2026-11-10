@@ -8,4 +8,11 @@
     <Product>Bilgames Reader</Product>
     <Copyright>Copyright (c) 2026 silent-diffusion. MIT License.</Copyright>
   </PropertyGroup>
+  <!-- Release builds must not carry the build machine's folders (and so its account name) inside
+       the DLLs: map the repository root to /_/ in PDB paths and source paths. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=/_/</PathMap>
+  </PropertyGroup>
 </Project>
