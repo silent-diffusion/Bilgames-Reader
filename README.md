@@ -269,6 +269,7 @@ about two and a half minutes per passage of a book.
   for each session, so nothing else (not even a web page) can use it.
 - **No accounts, analytics, telemetry or crash reports.**
 - Only import books you're entitled to use; DRM-protected EPUBs are refused.
+- Full details, for Windows and for iPhone, iPad and Mac: [privacy policy](PRIVACY.md).
 
 ## Your data
 
